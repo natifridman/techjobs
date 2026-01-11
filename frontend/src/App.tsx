@@ -66,7 +66,11 @@ function App() {
           />
           <Route
             path="/map"
-            element={<Map />}
+            element={
+              <Layout currentPageName="Map">
+                <Map />
+              </Layout>
+            }
           />
         </Routes>
       </Router>

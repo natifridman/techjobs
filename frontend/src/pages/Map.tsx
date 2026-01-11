@@ -1,10 +1,10 @@
 import { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, Building2, MapPin, Briefcase, Loader2 } from "lucide-react";
+import { Building2, Briefcase, Loader2, AlertCircle } from "lucide-react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 import { fetchAllJobs } from "@/components/jobs/jobsData";
 import type { Job } from "@/components/jobs/jobsData";
 
@@ -265,12 +265,19 @@ function FitBounds({ cities }: { cities: CityData[] }) {
 export default function Map() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchAllJobs().then((data) => {
-      setJobs(data);
-      setLoading(false);
-    });
+    fetchAllJobs()
+      .then((data) => {
+        setJobs(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error('Failed to load jobs:', err);
+        setError('Failed to load job data. Please try again later.');
+        setLoading(false);
+      });
   }, []);
 
   // Aggregate jobs by city
@@ -334,23 +341,12 @@ export default function Map() {
   }, [jobs]);
 
   return (
-    <div className="h-screen bg-white overflow-hidden">
-      {/* Header */}
-      <div className="bg-white border-b border-slate-200 px-4 py-3 shadow-sm">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
+    <div className="bg-white" style={{ height: "calc(100vh - 64px)" }}>
+      {/* Stats Bar */}
+      <div className="bg-slate-50 border-b border-slate-200 px-4 py-2">
+        <div className="max-w-7xl mx-auto flex items-center justify-between text-sm text-slate-600">
+          <span className="font-medium">Israeli Tech Map</span>
           <div className="flex items-center gap-4">
-            <Button asChild variant="ghost" size="sm" className="text-slate-600 hover:text-slate-900 hover:bg-slate-100">
-              <Link to={createPageUrl("Home")}>
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back
-              </Link>
-            </Button>
-            <h1 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
-              <MapPin className="w-5 h-5 text-red-500" />
-              Israeli Tech Map
-            </h1>
-          </div>
-          <div className="flex items-center gap-4 text-slate-500 text-sm">
             <span className="flex items-center gap-1">
               <Building2 className="w-4 h-4" />
               {new Set(jobs.map(j => j.company)).size} Companies
@@ -364,12 +360,20 @@ export default function Map() {
       </div>
 
       {/* Map */}
-      <div style={{ height: "calc(100vh - 56px)", width: "100%" }}>
+      <div style={{ height: "calc(100% - 40px)", width: "100%" }}>
         {loading ? (
           <div className="h-full flex items-center justify-center bg-slate-50">
             <div className="text-center">
               <Loader2 className="w-8 h-8 animate-spin text-blue-500 mx-auto mb-3" />
               <p className="text-slate-500">Loading tech companies...</p>
+            </div>
+          </div>
+        ) : error ? (
+          <div className="h-full flex items-center justify-center bg-slate-50">
+            <div className="text-center">
+              <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-3" />
+              <p className="text-slate-700 font-medium mb-2">Error Loading Map</p>
+              <p className="text-slate-500 text-sm">{error}</p>
             </div>
           </div>
         ) : (
