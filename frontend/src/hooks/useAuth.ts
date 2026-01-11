@@ -14,15 +14,17 @@ export function useAuth() {
     retry: false
   });
 
-  // Identify user in PostHog when authenticated
+  // Identify user in PostHog and refresh data when authenticated
   useEffect(() => {
     if (authState?.authenticated && authState.user) {
       posthog.identify(authState.user.id, {
         email: authState.user.email,
         name: authState.user.name,
       });
+      // Invalidate savedJobs to fetch fresh data from DB after login
+      queryClient.invalidateQueries({ queryKey: ['savedJobs'] });
     }
-  }, [authState, posthog]);
+  }, [authState, posthog, queryClient]);
 
   const login = (redirectUrl?: string) => {
     window.location.href = authApi.getLoginUrl(redirectUrl);
