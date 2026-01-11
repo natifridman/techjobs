@@ -62,3 +62,6 @@ coverage/
 
 # Podman/Docker
 *.tar
+
+# Cookies/session files
+cookies.txt

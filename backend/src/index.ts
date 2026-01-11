@@ -1,7 +1,7 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import session from 'express-session';
-import SQLiteStore from 'connect-sqlite3';
 import passport from './config/passport';
 import authRouter from './routes/auth';
 import savedJobsRouter from './routes/savedJobs';
@@ -16,14 +16,6 @@ if (process.env.NODE_ENV === 'production') {
   app.set('trust proxy', 1);
 }
 
-// Session store
-const SQLiteSessionStore = SQLiteStore(session);
-const sessionStore = new SQLiteSessionStore({
-  db: 'sessions.db',
-  dir: process.env.DB_PATH ? path.dirname(process.env.DB_PATH) : path.join(__dirname, '..', 'data'),
-  table: 'sessions'
-});
-
 // CORS configuration
 const corsOrigin = process.env.CORS_ORIGIN || 'http://localhost:5173';
 app.use(cors({
@@ -36,9 +28,8 @@ app.use(cors({
 // Body parser
 app.use(express.json());
 
-// Session configuration
+// Session configuration (using memory store - for production consider Redis or database-backed store)
 app.use(session({
-  store: sessionStore,
   secret: process.env.SESSION_SECRET || 'techjobs-dev-secret-change-in-production',
   resave: false,
   saveUninitialized: false,
