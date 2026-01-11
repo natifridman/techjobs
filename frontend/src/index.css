@@ -10,3 +10,18 @@ body {
 #root {
   min-height: 100vh;
 }
+
+/* Leaflet map styles */
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+  background: #f8fafc;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 12px;
+}
+
+.leaflet-popup-content {
+  margin: 8px 12px;
+}
