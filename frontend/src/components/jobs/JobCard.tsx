@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MapPin, Users, Bookmark, BookmarkCheck, ExternalLink, CheckCircle2 } from "lucide-react";
 import { motion } from "framer-motion";
+import { usePostHog } from 'posthog-js/react';
 import CompanyLogo from "@/components/CompanyLogo";
 import type { Job } from "./jobsData";
 
@@ -31,6 +32,19 @@ interface JobCardProps {
 }
 
 export default function JobCard({ job, onSave, isSaved, onApply, isApplied, index = 0 }: JobCardProps) {
+  const posthog = usePostHog();
+
+  const handleApplyClick = () => {
+    posthog.capture('job_apply_clicked', {
+      job_title: job.title,
+      company: job.company,
+      category: job.category,
+      city: job.city,
+      level: job.level,
+      url: job.url,
+    });
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -117,6 +131,7 @@ export default function JobCard({ job, onSave, isSaved, onApply, isApplied, inde
                 asChild 
                 size="sm" 
                 className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2"
+                onClick={handleApplyClick}
               >
                 <a href={job.url} target="_blank" rel="noopener noreferrer">
                   Apply Now

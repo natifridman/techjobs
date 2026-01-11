@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { usePostHog } from 'posthog-js/react';
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Briefcase, ChevronLeft, ChevronRight, Building2 } from "lucide-react";
@@ -13,9 +14,14 @@ import JobsLoader from "@/components/jobs/JobsLoader";
 import { fetchAllJobs, type Job } from "@/components/jobs/jobsData";
 import { savedJobsApi } from "@/api/storage";
 
+// Types for mutation results
+type SaveMutationResult = { action: 'saved' | 'removed'; job: Job };
+type ApplyMutationResult = { action: 'applied' | 'unapplied'; job: Job };
+
 const JOBS_PER_PAGE = 20;
 
 export default function Jobs() {
+  const posthog = usePostHog();
   const [filters, setFilters] = useState<Filters>({
     search: '',
     categories: [],
@@ -62,11 +68,11 @@ export default function Jobs() {
   });
   
   const saveMutation = useMutation({
-    mutationFn: async (job: Job) => {
+    mutationFn: async (job: Job): Promise<SaveMutationResult> => {
       const existing = savedJobs.find(s => s.url === job.url);
       if (existing) {
         savedJobsApi.delete(existing.id);
-        return { action: 'removed' };
+        return { action: 'removed', job };
       } else {
         savedJobsApi.create({
           job_title: job.title,
@@ -78,24 +84,32 @@ export default function Jobs() {
           size: job.size,
           job_category: job.job_category
         });
-        return { action: 'saved' };
+        return { action: 'saved', job };
       }
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['savedJobs'] });
       toast.success(result.action === 'saved' ? 'Job saved!' : 'Job removed from saved');
+      // Track in PostHog
+      posthog.capture(result.action === 'saved' ? 'job_saved' : 'job_unsaved', {
+        job_title: result.job.title,
+        company: result.job.company,
+        category: result.job.category,
+        city: result.job.city,
+        level: result.job.level,
+      });
     },
   });
 
   const applyMutation = useMutation({
-    mutationFn: async (job: Job) => {
+    mutationFn: async (job: Job): Promise<ApplyMutationResult> => {
       const existing = savedJobs.find(s => s.url === job.url);
       if (existing) {
         savedJobsApi.update(existing.id, {
           applied: !existing.applied,
           applied_date: !existing.applied ? new Date().toISOString().split('T')[0] : undefined
         });
-        return { action: existing.applied ? 'unapplied' : 'applied' };
+        return { action: existing.applied ? 'unapplied' : 'applied', job };
       } else {
         savedJobsApi.create({
           job_title: job.title,
@@ -109,12 +123,20 @@ export default function Jobs() {
           applied: true,
           applied_date: new Date().toISOString().split('T')[0]
         });
-        return { action: 'applied' };
+        return { action: 'applied', job };
       }
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['savedJobs'] });
       toast.success(result.action === 'applied' ? 'Marked as applied!' : 'Unmarked as applied');
+      // Track in PostHog
+      posthog.capture(result.action === 'applied' ? 'job_applied' : 'job_unapplied', {
+        job_title: result.job.title,
+        company: result.job.company,
+        category: result.job.category,
+        city: result.job.city,
+        level: result.job.level,
+      });
     },
   });
   
@@ -216,6 +238,20 @@ export default function Jobs() {
   useEffect(() => {
     setCurrentPage(1);
   }, [filters, searchQuery]);
+
+  // Track search in PostHog (debounced, only on query change)
+  useEffect(() => {
+    if (searchQuery.length > 2) {
+      const timer = setTimeout(() => {
+        posthog.capture('job_search', {
+          query: searchQuery,
+          results_count: filteredJobs.length,
+        });
+      }, 1000); // Debounce 1 second
+      return () => clearTimeout(timer);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery]); // Only trigger on query change, not results count
 
   // Scroll to top when page changes
   useEffect(() => {
