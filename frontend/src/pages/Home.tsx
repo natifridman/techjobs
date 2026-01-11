@@ -296,6 +296,23 @@ export default function Home() {
             <Plus className="w-4 h-4" />
             Add Your Company
           </Button>
+          
+          <div className="flex items-center justify-center gap-3">
+            <Button asChild variant="ghost" size="sm" className="text-warm-400 hover:text-white hover:bg-warm-800">
+              <Link to={createPageUrl("PrivacyPolicy")}>
+                Privacy Policy
+              </Link>
+            </Button>
+            <Button asChild variant="ghost" size="sm" className="text-warm-400 hover:text-white hover:bg-warm-800">
+              <Link to={createPageUrl("TermsOfService")}>
+                Terms of Service
+              </Link>
+            </Button>
+          </div>
+          
+          <p className="text-warm-500 text-xs">
+            © {new Date().getFullYear()} TechMap. All rights reserved.
+          </p>
         </div>
       </footer>
 

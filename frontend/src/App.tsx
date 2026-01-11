@@ -9,6 +9,8 @@ import Companies from '@/pages/Companies';
 import CompanyProfile from '@/pages/CompanyProfile';
 import SavedJobs from '@/pages/SavedJobs';
 import Map from '@/pages/Map';
+import PrivacyPolicy from '@/pages/PrivacyPolicy';
+import TermsOfService from '@/pages/TermsOfService';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -69,6 +71,22 @@ function App() {
             element={
               <Layout currentPageName="Map">
                 <Map />
+              </Layout>
+            }
+          />
+          <Route
+            path="/privacy"
+            element={
+              <Layout currentPageName="PrivacyPolicy">
+                <PrivacyPolicy />
+              </Layout>
+            }
+          />
+          <Route
+            path="/terms"
+            element={
+              <Layout currentPageName="TermsOfService">
+                <TermsOfService />
               </Layout>
             }
           />
