@@ -21,7 +21,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
-    "framer-motion": "^12.24.11",
+    "framer-motion": "^12.25.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.562.0",
     "posthog-js": "^1.318.1",
