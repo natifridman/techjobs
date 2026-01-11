@@ -8,6 +8,7 @@ import Jobs from '@/pages/Jobs';
 import Companies from '@/pages/Companies';
 import CompanyProfile from '@/pages/CompanyProfile';
 import SavedJobs from '@/pages/SavedJobs';
+import Map from '@/pages/Map';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -62,6 +63,10 @@ function App() {
                 <SavedJobs />
               </Layout>
             }
+          />
+          <Route
+            path="/map"
+            element={<Map />}
           />
         </Routes>
       </Router>
