@@ -14,10 +14,13 @@ export function useAuth() {
     retry: false
   });
 
-  // Identify user in PostHog when authenticated (ID only for privacy)
+  // Identify user in PostHog when authenticated with email and name
   useEffect(() => {
     if (authState?.authenticated && authState.user) {
-      posthog.identify(authState.user.id);
+      posthog.identify(authState.user.id, {
+        email: authState.user.email,
+        name: authState.user.name,
+      });
     }
   }, [authState, posthog]);
 
