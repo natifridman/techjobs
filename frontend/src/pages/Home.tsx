@@ -286,16 +286,38 @@ export default function Home() {
       
       {/* Footer */}
       <footer className="bg-slate-950 py-8">
-        <div className="max-w-7xl mx-auto px-4 text-center space-y-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowAddCompany(true)}
-            className="border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800 gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            Add Your Company
-          </Button>
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex flex-col items-center space-y-6">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowAddCompany(true)}
+              className="border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800 gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              Add Your Company
+            </Button>
+            
+            <div className="flex items-center gap-6 text-sm">
+              <Link 
+                to={createPageUrl("PrivacyPolicy")} 
+                className="text-slate-400 hover:text-white transition-colors"
+              >
+                Privacy Policy
+              </Link>
+              <span className="text-slate-700">•</span>
+              <Link 
+                to={createPageUrl("TermsOfService")} 
+                className="text-slate-400 hover:text-white transition-colors"
+              >
+                Terms of Service
+              </Link>
+            </div>
+            
+            <p className="text-slate-500 text-xs">
+              © {new Date().getFullYear()} TechMap. All rights reserved.
+            </p>
+          </div>
         </div>
       </footer>
 
