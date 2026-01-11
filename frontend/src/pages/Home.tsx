@@ -296,18 +296,6 @@ export default function Home() {
             <Plus className="w-4 h-4" />
             Add Your Company
           </Button>
-          <p className="text-slate-400 text-sm">
-            Data sourced from{' '}
-            <a 
-              href="https://github.com/mluggy/techmap" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-indigo-400 hover:text-indigo-300"
-            >
-              Israeli Tech Map
-            </a>
-            {' '}• Updated daily
-          </p>
         </div>
       </footer>
 
