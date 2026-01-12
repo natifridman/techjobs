@@ -47,21 +47,14 @@ export interface Company {
 
 // Initialize Supabase client
 const supabaseUrl = process.env.SUPABASE_URL;
-const isProduction = process.env.NODE_ENV === 'production';
 
-// In production, require service key. In development, allow anon key as fallback.
-const supabaseKey = isProduction 
-  ? process.env.SUPABASE_SERVICE_KEY 
-  : (process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY);
+// Service key is required in all environments for backend operations (bypasses RLS)
+const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
   console.error('❌ Missing Supabase configuration. Set these environment variables:');
   console.error('   SUPABASE_URL=your-project-url');
-  if (isProduction) {
-    console.error('   SUPABASE_SERVICE_KEY=your-service-role-key (REQUIRED in production)');
-  } else {
-    console.error('   SUPABASE_SERVICE_KEY=your-service-role-key (or SUPABASE_ANON_KEY for dev)');
-  }
+  console.error('   SUPABASE_SERVICE_KEY=your-service-role-key');
   process.exit(1);
 }
 
