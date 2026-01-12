@@ -4,6 +4,13 @@ import { useEffect, useRef } from 'react';
 // Set VITE_ADSENSE_CLIENT_ID in your .env file (e.g., VITE_ADSENSE_CLIENT_ID=ca-pub-1234567890123456)
 const ADSENSE_CLIENT_ID = import.meta.env.VITE_ADSENSE_CLIENT_ID || '';
 
+// Ad slot IDs from environment variables
+const AD_SLOTS = {
+  BANNER: import.meta.env.VITE_ADSENSE_SLOT_BANNER || 'XXXXXXXXXX',
+  SIDEBAR: import.meta.env.VITE_ADSENSE_SLOT_SIDEBAR || 'XXXXXXXXXX',
+  IN_FEED: import.meta.env.VITE_ADSENSE_SLOT_INFEED || 'XXXXXXXXXX',
+};
+
 interface GoogleAdProps {
   adSlot: string;
   adFormat?: 'auto' | 'rectangle' | 'horizontal' | 'vertical';
@@ -26,18 +33,44 @@ function isAdsenseScriptLoaded(): boolean {
   return !!document.querySelector('script[src*="adsbygoogle"]');
 }
 
+// Promise that resolves when AdSense script is ready
+let adsenseReadyPromise: Promise<void> | null = null;
+
 /**
  * Dynamically loads the AdSense script with the correct client ID.
- * This is called once globally when the first ad component mounts.
+ * Returns a promise that resolves when the script is loaded and ready.
  */
-function loadAdsenseScript(): void {
-  if (isAdsenseScriptLoaded() || !ADSENSE_CLIENT_ID) return;
-  
-  const script = document.createElement('script');
-  script.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT_ID}`;
-  script.async = true;
-  script.crossOrigin = 'anonymous';
-  document.head.appendChild(script);
+function loadAdsenseScript(): Promise<void> {
+  if (!ADSENSE_CLIENT_ID) {
+    return Promise.reject(new Error('AdSense client ID not configured'));
+  }
+
+  if (adsenseReadyPromise) {
+    return adsenseReadyPromise;
+  }
+
+  if (isAdsenseScriptLoaded()) {
+    adsenseReadyPromise = Promise.resolve();
+    return adsenseReadyPromise;
+  }
+
+  adsenseReadyPromise = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT_ID}`;
+    script.async = true;
+    script.crossOrigin = 'anonymous';
+    
+    script.onload = () => resolve();
+    script.onerror = () => {
+      // Reset promise so we can retry later
+      adsenseReadyPromise = null;
+      reject(new Error('Failed to load AdSense script (possibly blocked by ad blocker)'));
+    };
+    
+    document.head.appendChild(script);
+  });
+
+  return adsenseReadyPromise;
 }
 
 export function GoogleAd({
@@ -68,9 +101,6 @@ export function GoogleAd({
       return;
     }
 
-    // Load the AdSense script if not already loaded
-    loadAdsenseScript();
-
     // Only push the ad once per component instance.
     // We intentionally use an empty dependency array because:
     // 1. AdSense ads should only be initialized once when the component mounts
@@ -79,17 +109,26 @@ export function GoogleAd({
     //    can cause duplicate ads or errors
     if (isAdPushed.current) return;
 
-    try {
-      if (isMounted) {
-        // Initialize adsbygoogle array if it doesn't exist
-        (window.adsbygoogle = window.adsbygoogle || []).push({});
-        isAdPushed.current = true;
-      }
-    } catch (error) {
-      console.error('Google AdSense error:', error);
-    }
+    // Load the AdSense script and wait for it to be ready before pushing
+    loadAdsenseScript()
+      .then(() => {
+        if (!isMounted || isAdPushed.current) return;
+        
+        try {
+          (window.adsbygoogle = window.adsbygoogle || []).push({});
+          isAdPushed.current = true;
+        } catch (error) {
+          console.error('Google AdSense error:', error);
+        }
+      })
+      .catch((error) => {
+        // Script failed to load (likely ad blocker)
+        if (import.meta.env.DEV) {
+          console.warn('GoogleAd:', error.message);
+        }
+      });
 
-    // Cleanup function to handle unmount before initialization completes
+    // Cleanup function to handle unmount during async initialization
     return () => {
       isMounted = false;
     };
@@ -123,8 +162,6 @@ export function GoogleAd({
         </div>
       );
     }
-    // In production, return null silently if slot IDs are not configured
-    // (warning would log on every render)
     return null;
   }
 
@@ -142,14 +179,6 @@ export function GoogleAd({
   );
 }
 
-// Ad slot IDs - Replace these with your actual AdSense ad slot IDs
-// You can find these in your AdSense dashboard under Ads > By ad unit
-const AD_SLOTS = {
-  BANNER: import.meta.env.VITE_ADSENSE_SLOT_BANNER || 'XXXXXXXXXX',
-  SIDEBAR: import.meta.env.VITE_ADSENSE_SLOT_SIDEBAR || 'XXXXXXXXXX',
-  IN_FEED: import.meta.env.VITE_ADSENSE_SLOT_INFEED || 'XXXXXXXXXX',
-};
-
 // Preset ad components for common placements
 // Heights are set to common AdSense ad unit sizes to minimize CLS
 
@@ -158,9 +187,8 @@ export function BannerAd({ className = '' }: { className?: string }) {
     <GoogleAd
       adSlot={AD_SLOTS.BANNER}
       adFormat="horizontal"
-      // 90px is the standard leaderboard height
-      className={`w-full min-h-[90px] ${className}`}
-      style={{ minHeight: '90px' }}
+      className={`w-full ${className}`}
+      style={{ minHeight: '90px' }} // Standard leaderboard height
     />
   );
 }
@@ -170,9 +198,8 @@ export function SidebarAd({ className = '' }: { className?: string }) {
     <GoogleAd
       adSlot={AD_SLOTS.SIDEBAR}
       adFormat="rectangle"
-      // 250px matches the medium rectangle (300x250) ad unit
-      className={`w-full min-h-[250px] ${className}`}
-      style={{ minHeight: '250px' }}
+      className={`w-full ${className}`}
+      style={{ minHeight: '250px' }} // Medium rectangle (300x250)
     />
   );
 }
@@ -182,9 +209,8 @@ export function InFeedAd({ className = '' }: { className?: string }) {
     <GoogleAd
       adSlot={AD_SLOTS.IN_FEED}
       adFormat="auto"
-      // In-feed ads vary in height, 100px is a reasonable minimum
-      className={`w-full min-h-[100px] ${className}`}
-      style={{ minHeight: '100px' }}
+      className={`w-full ${className}`}
+      style={{ minHeight: '100px' }} // Reasonable minimum for in-feed
     />
   );
 }
