@@ -1,9 +1,17 @@
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ScrollText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+// TODO: Update this date when terms are modified
+const LAST_UPDATED = "January 2026";
+
 export default function TermsOfService() {
+  useEffect(() => {
+    document.title = "Terms of Service - TechMap";
+  }, []);
+
   return (
     <div className="min-h-screen bg-slate-50 py-12">
       <div className="max-w-4xl mx-auto px-4">
@@ -15,8 +23,11 @@ export default function TermsOfService() {
         </Button>
 
         <article aria-labelledby="terms-heading" className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 md:p-12">
-          <h1 id="terms-heading" className="text-4xl font-bold text-slate-900 mb-2">Terms of Service</h1>
-          <p className="text-slate-500 mb-8">Last updated: January 2026</p>
+          <div className="flex items-center gap-3 mb-2">
+            <ScrollText className="w-10 h-10 text-indigo-600" />
+            <h1 id="terms-heading" className="text-4xl font-bold text-slate-900">Terms of Service</h1>
+          </div>
+          <p className="text-slate-500 mb-8">Last updated: {LAST_UPDATED}</p>
 
           <div className="prose prose-slate max-w-none">
             <section className="mb-8">

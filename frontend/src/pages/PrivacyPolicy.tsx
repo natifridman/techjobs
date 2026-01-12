@@ -1,9 +1,17 @@
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { ArrowLeft, Shield, UserCircle, BarChart3, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+// TODO: Update this date when privacy policy is modified
+const LAST_UPDATED = "January 2026";
+
 export default function PrivacyPolicy() {
+  useEffect(() => {
+    document.title = "Privacy Policy - TechMap";
+  }, []);
+
   return (
     <div className="min-h-screen bg-slate-50 py-12">
       <div className="max-w-4xl mx-auto px-4">
@@ -19,7 +27,7 @@ export default function PrivacyPolicy() {
             <Shield className="w-10 h-10 text-indigo-600" />
             <h1 id="privacy-heading" className="text-4xl font-bold text-slate-900">Privacy Policy</h1>
           </div>
-          <p className="text-slate-500 mb-8">Last updated: January 2026</p>
+          <p className="text-slate-500 mb-8">Last updated: {LAST_UPDATED}</p>
 
           <div className="prose prose-slate max-w-none">
             {/* Introduction */}
