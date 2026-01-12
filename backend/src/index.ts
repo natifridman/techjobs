@@ -13,6 +13,16 @@ import path from 'path';
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Check required environment variables
+const requiredEnvVars = ['DATABASE_URL', 'SUPABASE_URL', 'SUPABASE_SERVICE_KEY'];
+const missingEnvVars = requiredEnvVars.filter(v => !process.env[v]);
+if (missingEnvVars.length > 0) {
+  console.error('❌ Missing required environment variables:');
+  missingEnvVars.forEach(v => console.error(`   - ${v}`));
+  console.error('');
+  console.error('Set these in Render Dashboard > Environment');
+}
+
 // Trust proxy (required for Render, Railway, etc.)
 if (process.env.NODE_ENV === 'production') {
   app.set('trust proxy', 1);
@@ -33,17 +43,21 @@ app.use(express.json());
 // PostgreSQL session store using Supabase
 const PgStore = pgSession(session);
 
-// Build connection string from Supabase URL
-// Supabase URL format: https://PROJECT_ID.supabase.co
-// PostgreSQL format: postgresql://postgres.[PROJECT_ID]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres
-const supabaseUrl = process.env.SUPABASE_URL || '';
-const supabaseProjectId = supabaseUrl.replace('https://', '').replace('.supabase.co', '');
+// Use DATABASE_URL directly (get from Supabase Dashboard > Settings > Database > Connection string)
+const databaseUrl = process.env.DATABASE_URL;
+if (!databaseUrl) {
+  console.error('❌ DATABASE_URL not set! Get it from Supabase Dashboard > Settings > Database > Connection string (URI)');
+}
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 
-    `postgresql://postgres.${supabaseProjectId}:${process.env.SUPABASE_DB_PASSWORD}@aws-0-us-east-1.pooler.supabase.com:6543/postgres`,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+  connectionString: databaseUrl,
+  ssl: { rejectUnauthorized: false }
 });
+
+// Test database connection
+pool.query('SELECT NOW()')
+  .then(() => console.log('✅ PostgreSQL connected'))
+  .catch(err => console.error('❌ PostgreSQL connection failed:', err.message));
 
 // Session configuration with PostgreSQL persistence
 app.use(session({
@@ -51,6 +65,7 @@ app.use(session({
     pool,
     tableName: 'session',
     createTableIfMissing: false, // We create it via supabase-schema.sql
+    errorLog: console.error.bind(console),
   }),
   secret: process.env.SESSION_SECRET || 'techjobs-dev-secret-change-in-production',
   resave: false,
