@@ -1,0 +1,301 @@
+import { describe, it, expect, beforeEach } from 'vitest';
+import { http, HttpResponse } from 'msw';
+import { server } from '../mocks/server';
+import { savedJobsApi, companiesApi } from '@/api/storage';
+import { mockSavedJobs } from '../mocks/handlers';
+
+describe('savedJobsApi', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  describe('list', () => {
+    it('should fetch saved jobs from API', async () => {
+      const jobs = await savedJobsApi.list();
+
+      expect(jobs).toHaveLength(1);
+      expect(jobs[0]).toMatchObject({
+        job_title: 'Software Engineer',
+        company: 'Test Corp',
+      });
+    });
+
+    it('should fall back to localStorage on 401', async () => {
+      server.use(
+        http.get('/api/saved-jobs', () => {
+          return new HttpResponse(null, { status: 401 });
+        })
+      );
+
+      // Set up local storage
+      const localJob = {
+        id: 'local-1',
+        job_title: 'Local Job',
+        company: 'Local Corp',
+        url: 'http://local.com/job',
+        created_date: new Date().toISOString(),
+      };
+      localStorage.setItem('techjobs_saved_jobs', JSON.stringify([localJob]));
+
+      const jobs = await savedJobsApi.list();
+
+      expect(jobs).toHaveLength(1);
+      expect(jobs[0].job_title).toBe('Local Job');
+    });
+
+    it('should fall back to localStorage on network error', async () => {
+      server.use(
+        http.get('/api/saved-jobs', () => {
+          return HttpResponse.error();
+        })
+      );
+
+      const localJob = {
+        id: 'local-1',
+        job_title: 'Fallback Job',
+        company: 'Fallback Corp',
+        url: 'http://fallback.com/job',
+        created_date: new Date().toISOString(),
+      };
+      localStorage.setItem('techjobs_saved_jobs', JSON.stringify([localJob]));
+
+      const jobs = await savedJobsApi.list();
+
+      expect(jobs).toHaveLength(1);
+      expect(jobs[0].job_title).toBe('Fallback Job');
+    });
+
+    it('should sort by created_date when specified', async () => {
+      server.use(
+        http.get('/api/saved-jobs', () => {
+          return new HttpResponse(null, { status: 401 });
+        })
+      );
+
+      const now = new Date();
+      const earlier = new Date(now.getTime() - 60000);
+
+      const jobs = [
+        { id: '1', job_title: 'First', company: 'Corp', url: 'http://1.com', created_date: earlier.toISOString() },
+        { id: '2', job_title: 'Second', company: 'Corp', url: 'http://2.com', created_date: now.toISOString() },
+      ];
+      localStorage.setItem('techjobs_saved_jobs', JSON.stringify(jobs));
+
+      const result = await savedJobsApi.list('-created_date');
+
+      expect(result[0].job_title).toBe('Second'); // Newer first
+      expect(result[1].job_title).toBe('First');
+    });
+  });
+
+  describe('create', () => {
+    it('should create a saved job via API', async () => {
+      const newJob = {
+        job_title: 'New Job',
+        company: 'New Corp',
+        url: 'http://new.com/job',
+      };
+
+      const result = await savedJobsApi.create(newJob);
+
+      expect(result.job_title).toBe('New Job');
+      expect(result.id).toBeDefined();
+    });
+
+    it('should fall back to localStorage on 401', async () => {
+      server.use(
+        http.post('/api/saved-jobs', () => {
+          return new HttpResponse(null, { status: 401 });
+        })
+      );
+
+      const newJob = {
+        job_title: 'Local New Job',
+        company: 'Local Corp',
+        url: 'http://local.com/new',
+      };
+
+      const result = await savedJobsApi.create(newJob);
+
+      expect(result.job_title).toBe('Local New Job');
+      expect(result.id).toBeDefined();
+
+      // Check localStorage
+      const stored = JSON.parse(localStorage.getItem('techjobs_saved_jobs') || '[]');
+      expect(stored).toHaveLength(1);
+      expect(stored[0].job_title).toBe('Local New Job');
+    });
+  });
+
+  describe('update', () => {
+    it('should update a saved job via API', async () => {
+      server.use(
+        http.put('/api/saved-jobs/:id', async ({ request }) => {
+          const body = await request.json() as Record<string, unknown>;
+          return HttpResponse.json({
+            ...mockSavedJobs[0],
+            ...body,
+            updated_date: new Date().toISOString(),
+          });
+        })
+      );
+
+      const result = await savedJobsApi.update('saved-job-1', { applied: true });
+
+      expect(result?.applied).toBe(true);
+    });
+
+    it('should fall back to localStorage on 401', async () => {
+      server.use(
+        http.put('/api/saved-jobs/:id', () => {
+          return new HttpResponse(null, { status: 401 });
+        })
+      );
+
+      const localJob = {
+        id: 'local-1',
+        job_title: 'Local Job',
+        company: 'Corp',
+        url: 'http://local.com',
+        applied: false,
+        created_date: new Date().toISOString(),
+      };
+      localStorage.setItem('techjobs_saved_jobs', JSON.stringify([localJob]));
+
+      const result = await savedJobsApi.update('local-1', { applied: true });
+
+      expect(result?.applied).toBe(true);
+    });
+  });
+
+  describe('delete', () => {
+    it('should delete a saved job via API', async () => {
+      const result = await savedJobsApi.delete('saved-job-1');
+
+      expect(result).toBe(true);
+    });
+
+    it('should fall back to localStorage on 401', async () => {
+      server.use(
+        http.delete('/api/saved-jobs/:id', () => {
+          return new HttpResponse(null, { status: 401 });
+        })
+      );
+
+      const localJob = {
+        id: 'local-delete',
+        job_title: 'Delete Me',
+        company: 'Corp',
+        url: 'http://delete.com',
+        created_date: new Date().toISOString(),
+      };
+      localStorage.setItem('techjobs_saved_jobs', JSON.stringify([localJob]));
+
+      const result = await savedJobsApi.delete('local-delete');
+
+      expect(result).toBe(true);
+
+      const stored = JSON.parse(localStorage.getItem('techjobs_saved_jobs') || '[]');
+      expect(stored).toHaveLength(0);
+    });
+  });
+
+  describe('findByUrl', () => {
+    it('should find a job by URL', async () => {
+      const job = await savedJobsApi.findByUrl('https://example.com/job1');
+
+      expect(job).toBeDefined();
+      expect(job?.job_title).toBe('Software Engineer');
+    });
+
+    it('should return undefined for non-existent URL', async () => {
+      const job = await savedJobsApi.findByUrl('http://nonexistent.com');
+
+      expect(job).toBeUndefined();
+    });
+  });
+});
+
+describe('companiesApi', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  describe('list', () => {
+    it('should fetch companies from API', async () => {
+      const companies = await companiesApi.list();
+
+      expect(companies).toHaveLength(1);
+      expect(companies[0]).toMatchObject({
+        name: 'Test Corp',
+        description: 'A great company',
+      });
+    });
+
+    it('should fall back to localStorage on error', async () => {
+      server.use(
+        http.get('/api/companies', () => {
+          return HttpResponse.error();
+        })
+      );
+
+      const localCompany = {
+        id: 'local-company',
+        name: 'Local Company',
+      };
+      localStorage.setItem('techjobs_companies', JSON.stringify([localCompany]));
+
+      const companies = await companiesApi.list();
+
+      expect(companies).toHaveLength(1);
+      expect(companies[0].name).toBe('Local Company');
+    });
+  });
+
+  describe('get', () => {
+    it('should fetch company by name', async () => {
+      const company = await companiesApi.get('Test Corp');
+
+      expect(company).toBeDefined();
+      expect(company?.description).toBe('A great company');
+    });
+
+    it('should return undefined for non-existent company', async () => {
+      const company = await companiesApi.get('Non Existent');
+
+      expect(company).toBeUndefined();
+    });
+  });
+
+  describe('create', () => {
+    it('should create a company via API', async () => {
+      const result = await companiesApi.create({
+        name: 'New Company',
+        description: 'A new company',
+      });
+
+      expect(result.name).toBe('New Company');
+      expect(result.id).toBeDefined();
+    });
+  });
+
+  describe('upsert', () => {
+    it('should update existing company', async () => {
+      const result = await companiesApi.upsert('Test Corp', {
+        description: 'Updated description',
+      });
+
+      expect(result.name).toBe('Test Corp');
+      expect(result.description).toBe('Updated description');
+    });
+
+    it('should create new company if not exists', async () => {
+      const result = await companiesApi.upsert('Brand New Corp', {
+        description: 'Brand new company',
+      });
+
+      expect(result.name).toBe('Brand New Corp');
+      expect(result.id).toBeDefined();
+    });
+  });
+});
