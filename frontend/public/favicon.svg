@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Dark background circle -->
+  <circle cx="16" cy="16" r="16" fill="#1e1e2e"/>
+  <!-- Star of David -->
+  <polygon points="16,4 26,22 6,22" fill="none" stroke="white" stroke-width="2"/>
+  <polygon points="16,28 6,10 26,10" fill="none" stroke="white" stroke-width="2"/>
+  <!-- Orange accent triangles -->
+  <polygon points="16,11 12.5,16 19.5,16" fill="#cd6d3a"/>
+  <polygon points="16,21 12.5,16 19.5,16" fill="#cd6d3a"/>
+</svg>
