@@ -5,8 +5,8 @@ import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
-  ArrowLeft, MapPin, Users, Globe, 
+import {
+  ArrowLeft, MapPin, Users, Globe,
   Search, Briefcase, Lock, LogIn
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -72,9 +72,9 @@ export default function CompanyProfile() {
     const sizes = Array.from(new Set(companyJobs.map(j => j.size).filter(Boolean)));
     const jobCategories = Array.from(new Set(companyJobs.map(j => j.job_category).filter(Boolean)));
 
-    const filteredJobs = companyJobs.filter(job => 
-      !searchQuery || 
-      job.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    const filteredJobs = companyJobs.filter(job =>
+      !searchQuery ||
+      job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       job.city?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       job.job_category?.toLowerCase().includes(searchQuery.toLowerCase())
     ).sort((a, b) => new Date(b.updated).getTime() - new Date(a.updated).getTime());
@@ -92,7 +92,7 @@ export default function CompanyProfile() {
   }, [jobs, companyName, searchQuery]);
 
   const isJobSaved = (job: Job) => savedJobs.some(s => s.url === job.url);
-  
+
   const sizeLabels: Record<string, string> = {
     'xs': '1-10',
     's': '11-50',
@@ -103,8 +103,8 @@ export default function CompanyProfile() {
 
   if (!companyName) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
-        <h2 className="text-2xl font-bold text-slate-800 mb-4">Company not found</h2>
+      <div className="min-h-screen bg-warm-50 flex flex-col items-center justify-center p-4">
+        <h2 className="text-2xl font-bold text-warm-800 mb-4">Company not found</h2>
         <Button asChild>
           <Link to={createPageUrl("Companies")}>Back to Companies</Link>
         </Button>
@@ -113,11 +113,11 @@ export default function CompanyProfile() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-warm-50">
       {/* Header */}
-      <div className="bg-white border-b border-slate-200">
+      <div className="bg-white border-b border-warm-200">
         <div className="max-w-5xl mx-auto px-4 py-8">
-          <Button asChild variant="ghost" className="mb-6 -ml-2 text-slate-500 hover:text-slate-900">
+          <Button asChild variant="ghost" className="mb-6 -ml-2 text-warm-500 hover:text-warm-900">
             <Link to={createPageUrl("Companies")}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Companies
@@ -126,8 +126,8 @@ export default function CompanyProfile() {
 
           {isJobsLoading ? (
             <div className="animate-pulse space-y-4">
-              <div className="h-10 bg-slate-200 rounded w-1/3" />
-              <div className="h-6 bg-slate-200 rounded w-1/2" />
+              <div className="h-10 bg-warm-200 rounded w-1/3" />
+              <div className="h-6 bg-warm-200 rounded w-1/2" />
             </div>
           ) : companyData ? (
             <div className="space-y-8">
@@ -135,15 +135,15 @@ export default function CompanyProfile() {
               <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
                 <div className="flex-1">
                   <div className="flex items-start gap-5">
-                    <CompanyLogo 
-                      name={companyData.name} 
-                      className="w-20 h-20 shadow-sm border-slate-200" 
-                      textSize="text-3xl" 
+                    <CompanyLogo
+                      name={companyData.name}
+                      className="w-20 h-20 shadow-sm border-warm-200"
+                      textSize="text-3xl"
                     />
                     <div className="space-y-2">
                       <div>
-                        <h1 className="text-3xl font-bold text-slate-900">{companyData.name}</h1>
-                        <div className="flex items-center gap-2 text-slate-500 mt-1">
+                        <h1 className="text-3xl font-bold text-warm-900">{companyData.name}</h1>
+                        <div className="flex items-center gap-2 text-warm-500 mt-1">
                           <Badge variant="secondary" className="font-normal">
                             {companyData.categories.join(', ')}
                           </Badge>
@@ -152,18 +152,18 @@ export default function CompanyProfile() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="flex flex-col gap-3 min-w-[200px]">
-                  <div className="flex items-center gap-2 text-slate-600">
-                    <Users className="w-4 h-4 text-slate-400" />
+                  <div className="flex items-center gap-2 text-warm-600">
+                    <Users className="w-4 h-4 text-warm-400" />
                     <span>
                       {companyData.sizes.map(s => sizeLabels[s] || s).join(', ') || 'Size not specified'}
                     </span>
                   </div>
                   <Button asChild variant="outline" size="sm" className="gap-2 justify-start">
-                    <a 
-                      href={`https://www.google.com/search?q=${encodeURIComponent(companyData.name + " Israel careers website")}`} 
-                      target="_blank" 
+                    <a
+                      href={`https://www.google.com/search?q=${encodeURIComponent(companyData.name + " Israel careers website")}`}
+                      target="_blank"
                       rel="noopener noreferrer"
                     >
                       <Globe className="w-4 h-4" />
@@ -178,24 +178,24 @@ export default function CompanyProfile() {
                 {/* Locations & Categories */}
                 <div className="space-y-6">
                   <div>
-                    <h3 className="text-sm font-medium text-slate-500 mb-3 flex items-center gap-2">
+                    <h3 className="text-sm font-medium text-warm-500 mb-3 flex items-center gap-2">
                       <MapPin className="w-4 h-4" />
                       Locations
                     </h3>
                     <div className="flex flex-wrap gap-2">
                       {companyData.locations.map(loc => (
-                        <Badge key={loc} variant="outline" className="bg-slate-50">{loc}</Badge>
+                        <Badge key={loc} variant="outline" className="bg-warm-50">{loc}</Badge>
                       ))}
                     </div>
                   </div>
                   <div>
-                    <h3 className="text-sm font-medium text-slate-500 mb-3 flex items-center gap-2">
+                    <h3 className="text-sm font-medium text-warm-500 mb-3 flex items-center gap-2">
                       <Briefcase className="w-4 h-4" />
                       Job Categories
                     </h3>
                     <div className="flex flex-wrap gap-2">
                       {companyData.jobCategories.map(cat => (
-                        <Badge key={cat} variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200">{cat}</Badge>
+                        <Badge key={cat} variant="outline" className="bg-iris-50 text-iris-700 border-iris-200">{cat}</Badge>
                       ))}
                     </div>
                   </div>
@@ -204,7 +204,7 @@ export default function CompanyProfile() {
             </div>
           ) : (
             <div className="text-center py-8">
-              <h2 className="text-xl font-semibold text-slate-800">Company not found</h2>
+              <h2 className="text-xl font-semibold text-warm-800">Company not found</h2>
             </div>
           )}
         </div>
@@ -215,16 +215,16 @@ export default function CompanyProfile() {
         {companyData && (
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <h2 className="text-xl font-semibold text-slate-900">
+              <h2 className="text-xl font-semibold text-warm-900">
                 Open Positions
-                <span className="ml-2 text-slate-500 text-sm font-normal">
+                <span className="ml-2 text-warm-500 text-sm font-normal">
                   ({companyData.totalJobs})
                 </span>
               </h2>
-              
+
               {isAuthenticated && (
                 <div className="relative w-full sm:w-72">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-warm-400" />
                   <Input
                     placeholder="Filter jobs..."
                     value={searchQuery}
@@ -238,9 +238,9 @@ export default function CompanyProfile() {
             {isAuthenticated ? (
               <div className="grid gap-4">
                 {companyData.jobs.length === 0 && (
-                  <div className="text-center py-12 bg-white rounded-lg border border-slate-200 border-dashed">
-                    <Search className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                    <p className="text-slate-500">No jobs match your filter</p>
+                  <div className="text-center py-12 bg-white rounded-lg border border-warm-200 border-dashed">
+                    <Search className="w-12 h-12 text-warm-300 mx-auto mb-3" />
+                    <p className="text-warm-500">No jobs match your filter</p>
                     <Button variant="link" onClick={() => setSearchQuery('')}>Clear filter</Button>
                   </div>
                 )}
@@ -255,14 +255,14 @@ export default function CompanyProfile() {
                 ))}
               </div>
             ) : (
-              <div className="bg-white rounded-xl border border-slate-200 p-8 text-center">
+              <div className="bg-white rounded-xl border border-warm-200 p-8 text-center">
                 <div className="mx-auto w-16 h-16 bg-iris-100 rounded-full flex items-center justify-center mb-4">
                   <Lock className="w-8 h-8 text-iris-600" />
                 </div>
-                <h3 className="text-lg font-semibold text-slate-900 mb-2">
+                <h3 className="text-lg font-semibold text-warm-900 mb-2">
                   Sign in to view job listings
                 </h3>
-                <p className="text-slate-500 mb-6 max-w-sm mx-auto">
+                <p className="text-warm-500 mb-6 max-w-sm mx-auto">
                   Create a free account to see all {companyData.totalJobs} open positions at {companyData.name}
                 </p>
                 <Button

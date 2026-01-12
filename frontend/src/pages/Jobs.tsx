@@ -268,25 +268,52 @@ export default function Jobs() {
   const isJobSaved = (job: Job) => savedJobs.some(s => s.url === job.url);
   const isJobApplied = (job: Job) => savedJobs.some(s => s.url === job.url && s.applied);
 
+  // Calculate pagination page numbers based on screen size (fewer pages on mobile)
+  const getVisiblePageNumbers = () => {
+    const maxPages = typeof window !== 'undefined' && window.innerWidth < 640 ? 3 : 5;
+    const pages: number[] = [];
+
+    if (totalPages <= maxPages) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else if (currentPage <= Math.floor(maxPages / 2) + 1) {
+      for (let i = 1; i <= maxPages; i++) {
+        pages.push(i);
+      }
+    } else if (currentPage >= totalPages - Math.floor(maxPages / 2)) {
+      for (let i = totalPages - maxPages + 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      const start = currentPage - Math.floor(maxPages / 2);
+      for (let i = start; i < start + maxPages; i++) {
+        pages.push(i);
+      }
+    }
+
+    return pages;
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-warm-50 to-iris-50/30">
       {/* Hero Section */}
       <div className="bg-gradient-to-r from-iris-700 via-iris-800 to-iris-900 text-white">
-        <div className="max-w-7xl mx-auto px-4 py-12 md:py-16">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="max-w-7xl mx-auto px-4 py-8 md:py-16">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-6">
             <div>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-3 bg-white/10 rounded-xl backdrop-blur">
-                  <Briefcase className="w-8 h-8" />
+              <div className="flex items-center gap-3 mb-3 md:mb-4">
+                <div className="p-2 md:p-3 bg-white/10 rounded-xl backdrop-blur">
+                  <Briefcase className="w-6 h-6 md:w-8 md:h-8" />
                 </div>
-                <h1 className="text-3xl md:text-4xl font-bold">Israeli Tech Jobs</h1>
+                <h1 className="text-2xl md:text-4xl font-bold">Israeli Tech Jobs</h1>
               </div>
-              <p className="text-lg text-iris-100 max-w-2xl">
+              <p className="text-base md:text-lg text-iris-100 max-w-2xl">
                 Discover opportunities at Israel's top tech companies.
                 Updated daily from leading startups and enterprises.
               </p>
             </div>
-            <Button asChild className="bg-copper-500 text-white hover:bg-copper-600 border-none shadow-lg">
+            <Button asChild className="bg-copper-500 text-white hover:bg-copper-600 border-none shadow-lg w-full md:w-auto">
               <Link to={createPageUrl("Companies")}>
                 <Building2 className="w-4 h-4 mr-2" />
                 Browse Companies
@@ -296,8 +323,9 @@ export default function Jobs() {
         </div>
       </div>
 
-      <div className="flex h-[calc(100vh-200px)]">
-        {/* Sidebar */}
+      {/* Main Content Area - Responsive height */}
+      <div className="flex flex-col lg:flex-row min-h-[calc(100vh-200px)] lg:h-[calc(100vh-200px)]">
+        {/* Sidebar - Mobile overlay */}
         <FilterSidebar
           filters={filters}
           setFilters={setFilters}
@@ -306,6 +334,7 @@ export default function Jobs() {
           onClose={() => setIsFilterOpen(false)}
           isMobile={true}
         />
+        {/* Sidebar - Desktop */}
         <FilterSidebar
           filters={filters}
           setFilters={setFilters}
@@ -352,41 +381,29 @@ export default function Jobs() {
 
                 {/* Pagination */}
                 {totalPages > 1 && (
-                  <div className="flex items-center justify-center gap-2 mt-8 pb-4">
+                  <div className="flex items-center justify-center gap-1 sm:gap-2 mt-8 pb-4">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                       disabled={currentPage === 1}
+                      className="px-2 sm:px-3"
                     >
                       <ChevronLeft className="w-4 h-4" />
                     </Button>
 
                     <div className="flex items-center gap-1">
-                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                        let pageNum;
-                        if (totalPages <= 5) {
-                          pageNum = i + 1;
-                        } else if (currentPage <= 3) {
-                          pageNum = i + 1;
-                        } else if (currentPage >= totalPages - 2) {
-                          pageNum = totalPages - 4 + i;
-                        } else {
-                          pageNum = currentPage - 2 + i;
-                        }
-
-                        return (
-                          <Button
-                            key={pageNum}
-                            variant={currentPage === pageNum ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => setCurrentPage(pageNum)}
-                            className={currentPage === pageNum ? "bg-iris-600" : ""}
-                          >
-                            {pageNum}
-                          </Button>
-                        );
-                      })}
+                      {getVisiblePageNumbers().map(pageNum => (
+                        <Button
+                          key={pageNum}
+                          variant={currentPage === pageNum ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPage(pageNum)}
+                          className={`min-w-[36px] ${currentPage === pageNum ? "bg-iris-600" : ""}`}
+                        >
+                          {pageNum}
+                        </Button>
+                      ))}
                     </div>
 
                     <Button
@@ -394,6 +411,7 @@ export default function Jobs() {
                       size="sm"
                       onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                       disabled={currentPage === totalPages}
+                      className="px-2 sm:px-3"
                     >
                       <ChevronRight className="w-4 h-4" />
                     </Button>

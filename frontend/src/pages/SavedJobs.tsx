@@ -5,12 +5,12 @@ import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
-  ArrowLeft, 
-  Bookmark, 
-  BookmarkX, 
-  MapPin, 
-  Building2, 
+import {
+  ArrowLeft,
+  Bookmark,
+  BookmarkX,
+  MapPin,
+  Building2,
   ExternalLink,
   Briefcase,
   CheckCircle2,
@@ -39,7 +39,7 @@ export default function SavedJobs() {
   const [editingComment, setEditingComment] = useState<string | null>(null);
   const [commentText, setCommentText] = useState('');
   const [filter, setFilter] = useState<FilterType>('all');
-  
+
   const { data: savedJobs = [], isLoading } = useQuery({
     queryKey: ['savedJobs'],
     queryFn: () => savedJobsApi.list('-created_date'),
@@ -54,7 +54,7 @@ export default function SavedJobs() {
   });
 
   const appliedCount = savedJobs.filter(j => j.applied).length;
-  
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) => savedJobsApi.delete(id),
     onSuccess: () => {
@@ -67,7 +67,7 @@ export default function SavedJobs() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<SavedJob> }) => 
+    mutationFn: ({ id, data }: { id: string; data: Partial<SavedJob> }) =>
       savedJobsApi.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['savedJobs'] });
@@ -110,11 +110,11 @@ export default function SavedJobs() {
       }
     });
   };
-  
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50/30">
+    <div className="min-h-screen bg-gradient-to-br from-warm-50 to-iris-50/30">
       {/* Header */}
-      <div className="bg-white border-b border-slate-200">
+      <div className="bg-white border-b border-warm-200">
         <div className="max-w-4xl mx-auto px-4 py-6">
           <div className="flex items-center gap-4 mb-4">
             <Button asChild variant="ghost" size="icon">
@@ -123,16 +123,16 @@ export default function SavedJobs() {
               </Link>
             </Button>
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-indigo-100 rounded-lg">
-                <Bookmark className="w-6 h-6 text-indigo-600" />
+              <div className="p-2 bg-iris-100 rounded-lg">
+                <Bookmark className="w-6 h-6 text-iris-600" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-slate-900">Saved Jobs</h1>
-                <p className="text-slate-500">{savedJobs.length} jobs saved • {appliedCount} applied</p>
+                <h1 className="text-2xl font-bold text-warm-900">Saved Jobs</h1>
+                <p className="text-warm-500">{savedJobs.length} jobs saved • {appliedCount} applied</p>
               </div>
             </div>
           </div>
-          
+
           {/* Filter Tabs */}
           {savedJobs.length > 0 && (
             <div className="flex gap-2 mt-4">
@@ -140,7 +140,7 @@ export default function SavedJobs() {
                 variant={filter === 'all' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setFilter('all')}
-                className={filter === 'all' ? 'bg-indigo-600 hover:bg-indigo-700' : ''}
+                className={filter === 'all' ? 'bg-iris-600 hover:bg-iris-700' : ''}
               >
                 All ({savedJobs.length})
               </Button>
@@ -157,7 +157,7 @@ export default function SavedJobs() {
                 variant={filter === 'not-applied' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setFilter('not-applied')}
-                className={filter === 'not-applied' ? 'bg-slate-600 hover:bg-slate-700' : ''}
+                className={filter === 'not-applied' ? 'bg-warm-600 hover:bg-warm-700' : ''}
               >
                 <Circle className="w-4 h-4 mr-1.5" />
                 Not Applied ({savedJobs.length - appliedCount})
@@ -166,7 +166,7 @@ export default function SavedJobs() {
           )}
         </div>
       </div>
-      
+
       {/* Content */}
       <div className="max-w-4xl mx-auto px-4 py-8">
         {isLoading ? (
@@ -174,20 +174,20 @@ export default function SavedJobs() {
             {[...Array(3)].map((_, i) => (
               <Card key={i} className="animate-pulse">
                 <CardContent className="p-6">
-                  <div className="h-6 bg-slate-200 rounded w-3/4 mb-3" />
-                  <div className="h-4 bg-slate-200 rounded w-1/2" />
+                  <div className="h-6 bg-warm-200 rounded w-3/4 mb-3" />
+                  <div className="h-4 bg-warm-200 rounded w-1/2" />
                 </CardContent>
               </Card>
             ))}
           </div>
         ) : filteredJobs.length === 0 && savedJobs.length === 0 ? (
           <div className="text-center py-16">
-            <Briefcase className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-slate-700 mb-2">No saved jobs yet</h3>
-            <p className="text-slate-500 mb-6">
+            <Briefcase className="w-16 h-16 text-warm-300 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-warm-700 mb-2">No saved jobs yet</h3>
+            <p className="text-warm-500 mb-6">
               Browse jobs and click the bookmark icon to save them here
             </p>
-            <Button asChild className="bg-indigo-600 hover:bg-indigo-700">
+            <Button asChild className="bg-iris-600 hover:bg-iris-700">
               <Link to={createPageUrl("Jobs")}>
                 Browse Jobs
               </Link>
@@ -195,13 +195,13 @@ export default function SavedJobs() {
           </div>
         ) : filteredJobs.length === 0 ? (
           <div className="text-center py-16">
-            <CheckCircle2 className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-slate-700 mb-2">
+            <CheckCircle2 className="w-16 h-16 text-warm-300 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-warm-700 mb-2">
               {filter === 'applied' ? 'No applied jobs yet' : 'All jobs have been applied to!'}
             </h3>
-            <p className="text-slate-500 mb-6">
-              {filter === 'applied' 
-                ? 'Mark jobs as applied when you submit your application' 
+            <p className="text-warm-500 mb-6">
+              {filter === 'applied'
+                ? 'Mark jobs as applied when you submit your application'
                 : 'Great job! You\'ve applied to all your saved positions'}
             </p>
             <Button onClick={() => setFilter('all')} variant="outline">
@@ -224,14 +224,14 @@ export default function SavedJobs() {
                       <div className="flex justify-between items-start gap-4">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-2 flex-wrap">
-                            <Badge 
-                              variant="outline" 
-                              className={`${levelColors[job.level || ''] || 'bg-slate-50 text-slate-700 border-slate-200'} text-xs`}
+                            <Badge
+                              variant="outline"
+                              className={`${levelColors[job.level || ''] || 'bg-warm-50 text-warm-700 border-warm-200'} text-xs`}
                             >
                               {job.level}
                             </Badge>
                             {job.job_category && (
-                              <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 text-xs capitalize">
+                              <Badge variant="outline" className="bg-iris-50 text-iris-700 border-iris-200 text-xs capitalize">
                                 {job.job_category.replace(/-/g, ' ')}
                               </Badge>
                             )}
@@ -242,36 +242,36 @@ export default function SavedJobs() {
                               </Badge>
                             )}
                           </div>
-                          
-                          <h3 className="font-semibold text-lg text-slate-900 mb-2 truncate">
+
+                          <h3 className="font-semibold text-lg text-warm-900 mb-2 truncate">
                             {job.job_title}
                           </h3>
-                          
-                          <div className="flex items-center gap-2 text-slate-600 mb-2">
-                            <Building2 className="w-4 h-4 text-slate-400" />
+
+                          <div className="flex items-center gap-2 text-warm-600 mb-2">
+                            <Building2 className="w-4 h-4 text-warm-400" />
                             <span className="font-medium">{job.company}</span>
                             {job.category && (
                               <>
-                                <span className="text-slate-300">•</span>
-                                <span className="text-sm text-slate-500">{job.category}</span>
+                                <span className="text-warm-300">•</span>
+                                <span className="text-sm text-warm-500">{job.category}</span>
                               </>
                             )}
                           </div>
-                          
+
                           {job.city && (
-                            <div className="flex items-center gap-1.5 text-sm text-slate-500">
-                              <MapPin className="w-4 h-4 text-slate-400" />
+                            <div className="flex items-center gap-1.5 text-sm text-warm-500">
+                              <MapPin className="w-4 h-4 text-warm-400" />
                               <span>{job.city}</span>
                             </div>
                           )}
                         </div>
-                        
+
                         <Button
                           variant="ghost"
                           size="icon"
                           onClick={() => deleteMutation.mutate(job.id)}
                           disabled={deleteMutation.isPending}
-                          className="text-slate-400 hover:text-red-500 hover:bg-red-50 disabled:opacity-50"
+                          className="text-warm-400 hover:text-red-500 hover:bg-red-50 disabled:opacity-50"
                         >
                           <BookmarkX className="w-5 h-5" />
                         </Button>
@@ -302,23 +302,23 @@ export default function SavedJobs() {
                               size="sm"
                               onClick={() => saveComment(job.id)}
                               disabled={updateMutation.isPending}
-                              className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50"
+                              className="bg-iris-600 hover:bg-iris-700 disabled:opacity-50"
                             >
                               {updateMutation.isPending ? 'Saving...' : 'Save'}
                             </Button>
                           </div>
                         </div>
                       ) : job.comments ? (
-                        <div className="mt-4 p-3 bg-slate-50 rounded-lg">
+                        <div className="mt-4 p-3 bg-warm-50 rounded-lg">
                           <div className="flex items-start justify-between gap-2">
-                            <div className="flex items-start gap-2 text-sm text-slate-600">
-                              <MessageSquare className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                            <div className="flex items-start gap-2 text-sm text-warm-600">
+                              <MessageSquare className="w-4 h-4 text-warm-400 mt-0.5 shrink-0" />
                               <p className="whitespace-pre-wrap">{job.comments}</p>
                             </div>
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-6 w-6 text-slate-400 hover:text-slate-600"
+                              className="h-6 w-6 text-warm-400 hover:text-warm-600"
                               onClick={() => startEditingComment(job)}
                             >
                               <Pencil className="w-3 h-3" />
@@ -326,8 +326,8 @@ export default function SavedJobs() {
                           </div>
                         </div>
                       ) : null}
-                      
-                      <div className="mt-4 pt-4 border-t border-slate-100 flex justify-between items-center">
+
+                      <div className="mt-4 pt-4 border-t border-warm-100 flex justify-between items-center">
                         <div className="flex gap-2">
                           <Button
                             variant="outline"
@@ -353,10 +353,10 @@ export default function SavedJobs() {
                             {job.comments ? 'Edit Note' : 'Add Note'}
                           </Button>
                         </div>
-                        <Button 
-                          asChild 
-                          size="sm" 
-                          className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2"
+                        <Button
+                          asChild
+                          size="sm"
+                          className="bg-iris-600 hover:bg-iris-700 text-white gap-2"
                         >
                           <a href={job.url} target="_blank" rel="noopener noreferrer">
                             Apply Now
