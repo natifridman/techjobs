@@ -42,9 +42,15 @@ router.get('/google', (req: Request, res: Response, next: NextFunction) => {
   const redirectUrl = req.query.redirect as string || process.env.FRONTEND_URL || 'http://localhost:8080';
   (req.session as any).returnTo = redirectUrl;
   
-  passport.authenticate('google', {
-    scope: ['profile', 'email']
-  })(req, res, next);
+  // Save session before redirecting to Google
+  req.session.save((err) => {
+    if (err) {
+      console.error('Error saving session:', err);
+    }
+    passport.authenticate('google', {
+      scope: ['profile', 'email']
+    })(req, res, next);
+  });
 });
 
 // Google OAuth callback

@@ -7,15 +7,17 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
   ArrowLeft, MapPin, Users, Globe, 
-  Search, Briefcase
+  Search, Briefcase, Lock, LogIn
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import JobCard from "@/components/jobs/JobCard";
 import CompanyLogo from "@/components/CompanyLogo";
 import { savedJobsApi } from "@/api/storage";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function CompanyProfile() {
+  const { isAuthenticated, login } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const queryParams = new URLSearchParams(window.location.search);
   const companyName = queryParams.get('name');
@@ -216,39 +218,62 @@ export default function CompanyProfile() {
               <h2 className="text-xl font-semibold text-slate-900">
                 Open Positions
                 <span className="ml-2 text-slate-500 text-sm font-normal">
-                  ({companyData.jobs.length})
+                  ({companyData.totalJobs})
                 </span>
               </h2>
               
-              <div className="relative w-full sm:w-72">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <Input
-                  placeholder="Filter jobs..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-            </div>
-
-            <div className="grid gap-4">
-              {companyData.jobs.length === 0 && (
-                <div className="text-center py-12 bg-white rounded-lg border border-slate-200 border-dashed">
-                  <Search className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                  <p className="text-slate-500">No jobs match your filter</p>
-                  <Button variant="link" onClick={() => setSearchQuery('')}>Clear filter</Button>
+              {isAuthenticated && (
+                <div className="relative w-full sm:w-72">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <Input
+                    placeholder="Filter jobs..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9"
+                  />
                 </div>
               )}
-              {companyData.jobs.map((job, index) => (
-                <JobCard
-                  key={`${job.url}-${index}`}
-                  job={job}
-                  index={index}
-                  onSave={(job) => saveMutation.mutate(job)}
-                  isSaved={isJobSaved(job)}
-                />
-              ))}
             </div>
+
+            {isAuthenticated ? (
+              <div className="grid gap-4">
+                {companyData.jobs.length === 0 && (
+                  <div className="text-center py-12 bg-white rounded-lg border border-slate-200 border-dashed">
+                    <Search className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                    <p className="text-slate-500">No jobs match your filter</p>
+                    <Button variant="link" onClick={() => setSearchQuery('')}>Clear filter</Button>
+                  </div>
+                )}
+                {companyData.jobs.map((job, index) => (
+                  <JobCard
+                    key={`${job.url}-${index}`}
+                    job={job}
+                    index={index}
+                    onSave={(job) => saveMutation.mutate(job)}
+                    isSaved={isJobSaved(job)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="bg-white rounded-xl border border-slate-200 p-8 text-center">
+                <div className="mx-auto w-16 h-16 bg-iris-100 rounded-full flex items-center justify-center mb-4">
+                  <Lock className="w-8 h-8 text-iris-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-slate-900 mb-2">
+                  Sign in to view job listings
+                </h3>
+                <p className="text-slate-500 mb-6 max-w-sm mx-auto">
+                  Create a free account to see all {companyData.totalJobs} open positions at {companyData.name}
+                </p>
+                <Button
+                  onClick={() => login(window.location.href)}
+                  className="bg-iris-600 hover:bg-iris-700 text-white"
+                >
+                  <LogIn className="w-4 h-4 mr-2" />
+                  Sign In with Google
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </div>
