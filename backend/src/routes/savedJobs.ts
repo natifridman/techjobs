@@ -174,7 +174,15 @@ router.put('/:id', async (req: Request, res: Response) => {
       .eq('user_id', userId)
       .single();
 
-    if (selectError || !existing) {
+    if (selectError) {
+      if (selectError.code === 'PGRST116') {
+        return res.status(404).json({ error: 'Job not found' });
+      }
+      console.error('Error checking saved job:', selectError);
+      return res.status(500).json({ error: 'Failed to check saved job' });
+    }
+
+    if (!existing) {
       return res.status(404).json({ error: 'Job not found' });
     }
 
@@ -227,7 +235,15 @@ router.delete('/:id', async (req: Request, res: Response) => {
       .eq('user_id', userId)
       .single();
 
-    if (selectError || !existing) {
+    if (selectError) {
+      if (selectError.code === 'PGRST116') {
+        return res.status(404).json({ error: 'Job not found' });
+      }
+      console.error('Error checking saved job:', selectError);
+      return res.status(500).json({ error: 'Failed to check saved job' });
+    }
+
+    if (!existing) {
       return res.status(404).json({ error: 'Job not found' });
     }
 
