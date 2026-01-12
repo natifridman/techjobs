@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { usePostHog } from 'posthog-js/react';
 import CompanyLogo from "@/components/CompanyLogo";
 import type { Job } from "./jobsData";
+import { applicationsApi } from "@/api/storage";
 
 const sizeLabels: Record<string, string> = {
   'xs': '1-10',
@@ -35,6 +36,7 @@ export default function JobCard({ job, onSave, isSaved, onApply, isApplied, inde
   const posthog = usePostHog();
 
   const handleApplyClick = () => {
+    // Track in PostHog
     posthog.capture('job_apply_clicked', {
       job_title: job.title,
       company: job.company,
@@ -43,6 +45,23 @@ export default function JobCard({ job, onSave, isSaved, onApply, isApplied, inde
       level: job.level,
       url: job.url,
     });
+    
+    // Track application click in Supabase
+    applicationsApi.track({
+      job_title: job.title,
+      company: job.company,
+      category: job.category,
+      city: job.city,
+      url: job.url,
+      level: job.level,
+      size: job.size,
+      job_category: job.job_category
+    });
+    
+    // Also mark as applied in saved jobs if not already
+    if (onApply && !isApplied) {
+      onApply(job);
+    }
   };
 
   return (

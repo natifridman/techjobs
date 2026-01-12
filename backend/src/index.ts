@@ -8,6 +8,7 @@ import passport from './config/passport';
 import authRouter from './routes/auth';
 import savedJobsRouter from './routes/savedJobs';
 import companiesRouter from './routes/companies';
+import applicationsRouter from './routes/applications';
 import path from 'path';
 
 const app = express();
@@ -93,6 +94,7 @@ app.use('/auth', authRouter);
 // API routes
 app.use('/api/saved-jobs', savedJobsRouter);
 app.use('/api/companies', companiesRouter);
+app.use('/api/applications', applicationsRouter);
 
 // Serve frontend in production
 const publicPath = path.join(__dirname, '..', 'public');
@@ -123,6 +125,7 @@ app.listen(PORT, () => {
   console.log(`   Auth:         http://localhost:${PORT}/auth/me`);
   console.log(`   Saved Jobs:   http://localhost:${PORT}/api/saved-jobs`);
   console.log(`   Companies:    http://localhost:${PORT}/api/companies`);
+  console.log(`   Applications: http://localhost:${PORT}/api/applications`);
   console.log('');
   if (!process.env.GOOGLE_CLIENT_ID) {
     console.log('⚠️  Google OAuth not configured. Set these environment variables:');

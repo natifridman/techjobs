@@ -3,6 +3,35 @@
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
+// Job application tracking (when user clicks "Apply Now")
+export interface JobApplicationData {
+  job_title: string;
+  company: string;
+  category?: string;
+  city?: string;
+  url: string;
+  level?: string;
+  size?: string;
+  job_category?: string;
+}
+
+export const applicationsApi = {
+  // Track when user clicks "Apply Now" - no auth required
+  track: async (data: JobApplicationData): Promise<void> => {
+    try {
+      await fetch(`${API_BASE_URL}/applications`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(data)
+      });
+    } catch (error) {
+      // Silently fail - don't block user from applying
+      console.error('Failed to track application:', error);
+    }
+  }
+};
+
 export interface SavedJob {
   id: string;
   job_title: string;

@@ -49,6 +49,32 @@ CREATE TABLE IF NOT EXISTS companies (
   updated_date TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Job applications tracking (when user clicks "Apply Now")
+CREATE TABLE IF NOT EXISTS job_applications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  user_email TEXT,
+  job_title TEXT NOT NULL,
+  company TEXT NOT NULL,
+  category TEXT,
+  city TEXT,
+  url TEXT NOT NULL,
+  level TEXT,
+  size TEXT,
+  job_category TEXT,
+  clicked_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Index for querying applications by user
+CREATE INDEX IF NOT EXISTS idx_job_applications_user_id ON job_applications(user_id);
+CREATE INDEX IF NOT EXISTS idx_job_applications_clicked_at ON job_applications(clicked_at);
+
+-- RLS for job_applications
+ALTER TABLE job_applications ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Service role can manage job_applications" ON job_applications
+  FOR ALL
+  USING (auth.role() = 'service_role');
+
 -- Session table for connect-pg-simple (express-session persistence)
 CREATE TABLE IF NOT EXISTS "session" (
   "sid" VARCHAR NOT NULL COLLATE "default",
