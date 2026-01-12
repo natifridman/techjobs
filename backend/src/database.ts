@@ -44,17 +44,22 @@ export interface Company {
 }
 
 // Initialize Supabase client
+// IMPORTANT: Backend requires SUPABASE_SERVICE_KEY to bypass RLS policies
+// The anon key will NOT work - RLS policies require service_role
 const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
 
-if (!supabaseUrl || !supabaseKey) {
+if (!supabaseUrl || !supabaseServiceKey) {
   console.error('❌ Missing Supabase configuration. Set these environment variables:');
   console.error('   SUPABASE_URL=your-project-url');
-  console.error('   SUPABASE_SERVICE_KEY=your-service-role-key (or SUPABASE_ANON_KEY for dev)');
+  console.error('   SUPABASE_SERVICE_KEY=your-service-role-key');
+  console.error('');
+  console.error('⚠️  Note: SUPABASE_ANON_KEY will NOT work for backend operations.');
+  console.error('   The service role key is required to bypass Row Level Security (RLS) policies.');
   process.exit(1);
 }
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 console.log('✅ Supabase client initialized');
 

@@ -28,7 +28,12 @@ app.use(cors({
 // Body parser
 app.use(express.json());
 
-// Session configuration (using memory store - for production consider Redis or database-backed store)
+// Session configuration
+// TODO: Replace memory store with Redis or connect-pg-simple for production
+// Memory store will cause session loss on server restarts and doesn't scale across instances
+// Options: 
+//   - connect-redis (recommended for horizontal scaling)
+//   - connect-pg-simple (reuse existing Supabase PostgreSQL)
 app.use(session({
   secret: process.env.SESSION_SECRET || 'techjobs-dev-secret-change-in-production',
   resave: false,
