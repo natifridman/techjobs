@@ -145,10 +145,10 @@ export default function AddCompanyModal({ open, onOpenChange }: AddCompanyModalP
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Building2 className="w-5 h-5 text-indigo-600" />
-            Add a Company to TechMap
+            Add a Company to TechJobsIL
           </DialogTitle>
           <DialogDescription>
-            Submit your company to be listed on the Israeli Tech Map. This will create a pull request on GitHub.
+            Submit your company to be listed on TechJobsIL. This will create a pull request on GitHub.
           </DialogDescription>
         </DialogHeader>
 

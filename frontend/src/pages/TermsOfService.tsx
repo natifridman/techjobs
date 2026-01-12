@@ -22,7 +22,7 @@ export default function TermsOfService() {
             <section className="mb-8">
               <h2 className="text-2xl font-semibold text-slate-900 mb-4">1. Acceptance of Terms</h2>
               <p className="text-slate-600 leading-relaxed">
-                By accessing and using TechMap ("the Service"), you accept and agree to be bound by 
+                By accessing and using TechJobsIL ("the Service"), you accept and agree to be bound by 
                 these Terms of Service. If you do not agree to these terms, please do not use our Service.
               </p>
             </section>
@@ -30,7 +30,7 @@ export default function TermsOfService() {
             <section className="mb-8">
               <h2 className="text-2xl font-semibold text-slate-900 mb-4">2. Description of Service</h2>
               <p className="text-slate-600 leading-relaxed">
-                TechMap is a job board platform that aggregates and displays tech job listings from 
+                TechJobsIL is a job board platform that aggregates and displays tech job listings from 
                 companies in Israel. We provide tools to search, filter, and save job listings, 
                 as well as information about tech companies.
               </p>
@@ -68,7 +68,7 @@ export default function TermsOfService() {
             <section className="mb-8">
               <h2 className="text-2xl font-semibold text-slate-900 mb-4">5. Job Listings</h2>
               <p className="text-slate-600 leading-relaxed">
-                Job listings displayed on TechMap are sourced from third-party companies and career 
+                Job listings displayed on TechJobsIL are sourced from third-party companies and career 
                 pages. We do not guarantee the accuracy, completeness, or availability of any job 
                 listing. We are not responsible for the hiring decisions of any company, nor do we 
                 guarantee employment outcomes.
@@ -88,7 +88,7 @@ export default function TermsOfService() {
               <h2 className="text-2xl font-semibold text-slate-900 mb-4">7. Intellectual Property</h2>
               <p className="text-slate-600 leading-relaxed">
                 The Service and its original content, features, and functionality are owned by 
-                TechMap and are protected by international copyright, trademark, and other 
+                TechJobsIL and are protected by international copyright, trademark, and other 
                 intellectual property laws. You may not copy, modify, or distribute our content 
                 without permission.
               </p>
@@ -106,7 +106,7 @@ export default function TermsOfService() {
             <section className="mb-8">
               <h2 className="text-2xl font-semibold text-slate-900 mb-4">9. Limitation of Liability</h2>
               <p className="text-slate-600 leading-relaxed">
-                TO THE MAXIMUM EXTENT PERMITTED BY LAW, TECHMAP SHALL NOT BE LIABLE FOR ANY 
+                TO THE MAXIMUM EXTENT PERMITTED BY LAW, TECHJOBSIL SHALL NOT BE LIABLE FOR ANY 
                 INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS 
                 OF PROFITS OR REVENUES, WHETHER INCURRED DIRECTLY OR INDIRECTLY.
               </p>
@@ -115,7 +115,7 @@ export default function TermsOfService() {
             <section className="mb-8">
               <h2 className="text-2xl font-semibold text-slate-900 mb-4">10. Indemnification</h2>
               <p className="text-slate-600 leading-relaxed">
-                You agree to indemnify and hold harmless TechMap and its officers, directors, 
+                You agree to indemnify and hold harmless TechJobsIL and its officers, directors, 
                 employees, and agents from any claims, damages, losses, or expenses arising from 
                 your use of the Service or violation of these Terms.
               </p>

@@ -71,10 +71,8 @@ export default function Home() {
         <header className="relative z-10">
           <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
             <Link to={createPageUrl("Home")} className="flex items-center gap-2 font-bold text-xl text-white">
-              <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center text-sm font-bold">
-                TM
-              </div>
-              <span className="hidden sm:inline">TechMap</span>
+              <img src="/techjobsil-logo-64.png" alt="TechJobsIL" className="w-8 h-8" />
+              <span className="hidden sm:inline">TechJobsIL</span>
             </Link>
 
             <nav className="flex items-center gap-2">
@@ -311,7 +309,7 @@ export default function Home() {
           </div>
           
           <p className="text-warm-500 text-xs">
-            © {new Date().getFullYear()} TechMap. All rights reserved.
+            © {new Date().getFullYear()} TechJobsIL. All rights reserved.
           </p>
         </div>
       </footer>

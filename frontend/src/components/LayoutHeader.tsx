@@ -34,10 +34,8 @@ export default function LayoutHeader() {
     <header className="bg-white border-b border-warm-200 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
         <Link to={createPageUrl("Home")} className="flex items-center gap-2 font-bold text-xl text-warm-900 shrink-0">
-          <div className="w-8 h-8 rounded-lg bg-iris-600 flex items-center justify-center text-white text-sm font-bold">
-            TM
-          </div>
-          <span className="hidden sm:inline">TechMap</span>
+          <img src="/techjobsil-logo-64.png" alt="TechJobsIL" className="w-8 h-8" />
+          <span className="hidden sm:inline">TechJobsIL</span>
         </Link>
 
         <form onSubmit={handleSearch} className="flex-1 max-w-xl relative">

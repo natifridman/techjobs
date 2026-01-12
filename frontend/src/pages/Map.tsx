@@ -347,7 +347,7 @@ export default function Map() {
       {/* Stats Bar */}
       <div className="bg-slate-50 border-b border-slate-200 px-4 py-2">
         <div className="max-w-7xl mx-auto flex items-center justify-between text-sm text-slate-600">
-          <span className="font-medium">Israeli Tech Map</span>
+          <span className="font-medium">TechJobsIL</span>
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1">
               <Building2 className="w-4 h-4" />

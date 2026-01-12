@@ -26,7 +26,7 @@ export default function PrivacyPolicy() {
             <section className="mb-8">
               <h2 className="text-2xl font-semibold text-slate-900 mb-4">1. Introduction</h2>
               <p className="text-slate-600 leading-relaxed">
-                Welcome to TechMap ("we," "our," or "us"). We are committed to protecting your privacy 
+                Welcome to TechJobsIL ("we," "our," or "us"). We are committed to protecting your privacy 
                 and personal information. This Privacy Policy explains how we collect, use, disclose, 
                 and safeguard your information when you visit our website and use our services.
               </p>
@@ -39,7 +39,7 @@ export default function PrivacyPolicy() {
                 <h2 className="text-2xl font-semibold text-slate-900">2. Google Sign-In</h2>
               </div>
               <p className="text-slate-700 leading-relaxed">
-                When you sign in to TechMap using your Google account, we collect the following 
+                When you sign in to TechJobsIL using your Google account, we collect the following 
                 information from your Google profile:
               </p>
               <ul className="list-disc list-inside text-slate-700 space-y-2 ml-4 mt-4">
