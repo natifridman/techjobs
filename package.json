@@ -1,0 +1,23 @@
+{
+  "name": "techjobs",
+  "version": "1.0.0",
+  "description": "A full-stack application for browsing Israeli tech jobs, built with React, Express.js, and SQLite.",
+  "main": "index.js",
+  "scripts": {
+    "test": "npm run test:backend && npm run test:frontend",
+    "test:backend": "cd backend && npm test",
+    "test:frontend": "cd frontend && npm run test:run"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/natifridman/techjobs.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/natifridman/techjobs/issues"
+  },
+  "homepage": "https://github.com/natifridman/techjobs#readme"
+}

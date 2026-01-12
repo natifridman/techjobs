@@ -1,4 +1,4 @@
-.PHONY: help build up down restart logs status clean dev dev-up dev-down dev-logs dev-backend dev-frontend
+.PHONY: help build up down restart logs status clean dev dev-up dev-down dev-logs dev-backend dev-frontend test test-backend test-frontend
 
 # Load .env file if it exists
 ifneq (,$(wildcard ./.env))
@@ -29,6 +29,11 @@ help:
 	@echo "Development (local, no containers):"
 	@echo "  make dev-backend   - Run backend locally"
 	@echo "  make dev-frontend  - Run frontend locally"
+	@echo ""
+	@echo "Testing:"
+	@echo "  make test          - Run all unit tests (backend + frontend)"
+	@echo "  make test-backend  - Run backend tests only"
+	@echo "  make test-frontend - Run frontend tests only"
 	@echo ""
 	@echo "Cloud Deployment:"
 	@echo "  Render auto-deploys on git push to main"
@@ -113,3 +118,26 @@ dev-backend:
 dev-frontend:
 	@echo "🔧 Starting frontend locally..."
 	cd frontend && npm run dev
+
+# ============================================
+# Testing commands
+# ============================================
+
+test:
+	@echo "🧪 Running all unit tests..."
+	@echo ""
+	@echo "Backend tests:"
+	@cd backend && npm test
+	@echo ""
+	@echo "Frontend tests:"
+	@cd frontend && npm run test:run
+	@echo ""
+	@echo "✅ All unit tests complete!"
+
+test-backend:
+	@echo "🧪 Running backend tests..."
+	cd backend && npm test
+
+test-frontend:
+	@echo "🧪 Running frontend tests..."
+	cd frontend && npm run test:run
