@@ -3,11 +3,11 @@ import { Link, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { 
-  Briefcase, 
-  MapPin, 
-  Building2, 
-  Search, 
+import {
+  Briefcase,
+  MapPin,
+  Building2,
+  Search,
   ArrowRight,
   Cpu,
   Shield,
@@ -58,13 +58,13 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/50">
+    <div className="min-h-screen bg-gradient-to-br from-warm-50 via-white to-iris-50/30">
       {/* Hero Section */}
       <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-800" />
+        <div className="absolute inset-0 bg-gradient-to-br from-iris-700 via-iris-800 to-iris-900" />
         <div className="absolute inset-0">
           <div className="absolute top-20 left-10 w-72 h-72 bg-white/5 rounded-full blur-3xl" />
-          <div className="absolute bottom-10 right-10 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl" />
+          <div className="absolute bottom-10 right-10 w-96 h-96 bg-iris-400/10 rounded-full blur-3xl" />
         </div>
 
         {/* Header inside Hero */}
@@ -98,8 +98,8 @@ export default function Home() {
                   <div className="flex items-center gap-2">
                     <div className="hidden md:flex items-center gap-2">
                       {user.picture ? (
-                        <img 
-                          src={user.picture} 
+                        <img
+                          src={user.picture}
                           alt={user.name}
                           className="w-8 h-8 rounded-full border-2 border-white/30"
                         />
@@ -112,9 +112,9 @@ export default function Home() {
                         {user.name?.split(' ')[0]}
                       </span>
                     </div>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={handleLogout}
                       className="text-white/80 hover:text-white hover:bg-white/10"
                     >
@@ -123,11 +123,11 @@ export default function Home() {
                     </Button>
                   </div>
                 ) : (
-                  <Button 
-                    variant="default" 
-                    size="sm" 
+                  <Button
+                    variant="default"
+                    size="sm"
                     onClick={handleLogin}
-                    className="bg-white text-indigo-700 hover:bg-indigo-50"
+                    className="bg-white text-iris-700 hover:bg-iris-50"
                   >
                     <LogIn className="w-4 h-4 mr-2" />
                     <span className="hidden sm:inline">Sign in</span>
@@ -137,7 +137,7 @@ export default function Home() {
             </nav>
           </div>
         </header>
-        
+
         <div className="relative max-w-7xl mx-auto px-4 py-16 md:py-28">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -149,34 +149,34 @@ export default function Home() {
               <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
               Updated daily with new opportunities
             </div>
-            
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight">
+
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight tracking-tight">
               Find Your Dream Job in
               <br />
-              <span className="bg-gradient-to-r from-cyan-300 to-indigo-300 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-copper-400 to-copper-500 bg-clip-text text-transparent">
                 Israeli Tech
               </span>
             </h1>
-            
-            <p className="text-xl md:text-2xl text-indigo-100 max-w-2xl mx-auto mb-10">
-              Discover opportunities at Israel's leading startups and tech giants. 
+
+            <p className="text-xl md:text-2xl text-iris-100 max-w-2xl mx-auto mb-10">
+              Discover opportunities at Israel's leading startups and tech giants.
               All in one place, updated in real-time.
             </p>
-            
+
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button 
-                asChild 
-                size="lg" 
-                className="bg-white text-indigo-700 hover:bg-indigo-50 text-lg px-8 py-6 rounded-xl shadow-xl shadow-black/20"
+              <Button
+                asChild
+                size="lg"
+                className="bg-copper-500 text-white hover:bg-copper-600 text-lg px-8 py-6 rounded-xl shadow-xl shadow-black/20"
               >
                 <Link to={createPageUrl("Jobs")}>
                   <Search className="w-5 h-5 mr-2" />
                   Explore Jobs
                 </Link>
               </Button>
-              <Button 
-                asChild 
-                size="lg" 
+              <Button
+                asChild
+                size="lg"
                 className="bg-white/10 border-2 border-white/30 text-white hover:bg-white/20 text-lg px-8 py-6 rounded-xl backdrop-blur-sm"
               >
                 <Link to={createPageUrl("Map")}>
@@ -188,7 +188,7 @@ export default function Home() {
           </motion.div>
         </div>
       </div>
-      
+
       {/* Stats Section */}
       <div className="max-w-7xl mx-auto px-4 -mt-12 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -199,14 +199,14 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: index * 0.1 }}
             >
-              <Card className="bg-white shadow-xl border-0">
+              <Card className="bg-white shadow-xl border-0 rounded-2xl">
                 <CardContent className="p-6 flex items-center gap-4">
-                  <div className="p-3 bg-indigo-100 rounded-xl">
-                    <stat.icon className="w-6 h-6 text-indigo-600" />
+                  <div className="p-3 bg-iris-100 rounded-xl">
+                    <stat.icon className="w-6 h-6 text-iris-600" />
                   </div>
                   <div>
-                    <p className="text-3xl font-bold text-slate-900">{stat.value}</p>
-                    <p className="text-slate-500">{stat.label}</p>
+                    <p className="text-3xl font-bold text-warm-900">{stat.value}</p>
+                    <p className="text-warm-500">{stat.label}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -214,18 +214,18 @@ export default function Home() {
           ))}
         </div>
       </div>
-      
+
       {/* Categories Section */}
       <div className="max-w-7xl mx-auto px-4 py-20">
         <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
+          <h2 className="text-3xl md:text-4xl font-bold text-warm-900 mb-4">
             Browse by Industry
           </h2>
-          <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+          <p className="text-lg text-warm-600 max-w-2xl mx-auto">
             From AI and Cybersecurity to Gaming and Fintech — find your niche
           </p>
         </div>
-        
+
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {categories.map((category, index) => (
             <motion.div
@@ -234,15 +234,15 @@ export default function Home() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.3, delay: index * 0.05 }}
             >
-              <Card 
-                className="group cursor-pointer hover:shadow-xl transition-all duration-300 overflow-hidden border-0 bg-white"
+              <Card
+                className="group cursor-pointer hover:shadow-xl transition-all duration-300 overflow-hidden border-0 bg-white rounded-2xl card-hover"
                 onClick={() => handleCategoryClick(category.name)}
               >
                 <CardContent className="p-6 text-center">
                   <div className={`w-14 h-14 mx-auto mb-4 rounded-2xl bg-gradient-to-br ${category.color} flex items-center justify-center transform group-hover:scale-110 transition-transform`}>
                     <category.icon className="w-7 h-7 text-white" />
                   </div>
-                  <h3 className="font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors">
+                  <h3 className="font-semibold text-warm-900 group-hover:text-iris-600 transition-colors">
                     {category.name}
                   </h3>
                 </CardContent>
@@ -250,9 +250,9 @@ export default function Home() {
             </motion.div>
           ))}
         </div>
-        
+
         <div className="text-center mt-8">
-          <Button asChild variant="outline" size="lg" className="gap-2">
+          <Button asChild variant="outline" size="lg" className="gap-2 rounded-xl">
             <Link to={createPageUrl("Jobs")}>
               View All Categories
               <ArrowRight className="w-4 h-4" />
@@ -260,21 +260,21 @@ export default function Home() {
           </Button>
         </div>
       </div>
-      
+
       {/* CTA Section */}
-      <div className="bg-slate-900 py-20">
+      <div className="bg-iris-900 py-20">
         <div className="max-w-4xl mx-auto px-4 text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
             Ready to Find Your Next Opportunity?
           </h2>
-          <p className="text-lg text-slate-300 mb-8 max-w-2xl mx-auto">
-            Join thousands of tech professionals who use our platform to discover 
+          <p className="text-lg text-iris-200 mb-8 max-w-2xl mx-auto">
+            Join thousands of tech professionals who use our platform to discover
             their dream jobs at Israel's most innovative companies.
           </p>
-          <Button 
-            asChild 
-            size="lg" 
-            className="bg-indigo-600 hover:bg-indigo-700 text-lg px-8 py-6 rounded-xl"
+          <Button
+            asChild
+            size="lg"
+            className="bg-copper-500 hover:bg-copper-600 text-lg px-8 py-6 rounded-xl"
           >
             <Link to={createPageUrl("Jobs")}>
               Start Searching Now
@@ -283,15 +283,15 @@ export default function Home() {
           </Button>
         </div>
       </div>
-      
+
       {/* Footer */}
-      <footer className="bg-slate-950 py-8">
+      <footer className="bg-warm-900 py-8">
         <div className="max-w-7xl mx-auto px-4 text-center space-y-4">
           <Button
             variant="outline"
             size="sm"
             onClick={() => setShowAddCompany(true)}
-            className="border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800 gap-2"
+            className="border-warm-700 text-warm-300 hover:text-white hover:bg-warm-800 gap-2"
           >
             <Plus className="w-4 h-4" />
             Add Your Company

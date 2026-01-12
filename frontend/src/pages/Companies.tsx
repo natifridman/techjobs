@@ -5,7 +5,8 @@ import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Building2, ArrowLeft } from "lucide-react";
+import { Search, Building2, Briefcase } from "lucide-react";
+import { motion } from "framer-motion";
 import CompanyCard from "@/components/companies/CompanyCard";
 
 export default function Companies() {
@@ -67,7 +68,7 @@ export default function Companies() {
   const filteredCompanies = useMemo(() => {
     if (!searchQuery) return companies;
     const lowerQuery = searchQuery.toLowerCase();
-    return companies.filter(c => 
+    return companies.filter(c =>
       c.name.toLowerCase().includes(lowerQuery) ||
       c.categories.some(cat => cat.toLowerCase().includes(lowerQuery)) ||
       c.locations.some(loc => loc.toLowerCase().includes(lowerQuery))
@@ -75,30 +76,38 @@ export default function Companies() {
   }, [companies, searchQuery]);
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="bg-white border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 py-8">
-          <div className="flex items-center gap-4 mb-6">
-            <Button asChild variant="ghost" size="icon">
-              <Link to={createPageUrl("Home")}>
-                <ArrowLeft className="w-5 h-5" />
+    <div className="min-h-screen bg-gradient-to-br from-warm-50 to-iris-50/30">
+      {/* Hero Section */}
+      <div className="bg-gradient-to-r from-iris-700 via-iris-800 to-iris-900 text-white">
+        <div className="max-w-7xl mx-auto px-4 py-12 md:py-16">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+            <div>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-3 bg-white/10 rounded-xl backdrop-blur">
+                  <Building2 className="w-8 h-8" />
+                </div>
+                <h1 className="text-3xl md:text-4xl font-bold">Tech Companies</h1>
+              </div>
+              <p className="text-lg text-iris-100 max-w-2xl">
+                Discover Israel's leading tech companies and startups.
+                Find the perfect workplace for your next career move.
+              </p>
+            </div>
+            <Button asChild className="bg-copper-500 text-white hover:bg-copper-600 border-none shadow-lg">
+              <Link to={createPageUrl("Jobs")}>
+                <Briefcase className="w-4 h-4 mr-2" />
+                Browse Jobs
               </Link>
             </Button>
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-indigo-100 rounded-lg">
-                <Building2 className="w-6 h-6 text-indigo-600" />
-              </div>
-              <h1 className="text-3xl font-bold text-slate-900">Companies</h1>
-            </div>
           </div>
-            
+
           <div className="relative max-w-2xl">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50" />
             <Input
               placeholder="Search companies by name, industry, or location..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 h-12 text-lg"
+              className="pl-10 h-12 text-lg bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:bg-white/20 rounded-xl"
             />
           </div>
         </div>
@@ -108,14 +117,19 @@ export default function Companies() {
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="h-48 bg-slate-200 rounded-xl animate-pulse" />
+              <div key={i} className="h-48 bg-warm-200 rounded-xl animate-pulse" />
             ))}
           </div>
         ) : (
           <>
-            <p className="text-slate-500 mb-6">
-              Found {filteredCompanies.length} companies with active listings
-            </p>
+            <motion.p
+              className="text-warm-500 mb-6"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.4 }}
+            >
+              Found <span className="font-semibold text-warm-700">{filteredCompanies.length}</span> companies with active listings
+            </motion.p>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredCompanies.map((company, index) => (
                 <CompanyCard key={company.name} company={company} index={index} />

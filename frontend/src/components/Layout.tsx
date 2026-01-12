@@ -8,14 +8,14 @@ interface LayoutProps {
 
 export default function Layout({ children, currentPageName }: LayoutProps) {
   const isHomePage = currentPageName === 'Home';
-  
-  // Home page handles its own header inside the hero
+
+  // Home page handles its own header
   if (isHomePage) {
     return <>{children}</>;
   }
-  
+
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-warm-50">
       <LayoutHeader />
       {children}
     </div>

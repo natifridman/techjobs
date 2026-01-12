@@ -34,9 +34,9 @@ export default function Jobs() {
   const searchParams = new URLSearchParams(location.search);
   const initialSearch = searchParams.get('search') || '';
   const initialCategory = searchParams.get('category') || '';
-  
+
   const [searchQuery, setSearchQuery] = useState(initialSearch);
-  
+
   // Apply category from URL on mount
   useEffect(() => {
     if (initialCategory) {
@@ -53,28 +53,28 @@ export default function Jobs() {
       setSearchQuery(query);
     }
   }, [location.search]);
-  
+
   const queryClient = useQueryClient();
-  
+
   const { data: jobs = [], isLoading } = useQuery({
     queryKey: ['jobs'],
     queryFn: fetchAllJobs,
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
-  
+
   const { data: savedJobs = [] } = useQuery({
     queryKey: ['savedJobs'],
     queryFn: () => savedJobsApi.list(),
   });
-  
+
   const saveMutation = useMutation({
     mutationFn: async (job: Job): Promise<SaveMutationResult> => {
       const existing = savedJobs.find(s => s.url === job.url);
       if (existing) {
-        savedJobsApi.delete(existing.id);
+        await savedJobsApi.delete(existing.id);
         return { action: 'removed', job };
       } else {
-        savedJobsApi.create({
+        await savedJobsApi.create({
           job_title: job.title,
           company: job.company,
           category: job.category,
@@ -105,13 +105,13 @@ export default function Jobs() {
     mutationFn: async (job: Job): Promise<ApplyMutationResult> => {
       const existing = savedJobs.find(s => s.url === job.url);
       if (existing) {
-        savedJobsApi.update(existing.id, {
+        await savedJobsApi.update(existing.id, {
           applied: !existing.applied,
           applied_date: !existing.applied ? new Date().toISOString().split('T')[0] : undefined
         });
         return { action: existing.applied ? 'unapplied' : 'applied', job };
       } else {
-        savedJobsApi.create({
+        await savedJobsApi.create({
           job_title: job.title,
           company: job.company,
           category: job.category,
@@ -139,42 +139,42 @@ export default function Jobs() {
       });
     },
   });
-  
+
   // Extract unique cities from jobs
   const cities = useMemo(() => {
     const citySet = new Set(jobs.map(job => job.city).filter(Boolean));
     return Array.from(citySet).sort();
   }, [jobs]);
-  
+
   // Filter jobs
   const filteredJobs = useMemo(() => {
     return jobs.filter(job => {
       // Search filter
       if (searchQuery) {
         const search = searchQuery.toLowerCase();
-        const matchesSearch = 
+        const matchesSearch =
           job.title?.toLowerCase().includes(search) ||
           job.company?.toLowerCase().includes(search) ||
           job.category?.toLowerCase().includes(search) ||
           job.city?.toLowerCase().includes(search);
         if (!matchesSearch) return false;
       }
-      
+
       // Category filter
       if (filters.categories.length > 0 && !filters.categories.includes(job.category)) {
         return false;
       }
-      
+
       // Job category filter
       if (filters.jobCategories.length > 0 && !filters.jobCategories.includes(job.job_category)) {
         return false;
       }
-      
+
       // Level filter
       if (filters.levels.length > 0) {
         const titleLower = job.title?.toLowerCase() || '';
         const jobLevel = job.level?.toLowerCase() || '';
-        
+
         const matchesLevel = filters.levels.some(level => {
           const levelLower = level.toLowerCase();
           if (levelLower === 'junior') {
@@ -209,31 +209,31 @@ export default function Jobs() {
           }
           return false;
         });
-        
+
         if (!matchesLevel) return false;
       }
-      
+
       // Size filter
       if (filters.sizes.length > 0 && !filters.sizes.includes(job.size)) {
         return false;
       }
-      
+
       // City filter
       if (filters.cities.length > 0 && !filters.cities.includes(job.city)) {
         return false;
       }
-      
+
       return true;
     });
   }, [jobs, filters, searchQuery]);
-  
+
   // Pagination
   const totalPages = Math.ceil(filteredJobs.length / JOBS_PER_PAGE);
   const paginatedJobs = filteredJobs.slice(
     (currentPage - 1) * JOBS_PER_PAGE,
     currentPage * JOBS_PER_PAGE
   );
-  
+
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
@@ -257,21 +257,21 @@ export default function Jobs() {
   useEffect(() => {
     document.querySelector('.flex-1.overflow-y-auto')?.scrollTo(0, 0);
   }, [currentPage]);
-  
-  const activeFiltersCount = 
-    filters.categories.length + 
-    filters.jobCategories.length + 
-    filters.levels.length + 
-    filters.sizes.length + 
+
+  const activeFiltersCount =
+    filters.categories.length +
+    filters.jobCategories.length +
+    filters.levels.length +
+    filters.sizes.length +
     filters.cities.length;
-  
+
   const isJobSaved = (job: Job) => savedJobs.some(s => s.url === job.url);
   const isJobApplied = (job: Job) => savedJobs.some(s => s.url === job.url && s.applied);
-  
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50/30">
+    <div className="min-h-screen bg-gradient-to-br from-warm-50 to-iris-50/30">
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-indigo-600 via-indigo-700 to-purple-700 text-white">
+      <div className="bg-gradient-to-r from-iris-700 via-iris-800 to-iris-900 text-white">
         <div className="max-w-7xl mx-auto px-4 py-12 md:py-16">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div>
@@ -281,12 +281,12 @@ export default function Jobs() {
                 </div>
                 <h1 className="text-3xl md:text-4xl font-bold">Israeli Tech Jobs</h1>
               </div>
-              <p className="text-lg text-indigo-100 max-w-2xl">
-                Discover opportunities at Israel's top tech companies. 
+              <p className="text-lg text-iris-100 max-w-2xl">
+                Discover opportunities at Israel's top tech companies.
                 Updated daily from leading startups and enterprises.
               </p>
             </div>
-            <Button asChild className="bg-white text-indigo-600 hover:bg-indigo-50 border-none shadow-lg">
+            <Button asChild className="bg-copper-500 text-white hover:bg-copper-600 border-none shadow-lg">
               <Link to={createPageUrl("Companies")}>
                 <Building2 className="w-4 h-4 mr-2" />
                 Browse Companies
@@ -295,7 +295,7 @@ export default function Jobs() {
           </div>
         </div>
       </div>
-      
+
       <div className="flex h-[calc(100vh-200px)]">
         {/* Sidebar */}
         <FilterSidebar
@@ -314,7 +314,7 @@ export default function Jobs() {
           onClose={() => {}}
           isMobile={false}
         />
-        
+
         {/* Main Content */}
         <div className="flex-1 flex flex-col overflow-hidden">
           <SearchHeader
@@ -324,15 +324,15 @@ export default function Jobs() {
             totalJobs={filteredJobs.length}
             activeFiltersCount={activeFiltersCount}
           />
-          
+
           <div className="flex-1 overflow-y-auto p-4">
             {isLoading ? (
               <JobsLoader />
             ) : paginatedJobs.length === 0 ? (
               <div className="text-center py-16">
-                <Briefcase className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-slate-700 mb-2">No jobs found</h3>
-                <p className="text-slate-500">Try adjusting your filters or search query</p>
+                <Briefcase className="w-16 h-16 text-warm-300 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-warm-700 mb-2">No jobs found</h3>
+                <p className="text-warm-500">Try adjusting your filters or search query</p>
               </div>
             ) : (
               <>
@@ -349,7 +349,7 @@ export default function Jobs() {
                     />
                   ))}
                 </div>
-                
+
                 {/* Pagination */}
                 {totalPages > 1 && (
                   <div className="flex items-center justify-center gap-2 mt-8 pb-4">
@@ -361,7 +361,7 @@ export default function Jobs() {
                     >
                       <ChevronLeft className="w-4 h-4" />
                     </Button>
-                    
+
                     <div className="flex items-center gap-1">
                       {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                         let pageNum;
@@ -374,21 +374,21 @@ export default function Jobs() {
                         } else {
                           pageNum = currentPage - 2 + i;
                         }
-                        
+
                         return (
                           <Button
                             key={pageNum}
                             variant={currentPage === pageNum ? "default" : "outline"}
                             size="sm"
                             onClick={() => setCurrentPage(pageNum)}
-                            className={currentPage === pageNum ? "bg-indigo-600" : ""}
+                            className={currentPage === pageNum ? "bg-iris-600" : ""}
                           >
                             {pageNum}
                           </Button>
                         );
                       })}
                     </div>
-                    
+
                     <Button
                       variant="outline"
                       size="sm"

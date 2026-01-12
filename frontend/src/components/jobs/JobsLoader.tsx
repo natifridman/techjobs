@@ -5,7 +5,7 @@ export default function JobsLoader() {
   return (
     <div className="space-y-4">
       {[...Array(5)].map((_, i) => (
-        <Card key={i} className="bg-white">
+        <Card key={i} className="bg-white rounded-xl border-warm-100">
           <CardContent className="p-6">
             <div className="flex justify-between items-start gap-4">
               <div className="flex-1">
@@ -22,7 +22,7 @@ export default function JobsLoader() {
               </div>
               <Skeleton className="h-9 w-9 rounded-full" />
             </div>
-            <div className="mt-4 pt-4 border-t border-slate-100 flex justify-between">
+            <div className="mt-4 pt-4 border-t border-warm-100 flex justify-between">
               <Skeleton className="h-4 w-24" />
               <Skeleton className="h-9 w-28 rounded-md" />
             </div>

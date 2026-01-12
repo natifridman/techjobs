@@ -1,8 +1,8 @@
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { X, Filter, RotateCcw } from "lucide-react";
+import { X, RotateCcw } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const categories = [
@@ -14,7 +14,7 @@ const categories = [
 
 const jobCategories = [
   "software", "frontend", "devops", "data-science", "design", "product",
-  "project-management", "qa", "security", "hardware", "marketing", "sales", 
+  "project-management", "qa", "security", "hardware", "marketing", "sales",
   "hr", "finance", "legal", "business", "admin", "procurement-operations", "support"
 ];
 
@@ -46,13 +46,13 @@ interface FilterSidebarProps {
   isMobile: boolean;
 }
 
-export default function FilterSidebar({ 
-  filters, 
-  setFilters, 
+export default function FilterSidebar({
+  filters,
+  setFilters,
   cities,
-  isOpen, 
+  isOpen,
   onClose,
-  isMobile 
+  isMobile
 }: FilterSidebarProps) {
   const handleCategoryToggle = (category: string) => {
     setFilters(prev => ({
@@ -110,64 +110,58 @@ export default function FilterSidebar({
     });
   };
 
-  const activeFiltersCount = 
-    filters.categories.length + 
-    filters.jobCategories.length + 
-    filters.levels.length + 
-    filters.sizes.length + 
+  const activeFiltersCount =
+    filters.categories.length +
+    filters.jobCategories.length +
+    filters.levels.length +
+    filters.sizes.length +
     filters.cities.length;
 
   const sidebarContent = (
-    <div className="h-full flex flex-col">
-      <div className="p-4 border-b border-slate-200 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Filter className="w-5 h-5 text-indigo-600" />
-          <h2 className="font-semibold text-slate-900">Filters</h2>
-          {activeFiltersCount > 0 && (
-            <span className="bg-indigo-100 text-indigo-700 text-xs px-2 py-0.5 rounded-full">
-              {activeFiltersCount}
-            </span>
-          )}
-        </div>
+    <div className="h-full flex flex-col bg-white">
+      <div className="p-4 border-b border-warm-200 flex items-center justify-between">
+        <h2 className="font-semibold text-warm-900">Filters</h2>
         <div className="flex items-center gap-2">
           {activeFiltersCount > 0 && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={resetFilters}
-              className="text-slate-500 hover:text-slate-700"
+              className="text-warm-500 hover:text-warm-700"
             >
               <RotateCcw className="w-4 h-4 mr-1" />
               Reset
             </Button>
           )}
           {isMobile && (
-            <Button variant="ghost" size="icon" onClick={onClose}>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              aria-label="Close filters"
+            >
               <X className="w-5 h-5" />
             </Button>
           )}
         </div>
       </div>
-      
-      <ScrollArea className="flex-1 p-4">
-        <div className="space-y-6">
-          {/* Job Role */}
+
+      <ScrollArea className="flex-1">
+        <div className="p-4 space-y-6">
+          {/* Job Category */}
           <div>
-            <Label className="text-sm font-medium text-slate-700 mb-3 block">Job Function</Label>
-            <div className="space-y-2 max-h-40 overflow-y-auto">
+            <h3 className="font-medium text-sm text-warm-900 mb-3">Job Category</h3>
+            <div className="space-y-2 max-h-48 overflow-y-auto">
               {jobCategories.map(jobCat => (
-                <div key={jobCat} className="flex items-center gap-2">
+                <div key={jobCat} className="flex items-center space-x-2">
                   <Checkbox
                     id={`job-${jobCat}`}
                     checked={filters.jobCategories.includes(jobCat)}
                     onCheckedChange={() => handleJobCategoryToggle(jobCat)}
                   />
-                  <label 
-                    htmlFor={`job-${jobCat}`} 
-                    className="text-sm text-slate-600 cursor-pointer capitalize"
-                  >
+                  <Label htmlFor={`job-${jobCat}`} className="text-sm text-warm-600 capitalize cursor-pointer">
                     {jobCat.replace(/-/g, ' ')}
-                  </label>
+                  </Label>
                 </div>
               ))}
             </div>
@@ -175,21 +169,18 @@ export default function FilterSidebar({
 
           {/* Level */}
           <div>
-            <Label className="text-sm font-medium text-slate-700 mb-3 block">Level</Label>
+            <h3 className="font-medium text-sm text-warm-900 mb-3">Experience Level</h3>
             <div className="space-y-2">
               {levels.map(level => (
-                <div key={level} className="flex items-center gap-2">
+                <div key={level} className="flex items-center space-x-2">
                   <Checkbox
                     id={`level-${level}`}
                     checked={filters.levels.includes(level)}
                     onCheckedChange={() => handleLevelToggle(level)}
                   />
-                  <label 
-                    htmlFor={`level-${level}`} 
-                    className="text-sm text-slate-600 cursor-pointer"
-                  >
+                  <Label htmlFor={`level-${level}`} className="text-sm text-warm-600 cursor-pointer">
                     {level}
-                  </label>
+                  </Label>
                 </div>
               ))}
             </div>
@@ -197,21 +188,18 @@ export default function FilterSidebar({
 
           {/* Industry */}
           <div>
-            <Label className="text-sm font-medium text-slate-700 mb-3 block">Industry</Label>
+            <h3 className="font-medium text-sm text-warm-900 mb-3">Industry</h3>
             <div className="space-y-2 max-h-48 overflow-y-auto">
               {categories.map(category => (
-                <div key={category} className="flex items-center gap-2">
+                <div key={category} className="flex items-center space-x-2">
                   <Checkbox
                     id={`cat-${category}`}
                     checked={filters.categories.includes(category)}
                     onCheckedChange={() => handleCategoryToggle(category)}
                   />
-                  <label 
-                    htmlFor={`cat-${category}`} 
-                    className="text-sm text-slate-600 cursor-pointer"
-                  >
+                  <Label htmlFor={`cat-${category}`} className="text-sm text-warm-600 cursor-pointer">
                     {category}
-                  </label>
+                  </Label>
                 </div>
               ))}
             </div>
@@ -219,21 +207,18 @@ export default function FilterSidebar({
 
           {/* Company Size */}
           <div>
-            <Label className="text-sm font-medium text-slate-700 mb-3 block">Company Size</Label>
+            <h3 className="font-medium text-sm text-warm-900 mb-3">Company Size</h3>
             <div className="space-y-2">
               {sizes.map(size => (
-                <div key={size.value} className="flex items-center gap-2">
+                <div key={size.value} className="flex items-center space-x-2">
                   <Checkbox
                     id={`size-${size.value}`}
                     checked={filters.sizes.includes(size.value)}
                     onCheckedChange={() => handleSizeToggle(size.value)}
                   />
-                  <label 
-                    htmlFor={`size-${size.value}`} 
-                    className="text-sm text-slate-600 cursor-pointer"
-                  >
+                  <Label htmlFor={`size-${size.value}`} className="text-sm text-warm-600 cursor-pointer">
                     {size.label} employees
-                  </label>
+                  </Label>
                 </div>
               ))}
             </div>
@@ -242,21 +227,18 @@ export default function FilterSidebar({
           {/* Cities */}
           {cities.length > 0 && (
             <div>
-              <Label className="text-sm font-medium text-slate-700 mb-3 block">Location</Label>
+              <h3 className="font-medium text-sm text-warm-900 mb-3">City</h3>
               <div className="space-y-2 max-h-48 overflow-y-auto">
                 {cities.map(city => (
-                  <div key={city} className="flex items-center gap-2">
+                  <div key={city} className="flex items-center space-x-2">
                     <Checkbox
                       id={`city-${city}`}
                       checked={filters.cities.includes(city)}
                       onCheckedChange={() => handleCityToggle(city)}
                     />
-                    <label 
-                      htmlFor={`city-${city}`} 
-                      className="text-sm text-slate-600 cursor-pointer"
-                    >
+                    <Label htmlFor={`city-${city}`} className="text-sm text-warm-600 cursor-pointer">
                       {city}
-                    </label>
+                    </Label>
                   </div>
                 ))}
               </div>
@@ -283,8 +265,8 @@ export default function FilterSidebar({
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed inset-y-0 left-0 w-80 bg-white z-50 shadow-2xl"
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="fixed inset-y-0 left-0 w-80 z-50 shadow-2xl"
             >
               {sidebarContent}
             </motion.div>
@@ -295,7 +277,7 @@ export default function FilterSidebar({
   }
 
   return (
-    <div className="hidden lg:block w-72 bg-white border-r border-slate-200 h-full">
+    <div className="hidden lg:block w-72 border-r border-warm-200 h-full bg-white">
       {sidebarContent}
     </div>
   );
