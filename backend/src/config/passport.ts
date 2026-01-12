@@ -1,17 +1,9 @@
 import passport from 'passport';
 import { Strategy as GoogleStrategy, Profile } from 'passport-google-oauth20';
 import { v4 as uuidv4 } from 'uuid';
-import db from '../database';
+import supabase, { User } from '../database';
 
-export interface User {
-  id: string;
-  google_id: string;
-  email: string;
-  name: string;
-  picture: string;
-  created_date: string;
-  updated_date: string;
-}
+export type { User };
 
 // Serialize user to session
 passport.serializeUser((user: any, done) => {
@@ -19,10 +11,24 @@ passport.serializeUser((user: any, done) => {
 });
 
 // Deserialize user from session
-passport.deserializeUser((id: string, done) => {
+passport.deserializeUser(async (id: string, done) => {
   try {
-    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(id) as User | undefined;
-    done(null, user || null);
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      // PGRST116 means user not found - treat as logged out, not error
+      if (error.code === 'PGRST116') {
+        return done(null, null);
+      }
+      console.error('Error deserializing user:', error.code, error.message);
+      return done(null, null); // Graceful degradation - user appears logged out
+    }
+
+    done(null, user as User);
   } catch (error) {
     done(error, null);
   }
@@ -53,27 +59,70 @@ const setupGoogleStrategy = () => {
         const picture = profile.photos?.[0]?.value || '';
 
         // Check if user exists
-        let user = db.prepare('SELECT * FROM users WHERE google_id = ?').get(googleId) as User | undefined;
+        const { data: existingUser, error: selectError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('google_id', googleId)
+          .single();
 
-        if (user) {
+        if (selectError && selectError.code !== 'PGRST116') {
+          // PGRST116 = no rows returned, which is expected for new users
+          console.error('Error checking existing user:', selectError);
+          return done(new Error(selectError.message), undefined);
+        }
+
+        let user: User;
+
+        if (existingUser) {
           // Update existing user
           const now = new Date().toISOString();
-          db.prepare(`
-            UPDATE users SET name = ?, picture = ?, email = ?, updated_date = ? WHERE id = ?
-          `).run(name, picture, email, now, user.id);
+          const updatePayload: Partial<User> = {
+            name,
+            picture,
+            email,
+            updated_date: now
+          };
           
-          user = db.prepare('SELECT * FROM users WHERE id = ?').get(user.id) as User;
+          const { data: updatedUser, error: updateError } = await supabase
+            .from('users')
+            .update(updatePayload)
+            .eq('id', existingUser.id)
+            .select()
+            .single();
+
+          if (updateError) {
+            console.error('Error updating user:', updateError);
+            return done(updateError, undefined);
+          }
+
+          user = updatedUser as User;
         } else {
           // Create new user
           const id = uuidv4();
           const now = new Date().toISOString();
-          
-          db.prepare(`
-            INSERT INTO users (id, google_id, email, name, picture, created_date, updated_date)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-          `).run(id, googleId, email, name, picture, now, now);
-          
-          user = db.prepare('SELECT * FROM users WHERE id = ?').get(id) as User;
+
+          const insertPayload: Omit<User, 'created_date' | 'updated_date'> & { created_date: string; updated_date: string } = {
+            id,
+            google_id: googleId,
+            email,
+            name,
+            picture,
+            created_date: now,
+            updated_date: now
+          };
+
+          const { data: newUser, error: insertError } = await supabase
+            .from('users')
+            .insert(insertPayload)
+            .select()
+            .single();
+
+          if (insertError) {
+            console.error('Error creating user:', insertError);
+            return done(insertError, undefined);
+          }
+
+          user = newUser as User;
         }
 
         done(null, user);

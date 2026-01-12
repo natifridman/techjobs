@@ -1,85 +1,81 @@
 import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import db from '../database';
+import supabase, { Company } from '../database';
 
 const router = Router();
 
-interface Company {
-  id: string;
-  name: string;
-  description?: string;
-  website_url?: string;
-  logo_url?: string;
-  founded_year?: string;
-  headquarters?: string;
-  growth_summary?: string;
-  similar_companies?: string;
-  created_date: string;
-  updated_date: string;
-}
-
 // GET all companies
-router.get('/', (req: Request, res: Response) => {
+router.get('/', async (req: Request, res: Response) => {
   try {
-    const stmt = db.prepare('SELECT * FROM companies ORDER BY name ASC');
-    const companies = stmt.all() as Company[];
+    const { data: companies, error } = await supabase
+      .from('companies')
+      .select('*')
+      .order('name', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching companies:', error);
+      return res.status(500).json({ error: 'Failed to fetch companies' });
+    }
     
-    // Parse similar_companies JSON string
-    const formattedCompanies = companies.map(company => ({
-      ...company,
-      similar_companies: company.similar_companies ? JSON.parse(company.similar_companies) : []
-    }));
-    
-    res.json(formattedCompanies);
+    res.json(companies as Company[]);
   } catch (error) {
     console.error('Error fetching companies:', error);
-    res.status(500).json({ error: 'Failed to fetch companies' });
+    return res.status(500).json({ error: 'Failed to fetch companies' });
   }
 });
 
 // GET company by name
-router.get('/by-name/:name', (req: Request, res: Response) => {
+router.get('/by-name/:name', async (req: Request, res: Response) => {
   try {
-    const name = decodeURIComponent(req.params.name);
-    const stmt = db.prepare('SELECT * FROM companies WHERE name = ?');
-    const company = stmt.get(name) as Company | undefined;
+    const name = decodeURIComponent(req.params.name as string);
     
-    if (!company) {
-      return res.status(404).json({ error: 'Company not found' });
+    const { data: company, error } = await supabase
+      .from('companies')
+      .select('*')
+      .eq('name', name)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return res.status(404).json({ error: 'Company not found' });
+      }
+      console.error('Error fetching company:', error);
+      return res.status(500).json({ error: 'Failed to fetch company' });
     }
     
-    res.json({
-      ...company,
-      similar_companies: company.similar_companies ? JSON.parse(company.similar_companies) : []
-    });
+    res.json(company as Company);
   } catch (error) {
     console.error('Error fetching company:', error);
-    res.status(500).json({ error: 'Failed to fetch company' });
+    return res.status(500).json({ error: 'Failed to fetch company' });
   }
 });
 
 // GET company by ID
-router.get('/:id', (req: Request, res: Response) => {
+router.get('/:id', async (req: Request, res: Response) => {
   try {
-    const stmt = db.prepare('SELECT * FROM companies WHERE id = ?');
-    const company = stmt.get(req.params.id) as Company | undefined;
-    
-    if (!company) {
-      return res.status(404).json({ error: 'Company not found' });
+    const { data: company, error } = await supabase
+      .from('companies')
+      .select('*')
+      .eq('id', req.params.id)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return res.status(404).json({ error: 'Company not found' });
+      }
+      console.error('Error fetching company:', error);
+      return res.status(500).json({ error: 'Failed to fetch company' });
     }
     
-    res.json({
-      ...company,
-      similar_companies: company.similar_companies ? JSON.parse(company.similar_companies) : []
-    });
+    res.json(company as Company);
   } catch (error) {
     console.error('Error fetching company:', error);
-    res.status(500).json({ error: 'Failed to fetch company' });
+    return res.status(500).json({ error: 'Failed to fetch company' });
   }
 });
 
 // POST create new company
-router.post('/', (req: Request, res: Response) => {
+router.post('/', async (req: Request, res: Response) => {
   try {
     const {
       name,
@@ -98,184 +94,217 @@ router.post('/', (req: Request, res: Response) => {
 
     const id = uuidv4();
     const now = new Date().toISOString();
-    const similarCompaniesJson = similar_companies ? JSON.stringify(similar_companies) : null;
 
-    const stmt = db.prepare(`
-      INSERT INTO companies (id, name, description, website_url, logo_url, founded_year, headquarters, growth_summary, similar_companies, created_date, updated_date)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    stmt.run(
+    const insertData: Partial<Company> & { id: string; name: string } = {
       id,
       name,
-      description || null,
-      website_url || null,
-      logo_url || null,
-      founded_year || null,
-      headquarters || null,
-      growth_summary || null,
-      similarCompaniesJson,
-      now,
-      now
-    );
+      description: description || null,
+      website_url: website_url || null,
+      logo_url: logo_url || null,
+      founded_year: founded_year || null,
+      headquarters: headquarters || null,
+      growth_summary: growth_summary || null,
+      similar_companies: similar_companies || null,
+      created_date: now,
+      updated_date: now
+    };
 
-    const newCompany = db.prepare('SELECT * FROM companies WHERE id = ?').get(id) as Company;
-    res.status(201).json({
-      ...newCompany,
-      similar_companies: newCompany.similar_companies ? JSON.parse(newCompany.similar_companies) : []
-    });
+    const { data: newCompany, error } = await supabase
+      .from('companies')
+      .insert(insertData)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating company:', error);
+      if (error.code === '23505') { // Unique violation
+        return res.status(409).json({ error: 'Company with this name already exists' });
+      }
+      return res.status(500).json({ error: 'Failed to create company' });
+    }
+
+    res.status(201).json(newCompany as Company);
   } catch (error: any) {
     console.error('Error creating company:', error);
-    if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
-      return res.status(409).json({ error: 'Company with this name already exists' });
-    }
-    res.status(500).json({ error: 'Failed to create company' });
+    return res.status(500).json({ error: 'Failed to create company' });
   }
 });
 
 // PUT update company
-router.put('/:id', (req: Request, res: Response) => {
+router.put('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const updates = req.body;
     
     // Check if company exists
-    const existing = db.prepare('SELECT * FROM companies WHERE id = ?').get(id);
-    if (!existing) {
-      return res.status(404).json({ error: 'Company not found' });
+    const { data: existing, error: selectError } = await supabase
+      .from('companies')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (selectError) {
+      if (selectError.code === 'PGRST116') {
+        return res.status(404).json({ error: 'Company not found' });
+      }
+      console.error('Error checking company:', selectError);
+      return res.status(500).json({ error: 'Failed to check company' });
     }
 
     const allowedFields = ['name', 'description', 'website_url', 'logo_url', 'founded_year', 'headquarters', 'growth_summary', 'similar_companies'];
-    const fieldsToUpdate: string[] = [];
-    const values: any[] = [];
+    const updateData: Partial<Company> = {};
 
     for (const field of allowedFields) {
       if (updates[field] !== undefined) {
-        fieldsToUpdate.push(`${field} = ?`);
-        if (field === 'similar_companies') {
-          values.push(JSON.stringify(updates[field]));
-        } else {
-          values.push(updates[field]);
-        }
+        (updateData as Record<string, unknown>)[field] = updates[field];
       }
     }
 
-    if (fieldsToUpdate.length === 0) {
+    if (Object.keys(updateData).length === 0) {
       return res.status(400).json({ error: 'No valid fields to update' });
     }
 
-    fieldsToUpdate.push('updated_date = ?');
-    values.push(new Date().toISOString());
-    values.push(id);
+    updateData.updated_date = new Date().toISOString();
 
-    const stmt = db.prepare(`UPDATE companies SET ${fieldsToUpdate.join(', ')} WHERE id = ?`);
-    stmt.run(...values);
+    const { data: updatedCompany, error: updateError } = await supabase
+      .from('companies')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
 
-    const updatedCompany = db.prepare('SELECT * FROM companies WHERE id = ?').get(id) as Company;
-    res.json({
-      ...updatedCompany,
-      similar_companies: updatedCompany.similar_companies ? JSON.parse(updatedCompany.similar_companies) : []
-    });
+    if (updateError) {
+      console.error('Error updating company:', updateError);
+      return res.status(500).json({ error: 'Failed to update company' });
+    }
+
+    res.json(updatedCompany as Company);
   } catch (error) {
     console.error('Error updating company:', error);
-    res.status(500).json({ error: 'Failed to update company' });
+    return res.status(500).json({ error: 'Failed to update company' });
   }
 });
 
 // PUT upsert company by name
-router.put('/by-name/:name', (req: Request, res: Response) => {
+router.put('/by-name/:name', async (req: Request, res: Response) => {
   try {
-    const name = decodeURIComponent(req.params.name);
+    const name = decodeURIComponent(req.params.name as string);
     const updates = req.body;
     
     // Check if company exists
-    const existing = db.prepare('SELECT * FROM companies WHERE name = ?').get(name) as Company | undefined;
-    
+    const { data: existing, error: selectError } = await supabase
+      .from('companies')
+      .select('*')
+      .eq('name', name)
+      .single();
+
+    if (selectError && selectError.code !== 'PGRST116') {
+      console.error('Error checking existing company:', selectError);
+      return res.status(500).json({ error: 'Failed to check existing company' });
+    }
+
     if (!existing) {
       // Create new company
       const id = uuidv4();
       const now = new Date().toISOString();
-      const similarCompaniesJson = updates.similar_companies ? JSON.stringify(updates.similar_companies) : null;
 
-      const stmt = db.prepare(`
-        INSERT INTO companies (id, name, description, website_url, logo_url, founded_year, headquarters, growth_summary, similar_companies, created_date, updated_date)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `);
-
-      stmt.run(
+      const insertData: Partial<Company> & { id: string; name: string } = {
         id,
         name,
-        updates.description || null,
-        updates.website_url || null,
-        updates.logo_url || null,
-        updates.founded_year || null,
-        updates.headquarters || null,
-        updates.growth_summary || null,
-        similarCompaniesJson,
-        now,
-        now
-      );
+        description: updates.description || null,
+        website_url: updates.website_url || null,
+        logo_url: updates.logo_url || null,
+        founded_year: updates.founded_year || null,
+        headquarters: updates.headquarters || null,
+        growth_summary: updates.growth_summary || null,
+        similar_companies: updates.similar_companies || null,
+        created_date: now,
+        updated_date: now
+      };
 
-      const newCompany = db.prepare('SELECT * FROM companies WHERE id = ?').get(id) as Company;
-      return res.status(201).json({
-        ...newCompany,
-        similar_companies: newCompany.similar_companies ? JSON.parse(newCompany.similar_companies) : []
-      });
+      const { data: newCompany, error: insertError } = await supabase
+        .from('companies')
+        .insert(insertData)
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error('Error creating company:', insertError);
+        return res.status(500).json({ error: 'Failed to create company' });
+      }
+
+      return res.status(201).json(newCompany as Company);
     }
 
     // Update existing company
     const allowedFields = ['description', 'website_url', 'logo_url', 'founded_year', 'headquarters', 'growth_summary', 'similar_companies'];
-    const fieldsToUpdate: string[] = [];
-    const values: any[] = [];
+    const upsertData: Partial<Company> = {};
 
     for (const field of allowedFields) {
       if (updates[field] !== undefined) {
-        fieldsToUpdate.push(`${field} = ?`);
-        if (field === 'similar_companies') {
-          values.push(JSON.stringify(updates[field]));
-        } else {
-          values.push(updates[field]);
-        }
+        (upsertData as Record<string, unknown>)[field] = updates[field];
       }
     }
 
-    if (fieldsToUpdate.length > 0) {
-      fieldsToUpdate.push('updated_date = ?');
-      values.push(new Date().toISOString());
-      values.push(existing.id);
+    if (Object.keys(upsertData).length > 0) {
+      upsertData.updated_date = new Date().toISOString();
 
-      const stmt = db.prepare(`UPDATE companies SET ${fieldsToUpdate.join(', ')} WHERE id = ?`);
-      stmt.run(...values);
+      const { data: updatedCompany, error: updateError } = await supabase
+        .from('companies')
+        .update(upsertData)
+        .eq('id', (existing as Company).id)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error('Error updating company:', updateError);
+        return res.status(500).json({ error: 'Failed to update company' });
+      }
+
+      return res.json(updatedCompany as Company);
     }
 
-    const updatedCompany = db.prepare('SELECT * FROM companies WHERE id = ?').get(existing.id) as Company;
-    res.json({
-      ...updatedCompany,
-      similar_companies: updatedCompany.similar_companies ? JSON.parse(updatedCompany.similar_companies) : []
-    });
+    return res.json(existing as Company);
   } catch (error) {
     console.error('Error upserting company:', error);
-    res.status(500).json({ error: 'Failed to upsert company' });
+    return res.status(500).json({ error: 'Failed to upsert company' });
   }
 });
 
 // DELETE company
-router.delete('/:id', (req: Request, res: Response) => {
+router.delete('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     
-    const existing = db.prepare('SELECT * FROM companies WHERE id = ?').get(id);
-    if (!existing) {
-      return res.status(404).json({ error: 'Company not found' });
+    // Check if company exists
+    const { data: existing, error: selectError } = await supabase
+      .from('companies')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (selectError) {
+      if (selectError.code === 'PGRST116') {
+        return res.status(404).json({ error: 'Company not found' });
+      }
+      console.error('Error checking company:', selectError);
+      return res.status(500).json({ error: 'Failed to check company' });
     }
 
-    const stmt = db.prepare('DELETE FROM companies WHERE id = ?');
-    stmt.run(id);
+    const { error: deleteError } = await supabase
+      .from('companies')
+      .delete()
+      .eq('id', id);
+
+    if (deleteError) {
+      console.error('Error deleting company:', deleteError);
+      return res.status(500).json({ error: 'Failed to delete company' });
+    }
 
     res.status(204).send();
   } catch (error) {
     console.error('Error deleting company:', error);
-    res.status(500).json({ error: 'Failed to delete company' });
+    return res.status(500).json({ error: 'Failed to delete company' });
   }
 });
 

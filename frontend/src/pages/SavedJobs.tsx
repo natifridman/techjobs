@@ -32,34 +32,48 @@ const levelColors: Record<string, string> = {
   'Intern': 'bg-green-50 text-green-700 border-green-200',
 };
 
+type FilterType = 'all' | 'applied' | 'not-applied';
+
 export default function SavedJobs() {
   const queryClient = useQueryClient();
   const [editingComment, setEditingComment] = useState<string | null>(null);
   const [commentText, setCommentText] = useState('');
+  const [filter, setFilter] = useState<FilterType>('all');
   
   const { data: savedJobs = [], isLoading } = useQuery({
     queryKey: ['savedJobs'],
     queryFn: () => savedJobsApi.list('-created_date'),
+    staleTime: 30 * 1000, // Cache for 30 seconds
+    refetchOnWindowFocus: true,
   });
+
+  const filteredJobs = savedJobs.filter(job => {
+    if (filter === 'applied') return job.applied;
+    if (filter === 'not-applied') return !job.applied;
+    return true;
+  });
+
+  const appliedCount = savedJobs.filter(j => j.applied).length;
   
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => {
-      savedJobsApi.delete(id);
-      return Promise.resolve();
-    },
+    mutationFn: (id: string) => savedJobsApi.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['savedJobs'] });
       toast.success('Job removed from saved');
     },
+    onError: () => {
+      toast.error('Failed to remove job');
+    },
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<SavedJob> }) => {
-      savedJobsApi.update(id, data);
-      return Promise.resolve();
-    },
+    mutationFn: ({ id, data }: { id: string; data: Partial<SavedJob> }) => 
+      savedJobsApi.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['savedJobs'] });
+    },
+    onError: () => {
+      toast.error('Failed to update job');
     },
   });
 
@@ -71,8 +85,11 @@ export default function SavedJobs() {
         applied: newApplied,
         applied_date: newApplied ? new Date().toISOString().split('T')[0] : undefined
       }
+    }, {
+      onSuccess: () => {
+        toast.success(newApplied ? 'Marked as applied!' : 'Unmarked as applied');
+      }
     });
-    toast.success(newApplied ? 'Marked as applied!' : 'Unmarked as applied');
   };
 
   const startEditingComment = (job: SavedJob) => {
@@ -81,13 +98,17 @@ export default function SavedJobs() {
   };
 
   const saveComment = (jobId: string) => {
-    updateMutation.mutate({
-      id: jobId,
-      data: { comments: commentText }
-    });
+    const text = commentText;
     setEditingComment(null);
     setCommentText('');
-    toast.success('Comment saved');
+    updateMutation.mutate({
+      id: jobId,
+      data: { comments: text }
+    }, {
+      onSuccess: () => {
+        toast.success('Comment saved');
+      }
+    });
   };
   
   return (
@@ -107,10 +128,42 @@ export default function SavedJobs() {
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-slate-900">Saved Jobs</h1>
-                <p className="text-slate-500">{savedJobs.length} jobs saved</p>
+                <p className="text-slate-500">{savedJobs.length} jobs saved • {appliedCount} applied</p>
               </div>
             </div>
           </div>
+          
+          {/* Filter Tabs */}
+          {savedJobs.length > 0 && (
+            <div className="flex gap-2 mt-4">
+              <Button
+                variant={filter === 'all' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setFilter('all')}
+                className={filter === 'all' ? 'bg-indigo-600 hover:bg-indigo-700' : ''}
+              >
+                All ({savedJobs.length})
+              </Button>
+              <Button
+                variant={filter === 'applied' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setFilter('applied')}
+                className={filter === 'applied' ? 'bg-emerald-600 hover:bg-emerald-700' : ''}
+              >
+                <CheckCircle2 className="w-4 h-4 mr-1.5" />
+                Applied ({appliedCount})
+              </Button>
+              <Button
+                variant={filter === 'not-applied' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setFilter('not-applied')}
+                className={filter === 'not-applied' ? 'bg-slate-600 hover:bg-slate-700' : ''}
+              >
+                <Circle className="w-4 h-4 mr-1.5" />
+                Not Applied ({savedJobs.length - appliedCount})
+              </Button>
+            </div>
+          )}
         </div>
       </div>
       
@@ -127,7 +180,7 @@ export default function SavedJobs() {
               </Card>
             ))}
           </div>
-        ) : savedJobs.length === 0 ? (
+        ) : filteredJobs.length === 0 && savedJobs.length === 0 ? (
           <div className="text-center py-16">
             <Briefcase className="w-16 h-16 text-slate-300 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-slate-700 mb-2">No saved jobs yet</h3>
@@ -140,10 +193,25 @@ export default function SavedJobs() {
               </Link>
             </Button>
           </div>
+        ) : filteredJobs.length === 0 ? (
+          <div className="text-center py-16">
+            <CheckCircle2 className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-slate-700 mb-2">
+              {filter === 'applied' ? 'No applied jobs yet' : 'All jobs have been applied to!'}
+            </h3>
+            <p className="text-slate-500 mb-6">
+              {filter === 'applied' 
+                ? 'Mark jobs as applied when you submit your application' 
+                : 'Great job! You\'ve applied to all your saved positions'}
+            </p>
+            <Button onClick={() => setFilter('all')} variant="outline">
+              View All Jobs
+            </Button>
+          </div>
         ) : (
           <AnimatePresence mode="popLayout">
             <div className="space-y-4">
-              {savedJobs.map((job, index) => (
+              {filteredJobs.map((job, index) => (
                 <motion.div
                   key={job.id}
                   initial={{ opacity: 0, y: 20 }}
@@ -202,7 +270,8 @@ export default function SavedJobs() {
                           variant="ghost"
                           size="icon"
                           onClick={() => deleteMutation.mutate(job.id)}
-                          className="text-slate-400 hover:text-red-500 hover:bg-red-50"
+                          disabled={deleteMutation.isPending}
+                          className="text-slate-400 hover:text-red-500 hover:bg-red-50 disabled:opacity-50"
                         >
                           <BookmarkX className="w-5 h-5" />
                         </Button>
@@ -232,9 +301,10 @@ export default function SavedJobs() {
                             <Button
                               size="sm"
                               onClick={() => saveComment(job.id)}
-                              className="bg-indigo-600 hover:bg-indigo-700"
+                              disabled={updateMutation.isPending}
+                              className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50"
                             >
-                              Save
+                              {updateMutation.isPending ? 'Saving...' : 'Save'}
                             </Button>
                           </div>
                         </div>
@@ -263,7 +333,8 @@ export default function SavedJobs() {
                             variant="outline"
                             size="sm"
                             onClick={() => toggleApplied(job)}
-                            className={job.applied ? 'text-emerald-600 border-emerald-300 hover:bg-emerald-50' : ''}
+                            disabled={updateMutation.isPending}
+                            className={`${job.applied ? 'text-emerald-600 border-emerald-300 hover:bg-emerald-50' : ''} disabled:opacity-50`}
                           >
                             {job.applied ? (
                               <CheckCircle2 className="w-4 h-4 mr-1.5" />

@@ -1,7 +1,9 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import session from 'express-session';
-import SQLiteStore from 'connect-sqlite3';
+import pgSession from 'connect-pg-simple';
+import { Pool } from 'pg';
 import passport from './config/passport';
 import authRouter from './routes/auth';
 import savedJobsRouter from './routes/savedJobs';
@@ -11,18 +13,20 @@ import path from 'path';
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Check required environment variables
+const requiredEnvVars = ['DATABASE_URL', 'SUPABASE_URL', 'SUPABASE_SERVICE_KEY'];
+const missingEnvVars = requiredEnvVars.filter(v => !process.env[v]);
+if (missingEnvVars.length > 0) {
+  console.error('❌ Missing required environment variables:');
+  missingEnvVars.forEach(v => console.error(`   - ${v}`));
+  console.error('');
+  console.error('Set these in Render Dashboard > Environment');
+}
+
 // Trust proxy (required for Render, Railway, etc.)
 if (process.env.NODE_ENV === 'production') {
   app.set('trust proxy', 1);
 }
-
-// Session store
-const SQLiteSessionStore = SQLiteStore(session);
-const sessionStore = new SQLiteSessionStore({
-  db: 'sessions.db',
-  dir: process.env.DB_PATH ? path.dirname(process.env.DB_PATH) : path.join(__dirname, '..', 'data'),
-  table: 'sessions'
-});
 
 // CORS configuration
 const corsOrigin = process.env.CORS_ORIGIN || 'http://localhost:5173';
@@ -36,9 +40,33 @@ app.use(cors({
 // Body parser
 app.use(express.json());
 
-// Session configuration
+// PostgreSQL session store using Supabase
+const PgStore = pgSession(session);
+
+// Use DATABASE_URL directly (get from Supabase Dashboard > Settings > Database > Connection string)
+const databaseUrl = process.env.DATABASE_URL;
+if (!databaseUrl) {
+  console.error('❌ DATABASE_URL not set! Get it from Supabase Dashboard > Settings > Database > Connection string (URI)');
+}
+
+const pool = new Pool({
+  connectionString: databaseUrl,
+  ssl: { rejectUnauthorized: false }
+});
+
+// Test database connection
+pool.query('SELECT NOW()')
+  .then(() => console.log('✅ PostgreSQL connected'))
+  .catch(err => console.error('❌ PostgreSQL connection failed:', err.message));
+
+// Session configuration with PostgreSQL persistence
 app.use(session({
-  store: sessionStore,
+  store: new PgStore({
+    pool,
+    tableName: 'session',
+    createTableIfMissing: false, // We create it via supabase-schema.sql
+    errorLog: console.error.bind(console),
+  }),
   secret: process.env.SESSION_SECRET || 'techjobs-dev-secret-change-in-production',
   resave: false,
   saveUninitialized: false,
