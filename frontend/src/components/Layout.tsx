@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import LayoutHeader from "@/components/LayoutHeader";
-// import { BannerAd } from "@/components/GoogleAd"; // Uncomment when ready to show ads
+import { BannerAd } from "@/components/GoogleAd";
 
 interface LayoutProps {
   children: ReactNode;
@@ -18,10 +18,10 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
   return (
     <div className="min-h-screen bg-warm-50">
       <LayoutHeader />
-      {/* Top banner ad - uncomment when ready to show ads */}
-      {/* <div className="max-w-7xl mx-auto px-4 py-2">
+      {/* Top banner ad */}
+      <div className="max-w-7xl mx-auto px-4 py-2">
         <BannerAd />
-      </div> */}
+      </div>
       {children}
     </div>
   );
