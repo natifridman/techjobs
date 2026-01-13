@@ -43,13 +43,11 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
     <div className="min-h-screen bg-warm-50">
       <SkipToContent />
       <LayoutHeader variant="light" />
-      {/* Top banner ad */}
-      <div className="max-w-7xl mx-auto px-4 py-2" role="complementary" aria-label="Advertisements">
-        <BannerAd />
-      </div>
       <main id="main-content" tabIndex={-1}>
         {children}
       </main>
+      {/* Bottom banner ad */}
+      <BannerAd />
     </div>
   );
 }
