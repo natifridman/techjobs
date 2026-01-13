@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
 import { Building2, Bookmark, LogIn, LogOut, User, MapPin, Briefcase, Menu, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { motion, AnimatePresence } from "framer-motion";
+import { useDialogAccessibility } from "@/hooks/useDialogAccessibility";
 
 interface LayoutHeaderProps {
   variant?: 'light' | 'dark';
@@ -15,54 +16,13 @@ export default function LayoutHeader({ variant = 'light' }: LayoutHeaderProps) {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { user, isAuthenticated, isLoading, login, logout } = useAuth();
-  const menuButtonRef = useRef<HTMLButtonElement>(null);
-  const drawerRef = useRef<HTMLDivElement>(null);
+
+  const { dialogRef: drawerRef, triggerRef: menuButtonRef, closeAndReturnFocus } = useDialogAccessibility({
+    isOpen: isMobileMenuOpen,
+    onClose: () => setIsMobileMenuOpen(false),
+  });
 
   const isDark = variant === 'dark';
-
-  // Focus the drawer when it opens
-  useEffect(() => {
-    if (isMobileMenuOpen && drawerRef.current) {
-      setTimeout(() => drawerRef.current?.focus(), 100);
-    }
-  }, [isMobileMenuOpen]);
-
-  // Handle Escape key and focus trap for mobile menu
-  useEffect(() => {
-    if (!isMobileMenuOpen) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Close on Escape and return focus
-      if (e.key === 'Escape') {
-        setIsMobileMenuOpen(false);
-        menuButtonRef.current?.focus();
-        return;
-      }
-
-      // Focus trap on Tab
-      if (e.key !== 'Tab') return;
-
-      const drawer = drawerRef.current;
-      if (!drawer) return;
-
-      const focusableElements = drawer.querySelectorAll<HTMLElement>(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-      );
-      const firstElement = focusableElements[0];
-      const lastElement = focusableElements[focusableElements.length - 1];
-
-      if (e.shiftKey && document.activeElement === firstElement) {
-        e.preventDefault();
-        lastElement?.focus();
-      } else if (!e.shiftKey && document.activeElement === lastElement) {
-        e.preventDefault();
-        firstElement?.focus();
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isMobileMenuOpen]);
 
   const handleLogin = () => {
     login(window.location.href);
@@ -130,7 +90,7 @@ export default function LayoutHeader({ variant = 'light' }: LayoutHeaderProps) {
             className={`flex items-center gap-2 font-bold text-xl ${styles.logo} shrink-0`}
             aria-label="TechJobsIL - Back to home"
           >
-            <img src="/techjobsil-logo-64.png" alt="" className="w-8 h-8" aria-hidden="true" />
+            <img src="/techjobsil-logo-64.png" alt="" className="w-8 h-8" />
             <span className="hidden sm:inline">TechJobsIL</span>
           </Link>
 
@@ -260,16 +220,13 @@ export default function LayoutHeader({ variant = 'light' }: LayoutHeaderProps) {
                     onClick={() => setIsMobileMenuOpen(false)}
                     aria-label="TechJobsIL - Back to home"
                   >
-                    <img src="/techjobsil-logo-64.png" alt="" className="w-8 h-8" aria-hidden="true" />
+                    <img src="/techjobsil-logo-64.png" alt="" className="w-8 h-8" />
                     <span>TechJobsIL</span>
                   </Link>
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => {
-                      setIsMobileMenuOpen(false);
-                      menuButtonRef.current?.focus();
-                    }}
+                    onClick={closeAndReturnFocus}
                     aria-label="Close menu"
                   >
                     <X className="w-6 h-6" aria-hidden="true" />

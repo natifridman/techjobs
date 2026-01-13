@@ -1,10 +1,10 @@
-import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { X, RotateCcw } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useMobileDialogAccessibility } from "@/hooks/useDialogAccessibility";
 
 const categories = [
   "AI/ML", "AdTech", "Aerospace", "AR/VR", "Automotive", "Cloud Computing",
@@ -55,61 +55,11 @@ export default function FilterSidebar({
   onClose,
   isMobile
 }: FilterSidebarProps) {
-  const panelRef = useRef<HTMLDivElement>(null);
-  const previousActiveElement = useRef<Element | null>(null);
-
-  // Store the element that was focused when opening, and restore it when closing
-  useEffect(() => {
-    if (isOpen && isMobile) {
-      previousActiveElement.current = document.activeElement;
-      // Focus the panel when it opens
-      setTimeout(() => panelRef.current?.focus(), 100);
-    }
-  }, [isOpen, isMobile]);
-
-  // Handle Escape key and focus trap for mobile dialog
-  useEffect(() => {
-    if (!isOpen || !isMobile) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Close on Escape
-      if (e.key === 'Escape') {
-        onClose();
-        (previousActiveElement.current as HTMLElement)?.focus?.();
-        return;
-      }
-
-      // Focus trap on Tab
-      if (e.key !== 'Tab') return;
-
-      const panel = panelRef.current;
-      if (!panel) return;
-
-      const focusableElements = panel.querySelectorAll<HTMLElement>(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-      );
-      const firstElement = focusableElements[0];
-      const lastElement = focusableElements[focusableElements.length - 1];
-
-      if (e.shiftKey && document.activeElement === firstElement) {
-        e.preventDefault();
-        lastElement?.focus();
-      } else if (!e.shiftKey && document.activeElement === lastElement) {
-        e.preventDefault();
-        firstElement?.focus();
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, isMobile, onClose]);
-
-  // Restore focus when dialog closes
-  useEffect(() => {
-    if (!isOpen && isMobile && previousActiveElement.current) {
-      (previousActiveElement.current as HTMLElement)?.focus?.();
-    }
-  }, [isOpen, isMobile]);
+  const { dialogRef: panelRef } = useMobileDialogAccessibility({
+    isOpen,
+    isMobile,
+    onClose,
+  });
 
   const handleCategoryToggle = (category: string) => {
     setFilters(prev => ({

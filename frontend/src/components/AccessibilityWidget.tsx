@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Button } from '@/components/ui/button';
 import { Accessibility, X, ZoomIn, ZoomOut, Contrast, MousePointer2, Minus, Link2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useDialogAccessibility } from '@/hooks/useDialogAccessibility';
 
 interface AccessibilitySettings {
   fontSize: number;
@@ -21,9 +22,12 @@ const defaultSettings: AccessibilitySettings = {
 
 export default function AccessibilityWidget() {
   const [isOpen, setIsOpen] = useState(false);
-  const panelRef = useRef<HTMLDivElement>(null);
-  const triggerButtonRef = useRef<HTMLButtonElement>(null);
   
+  const { dialogRef, triggerRef, closeAndReturnFocus } = useDialogAccessibility({
+    isOpen,
+    onClose: () => setIsOpen(false),
+  });
+
   const [settings, setSettings] = useState<AccessibilitySettings>(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -63,59 +67,6 @@ export default function AccessibilityWidget() {
     }
   }, [settings]);
 
-  // Handle Escape key and return focus to trigger button
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        setIsOpen(false);
-        triggerButtonRef.current?.focus();
-      }
-    };
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
-  }, [isOpen]);
-
-  // Focus the panel when opened
-  useEffect(() => {
-    if (isOpen && panelRef.current) {
-      panelRef.current.focus();
-    }
-  }, [isOpen]);
-
-  // Focus trap - keep Tab within panel when open
-  useEffect(() => {
-    if (!isOpen || !panelRef.current) return;
-
-    const handleTabKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Tab') return;
-      
-      const panel = panelRef.current;
-      if (!panel) return;
-
-      const focusableElements = panel.querySelectorAll<HTMLElement>(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-      );
-      const firstElement = focusableElements[0];
-      const lastElement = focusableElements[focusableElements.length - 1];
-
-      if (e.shiftKey && document.activeElement === firstElement) {
-        e.preventDefault();
-        lastElement?.focus();
-      } else if (!e.shiftKey && document.activeElement === lastElement) {
-        e.preventDefault();
-        firstElement?.focus();
-      }
-    };
-
-    document.addEventListener('keydown', handleTabKey);
-    return () => document.removeEventListener('keydown', handleTabKey);
-  }, [isOpen]);
-
-  const handleClose = () => {
-    setIsOpen(false);
-    triggerButtonRef.current?.focus();
-  };
-
   const increaseFontSize = () => {
     setSettings(prev => ({
       ...prev,
@@ -150,7 +101,7 @@ export default function AccessibilityWidget() {
     <>
       {/* Accessibility Toggle Button */}
       <Button
-        ref={triggerButtonRef}
+        ref={triggerRef}
         onClick={() => setIsOpen(!isOpen)}
         className="fixed bottom-4 left-4 z-50 w-14 h-14 rounded-full bg-iris-600 hover:bg-iris-700 text-white shadow-lg"
         aria-label={isOpen ? 'Close accessibility menu' : 'Open accessibility menu'}
@@ -170,12 +121,12 @@ export default function AccessibilityWidget() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="fixed inset-0 bg-black/30 z-[99] md:hidden"
-              onClick={handleClose}
+              onClick={closeAndReturnFocus}
               aria-hidden="true"
             />
 
             <motion.div
-              ref={panelRef}
+              ref={dialogRef}
               id="accessibility-panel"
               tabIndex={-1}
               initial={{ opacity: 0, y: 20, scale: 0.95 }}
@@ -196,7 +147,7 @@ export default function AccessibilityWidget() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={handleClose}
+                  onClick={closeAndReturnFocus}
                   aria-label="Close accessibility menu"
                   className="h-8 w-8"
                 >
@@ -290,7 +241,7 @@ export default function AccessibilityWidget() {
                   <Link
                     to={createPageUrl("AccessibilityStatement")}
                     className="text-sm text-iris-600 hover:text-iris-700 underline flex items-center gap-1"
-                    onClick={handleClose}
+                    onClick={closeAndReturnFocus}
                   >
                     <Accessibility className="w-3 h-3" aria-hidden="true" />
                     Full Accessibility Statement
