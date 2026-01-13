@@ -4,6 +4,7 @@ import { Toaster } from 'sonner';
 
 import Layout from '@/components/Layout';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import AccessibilityWidget from '@/components/AccessibilityWidget';
 import Home from '@/pages/Home';
 import Jobs from '@/pages/Jobs';
 import Companies from '@/pages/Companies';
@@ -12,6 +13,7 @@ import SavedJobs from '@/pages/SavedJobs';
 import Map from '@/pages/Map';
 import PrivacyPolicy from '@/pages/PrivacyPolicy';
 import TermsOfService from '@/pages/TermsOfService';
+import AccessibilityStatement from '@/pages/AccessibilityStatement';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -93,7 +95,16 @@ function App() {
               </Layout>
             }
           />
+          <Route
+            path="/accessibility"
+            element={
+              <Layout currentPageName="AccessibilityStatement">
+                <AccessibilityStatement />
+              </Layout>
+            }
+          />
         </Routes>
+        <AccessibilityWidget />
       </Router>
       <Toaster position="top-right" richColors />
     </QueryClientProvider>

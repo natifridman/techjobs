@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
 import { Building2, Bookmark, LogIn, LogOut, User, MapPin, Briefcase, Menu, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { motion, AnimatePresence } from "framer-motion";
+import { useDialogAccessibility } from "@/hooks/useDialogAccessibility";
 
 interface LayoutHeaderProps {
   variant?: 'light' | 'dark';
@@ -16,18 +17,12 @@ export default function LayoutHeader({ variant = 'light' }: LayoutHeaderProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { user, isAuthenticated, isLoading, login, logout } = useAuth();
 
-  const isDark = variant === 'dark';
+  const { dialogRef: drawerRef, triggerRef: menuButtonRef, closeAndReturnFocus } = useDialogAccessibility({
+    isOpen: isMobileMenuOpen,
+    onClose: () => setIsMobileMenuOpen(false),
+  });
 
-  // Handle Escape key to close mobile menu
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isMobileMenuOpen) {
-        setIsMobileMenuOpen(false);
-      }
-    };
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
-  }, [isMobileMenuOpen]);
+  const isDark = variant === 'dark';
 
   const handleLogin = () => {
     login(window.location.href);
@@ -87,16 +82,20 @@ export default function LayoutHeader({ variant = 'light' }: LayoutHeaderProps) {
 
   return (
     <>
-      <header className={`${styles.header} sticky top-0 z-50`}>
+      <header className={`${styles.header} sticky top-0 z-50`} role="banner">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
           {/* Logo */}
-          <Link to={createPageUrl("Home")} className={`flex items-center gap-2 font-bold text-xl ${styles.logo} shrink-0`}>
-            <img src="/techjobsil-logo-64.png" alt="TechJobsIL" className="w-8 h-8" />
+          <Link 
+            to={createPageUrl("Home")} 
+            className={`flex items-center gap-2 font-bold text-xl ${styles.logo} shrink-0`}
+            aria-label="TechJobsIL - Back to home"
+          >
+            <img src="/techjobsil-logo-64.png" alt="" className="w-8 h-8" />
             <span className="hidden sm:inline">TechJobsIL</span>
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-1 shrink-0">
+          <nav className="hidden md:flex items-center gap-1 shrink-0" role="navigation" aria-label="Main navigation">
             {navLinks.map(({ path, icon: Icon, label, checkActive }) => (
               <Button
                 key={path}
@@ -104,29 +103,37 @@ export default function LayoutHeader({ variant = 'light' }: LayoutHeaderProps) {
                 variant="ghost"
                 size="sm"
                 className={styles.navButton(checkActive())}
+                aria-current={checkActive() ? "page" : undefined}
               >
                 <Link to={createPageUrl(path)}>
-                  <Icon className="w-4 h-4 mr-2" />
+                  <Icon className="w-4 h-4 mr-2" aria-hidden="true" />
                   <span>{label}</span>
                 </Link>
               </Button>
             ))}
 
             {/* Auth buttons */}
-            <div className={`ml-2 pl-2 border-l ${styles.divider}`}>
+            <div className={`ml-2 pl-2 border-l ${styles.divider}`} role="group" aria-label="User area">
               {isLoading ? (
-                <div className={`w-8 h-8 rounded-full ${isDark ? 'bg-white/20' : 'bg-warm-100'} animate-pulse`} />
+                <div 
+                  className={`w-8 h-8 rounded-full ${isDark ? 'bg-white/20' : 'bg-warm-100'} animate-pulse`}
+                  role="status"
+                  aria-label="Loading user info"
+                />
               ) : isAuthenticated && user ? (
                 <div className="flex items-center gap-2">
                   <div className="flex items-center gap-2">
                     {user.picture ? (
                       <img
                         src={user.picture}
-                        alt={user.name}
+                        alt={`${user.name}'s profile picture`}
                         className={`w-8 h-8 rounded-full border ${styles.userImage}`}
                       />
                     ) : (
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${styles.userIcon}`}>
+                      <div 
+                        className={`w-8 h-8 rounded-full flex items-center justify-center ${styles.userIcon}`}
+                        aria-hidden="true"
+                      >
                         <User className="w-4 h-4" />
                       </div>
                     )}
@@ -139,8 +146,9 @@ export default function LayoutHeader({ variant = 'light' }: LayoutHeaderProps) {
                     size="sm"
                     onClick={handleLogout}
                     className={styles.logoutButton}
+                    aria-label="Sign out"
                   >
-                    <LogOut className="w-4 h-4" />
+                    <LogOut className="w-4 h-4" aria-hidden="true" />
                     <span className="hidden lg:inline ml-2">Logout</span>
                   </Button>
                 </div>
@@ -150,8 +158,9 @@ export default function LayoutHeader({ variant = 'light' }: LayoutHeaderProps) {
                   size="sm"
                   onClick={handleLogin}
                   className={styles.loginButton}
+                  aria-label="Sign in with Google"
                 >
-                  <LogIn className="w-4 h-4 mr-2" />
+                  <LogIn className="w-4 h-4 mr-2" aria-hidden="true" />
                   <span>Sign in</span>
                 </Button>
               )}
@@ -160,13 +169,16 @@ export default function LayoutHeader({ variant = 'light' }: LayoutHeaderProps) {
 
           {/* Mobile Menu Button */}
           <Button
+            ref={menuButtonRef}
             variant="ghost"
             size="icon"
             className={`md:hidden ${styles.mobileMenuButton}`}
             onClick={() => setIsMobileMenuOpen(true)}
-            aria-label="Open menu"
+            aria-label="Open navigation menu"
+            aria-expanded={isMobileMenuOpen}
+            aria-controls="mobile-menu"
           >
-            <Menu className="w-6 h-6" />
+            <Menu className="w-6 h-6" aria-hidden="true" />
           </Button>
         </div>
       </header>
@@ -182,15 +194,22 @@ export default function LayoutHeader({ variant = 'light' }: LayoutHeaderProps) {
               exit={{ opacity: 0 }}
               className="fixed inset-0 bg-black/50 z-50 md:hidden"
               onClick={() => setIsMobileMenuOpen(false)}
+              aria-hidden="true"
             />
 
             {/* Drawer */}
             <motion.div
+              ref={drawerRef}
+              id="mobile-menu"
+              tabIndex={-1}
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
               className="fixed inset-y-0 right-0 w-80 max-w-[85vw] bg-white z-50 shadow-2xl md:hidden"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Navigation menu"
             >
               <div className="flex flex-col h-full">
                 {/* Drawer Header */}
@@ -199,22 +218,23 @@ export default function LayoutHeader({ variant = 'light' }: LayoutHeaderProps) {
                     to={createPageUrl("Home")}
                     className="flex items-center gap-2 font-bold text-xl text-warm-900"
                     onClick={() => setIsMobileMenuOpen(false)}
+                    aria-label="TechJobsIL - Back to home"
                   >
-                    <img src="/techjobsil-logo-64.png" alt="TechJobsIL" className="w-8 h-8" />
+                    <img src="/techjobsil-logo-64.png" alt="" className="w-8 h-8" />
                     <span>TechJobsIL</span>
                   </Link>
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => setIsMobileMenuOpen(false)}
+                    onClick={closeAndReturnFocus}
                     aria-label="Close menu"
                   >
-                    <X className="w-6 h-6" />
+                    <X className="w-6 h-6" aria-hidden="true" />
                   </Button>
                 </div>
 
                 {/* Mobile Navigation Links */}
-                <nav className="flex-1 p-4 space-y-2">
+                <nav className="flex-1 p-4 space-y-2" role="navigation" aria-label="Main navigation">
                   {navLinks.map(({ path, icon: Icon, label, checkActive }) => (
                     <Link
                       key={path}
@@ -225,28 +245,33 @@ export default function LayoutHeader({ variant = 'light' }: LayoutHeaderProps) {
                           ? "bg-iris-50 text-iris-600"
                           : "text-warm-600 hover:bg-warm-100"
                       }`}
+                      aria-current={checkActive() ? "page" : undefined}
                     >
-                      <Icon className="w-5 h-5" />
+                      <Icon className="w-5 h-5" aria-hidden="true" />
                       {label}
                     </Link>
                   ))}
                 </nav>
 
                 {/* Mobile Auth Section */}
-                <div className="p-4 border-t border-warm-200">
+                <div className="p-4 border-t border-warm-200" role="group" aria-label="User area">
                   {isLoading ? (
-                    <div className="h-12 bg-warm-100 rounded-xl animate-pulse" />
+                    <div 
+                      className="h-12 bg-warm-100 rounded-xl animate-pulse" 
+                      role="status"
+                      aria-label="Loading user info"
+                    />
                   ) : isAuthenticated && user ? (
                     <div className="space-y-3">
                       <div className="flex items-center gap-3 px-4 py-3 bg-warm-50 rounded-xl">
                         {user.picture ? (
                           <img
                             src={user.picture}
-                            alt={user.name}
+                            alt={`${user.name}'s profile picture`}
                             className="w-10 h-10 rounded-full border border-warm-200"
                           />
                         ) : (
-                          <div className="w-10 h-10 rounded-full bg-iris-100 flex items-center justify-center">
+                          <div className="w-10 h-10 rounded-full bg-iris-100 flex items-center justify-center" aria-hidden="true">
                             <User className="w-5 h-5 text-iris-600" />
                           </div>
                         )}
@@ -262,8 +287,9 @@ export default function LayoutHeader({ variant = 'light' }: LayoutHeaderProps) {
                           handleLogout();
                           setIsMobileMenuOpen(false);
                         }}
+                        aria-label="Sign out"
                       >
-                        <LogOut className="w-4 h-4 mr-2" />
+                        <LogOut className="w-4 h-4 mr-2" aria-hidden="true" />
                         Sign Out
                       </Button>
                     </div>
@@ -274,8 +300,9 @@ export default function LayoutHeader({ variant = 'light' }: LayoutHeaderProps) {
                         handleLogin();
                         setIsMobileMenuOpen(false);
                       }}
+                      aria-label="Sign in with Google"
                     >
-                      <LogIn className="w-4 h-4 mr-2" />
+                      <LogIn className="w-4 h-4 mr-2" aria-hidden="true" />
                       Sign in with Google
                     </Button>
                   )}

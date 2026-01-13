@@ -8,6 +8,7 @@ const pageRoutes: Record<string, string> = {
   Map: '/map',
   PrivacyPolicy: '/privacy',
   TermsOfService: '/terms',
+  AccessibilityStatement: '/accessibility',
 };
 
 export function createPageUrl(pageName: string): string {

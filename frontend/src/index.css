@@ -1,36 +1,65 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@config "../tailwind.config.js";
 
-:root {
-  /* Midnight Iris - Primary palette */
-  --color-primary-50: #EEEEF6;
-  --color-primary-100: #D8D7ED;
-  --color-primary-200: #ACACD4;
-  --color-primary-300: #8280BB;
-  --color-primary-400: #5C5AB2;
-  --color-primary-500: #4A489A;
-  --color-primary-600: #3D3B8E;
-  --color-primary-700: #2F2D6E;
-  --color-primary-800: #22214F;
-  --color-primary-900: #151430;
+/* Tailwind 4 Theme Configuration */
+@theme {
+  /* Midnight Iris - Primary */
+  --color-iris-50: #EEEEF6;
+  --color-iris-100: #D8D7ED;
+  --color-iris-200: #ACACD4;
+  --color-iris-300: #8280BB;
+  --color-iris-400: #5C5AB2;
+  --color-iris-500: #4A489A;
+  --color-iris-600: #3D3B8E;
+  --color-iris-700: #2F2D6E;
+  --color-iris-800: #22214F;
+  --color-iris-900: #151430;
 
   /* Warm Copper - Accent */
-  --color-accent-400: #E8956A;
-  --color-accent-500: #D97C4D;
-  --color-accent-600: #C46A3A;
+  --color-copper-400: #E8956A;
+  --color-copper-500: #D97C4D;
+  --color-copper-600: #C46A3A;
 
-  /* Warm Neutral palette */
-  --color-neutral-50: #FDFBF7;
-  --color-neutral-100: #F7F5F0;
-  --color-neutral-200: #EDEAE3;
-  --color-neutral-300: #D8D5CE;
-  --color-neutral-400: #A09D96;
-  --color-neutral-500: #6B6B76;
-  --color-neutral-600: #52525B;
-  --color-neutral-700: #3F3F46;
-  --color-neutral-800: #2A2A32;
-  --color-neutral-900: #1A1A1F;
+  /* Warm Neutrals */
+  --color-warm-50: #FDFBF7;
+  --color-warm-100: #F7F5F0;
+  --color-warm-200: #EDEAE3;
+  --color-warm-300: #D8D5CE;
+  --color-warm-400: #A09D96;
+  --color-warm-500: #6B6B76;
+  --color-warm-600: #52525B;
+  --color-warm-700: #3F3F46;
+  --color-warm-800: #2A2A32;
+  --color-warm-900: #1A1A1F;
+}
+
+:root {
+  /* Semantic aliases referencing @theme colors */
+  --color-primary-50: var(--color-iris-50);
+  --color-primary-100: var(--color-iris-100);
+  --color-primary-200: var(--color-iris-200);
+  --color-primary-300: var(--color-iris-300);
+  --color-primary-400: var(--color-iris-400);
+  --color-primary-500: var(--color-iris-500);
+  --color-primary-600: var(--color-iris-600);
+  --color-primary-700: var(--color-iris-700);
+  --color-primary-800: var(--color-iris-800);
+  --color-primary-900: var(--color-iris-900);
+
+  --color-accent-400: var(--color-copper-400);
+  --color-accent-500: var(--color-copper-500);
+  --color-accent-600: var(--color-copper-600);
+
+  --color-neutral-50: var(--color-warm-50);
+  --color-neutral-100: var(--color-warm-100);
+  --color-neutral-200: var(--color-warm-200);
+  --color-neutral-300: var(--color-warm-300);
+  --color-neutral-400: var(--color-warm-400);
+  --color-neutral-500: var(--color-warm-500);
+  --color-neutral-600: var(--color-warm-600);
+  --color-neutral-700: var(--color-warm-700);
+  --color-neutral-800: var(--color-warm-800);
+  --color-neutral-900: var(--color-warm-900);
 
   /* Typography */
   --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -154,8 +183,188 @@
   font-family: var(--font-sans);
 }
 
-/* Focus styles */
+/* Focus styles - Enhanced for accessibility */
 :focus-visible {
-  outline: 2px solid var(--color-primary-500);
+  outline: 3px solid var(--color-primary-500);
   outline-offset: 2px;
+}
+
+/* High contrast focus for buttons and interactive elements */
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid var(--color-primary-500);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(61, 59, 142, 0.2);
+}
+
+/* Skip to content link - Accessibility requirement */
+.skip-to-content {
+  position: absolute;
+  top: -100px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  padding: 16px 24px;
+  background-color: var(--color-primary-600);
+  color: white;
+  font-weight: 600;
+  font-size: 1rem;
+  border-radius: 0 0 12px 12px;
+  text-decoration: none;
+  transition: top 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.skip-to-content:focus {
+  top: 0;
+  outline: none;
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  
+  .skip-to-content {
+    transition: none;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :focus-visible {
+    outline: 3px solid currentColor;
+    outline-offset: 3px;
+  }
+  
+  button:focus-visible,
+  a:focus-visible {
+    outline: 3px solid currentColor;
+    box-shadow: none;
+  }
+}
+
+/* Screen reader only content */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Visible on focus for skip links and similar */
+.sr-only-focusable:focus,
+.sr-only-focusable:active {
+  position: static;
+  width: auto;
+  height: auto;
+  padding: inherit;
+  margin: inherit;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
+/* Main content focus outline (for skip-to-content target) */
+main:focus {
+  outline: none;
+}
+
+/* Ensure interactive elements have visible focus states */
+[tabindex]:focus-visible {
+  outline: 3px solid var(--color-primary-500);
+  outline-offset: 2px;
+}
+
+/* ===========================================
+   Accessibility Widget Styles
+   =========================================== */
+
+/* High Contrast Mode - using explicit colors instead of filter */
+html.high-contrast {
+  --hc-bg: #000;
+  --hc-text: #fff;
+  --hc-link: #ffff00;
+  --hc-border: #fff;
+}
+
+html.high-contrast body {
+  background-color: var(--hc-bg) !important;
+  color: var(--hc-text) !important;
+}
+
+html.high-contrast .bg-white,
+html.high-contrast .bg-warm-50,
+html.high-contrast .bg-warm-100,
+html.high-contrast .bg-iris-50,
+html.high-contrast .bg-iris-100,
+html.high-contrast [class*="bg-gradient"] {
+  background: var(--hc-bg) !important;
+  color: var(--hc-text) !important;
+}
+
+html.high-contrast a {
+  color: var(--hc-link) !important;
+  text-decoration: underline !important;
+}
+
+html.high-contrast button,
+html.high-contrast [role="button"],
+html.high-contrast input,
+html.high-contrast select,
+html.high-contrast textarea {
+  background-color: var(--hc-bg) !important;
+  color: var(--hc-text) !important;
+  border: 2px solid var(--hc-border) !important;
+}
+
+html.high-contrast .text-warm-400,
+html.high-contrast .text-warm-500,
+html.high-contrast .text-warm-600,
+html.high-contrast .text-iris-600 {
+  color: var(--hc-text) !important;
+}
+
+/* Highlight Links Mode */
+html.highlight-links a {
+  background-color: #ffff00 !important;
+  color: #000 !important;
+  text-decoration: underline !important;
+  padding: 2px 4px;
+  border-radius: 2px;
+}
+
+html.highlight-links a:focus {
+  outline: 3px solid #ff0000 !important;
+}
+
+/* Big Cursor Mode - Simple large arrow cursor */
+html.big-cursor,
+html.big-cursor * {
+  /* Simple 32x32 arrow cursor - smaller inline SVG */
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Cpath d='M4 4v24l8-8h12z' fill='%23000' stroke='%23fff' stroke-width='2'/%3E%3C/svg%3E") 4 4, default !important;
+}
+
+html.big-cursor a,
+html.big-cursor button,
+html.big-cursor [role="button"],
+html.big-cursor input[type="submit"],
+html.big-cursor input[type="button"] {
+  /* Simple 32x32 hand pointer cursor */
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Cpath d='M10 8v14l4-4 3 6 3-1-3-6h5l-12-9z' fill='%23000' stroke='%23fff' stroke-width='2'/%3E%3C/svg%3E") 10 8, pointer !important;
 }

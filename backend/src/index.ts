@@ -101,7 +101,14 @@ if (process.env.NODE_ENV === 'production') {
   app.use(express.static(publicPath));
   
   // SPA fallback - serve index.html for all non-API routes
-  app.get('/*', (req, res) => {
+  // Only serve index.html for routes (not files with extensions)
+  app.use((req, res) => {
+    // If the request has a file extension, it's a static file that wasn't found
+    if (path.extname(req.path)) {
+      res.status(404).send('Not found');
+      return;
+    }
+    // Otherwise, serve index.html for client-side routing
     res.sendFile(path.join(publicPath, 'index.html'));
   });
 } else {

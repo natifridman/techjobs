@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { X, RotateCcw } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useMobileDialogAccessibility } from "@/hooks/useDialogAccessibility";
 
 const categories = [
   "AI/ML", "AdTech", "Aerospace", "AR/VR", "Automotive", "Cloud Computing",
@@ -54,6 +55,12 @@ export default function FilterSidebar({
   onClose,
   isMobile
 }: FilterSidebarProps) {
+  const { dialogRef: panelRef } = useMobileDialogAccessibility({
+    isOpen,
+    isMobile,
+    onClose,
+  });
+
   const handleCategoryToggle = (category: string) => {
     setFilters(prev => ({
       ...prev,
@@ -118,9 +125,9 @@ export default function FilterSidebar({
     filters.cities.length;
 
   const sidebarContent = (
-    <div className="h-full flex flex-col bg-white">
+    <aside className="h-full flex flex-col bg-white" aria-label="Job filters">
       <div className="p-4 border-b border-warm-200 flex items-center justify-between">
-        <h2 className="font-semibold text-warm-900">Filters</h2>
+        <h2 className="font-semibold text-warm-900" id="filter-heading">Filters</h2>
         <div className="flex items-center gap-2">
           {activeFiltersCount > 0 && (
             <Button
@@ -128,8 +135,9 @@ export default function FilterSidebar({
               size="sm"
               onClick={resetFilters}
               className="text-warm-500 hover:text-warm-700"
+              aria-label={`Reset all filters (${activeFiltersCount} active)`}
             >
-              <RotateCcw className="w-4 h-4 mr-1" />
+              <RotateCcw className="w-4 h-4 mr-1" aria-hidden="true" />
               Reset
             </Button>
           )}
@@ -138,20 +146,20 @@ export default function FilterSidebar({
               variant="ghost"
               size="icon"
               onClick={onClose}
-              aria-label="Close filters"
+              aria-label="Close filter panel"
             >
-              <X className="w-5 h-5" />
+              <X className="w-5 h-5" aria-hidden="true" />
             </Button>
           )}
         </div>
       </div>
 
       <ScrollArea className="flex-1">
-        <div className="p-4 space-y-6">
+        <div className="p-4 space-y-6" aria-labelledby="filter-heading">
           {/* Job Category */}
-          <div>
-            <h3 className="font-medium text-sm text-warm-900 mb-3">Job Category</h3>
-            <div className="space-y-2 max-h-48 overflow-y-auto">
+          <fieldset>
+            <legend className="font-medium text-sm text-warm-900 mb-3">Job Category</legend>
+            <div className="space-y-2 max-h-48 overflow-y-auto" role="group">
               {jobCategories.map(jobCat => (
                 <div key={jobCat} className="flex items-center space-x-2">
                   <Checkbox
@@ -165,12 +173,12 @@ export default function FilterSidebar({
                 </div>
               ))}
             </div>
-          </div>
+          </fieldset>
 
           {/* Level */}
-          <div>
-            <h3 className="font-medium text-sm text-warm-900 mb-3">Experience Level</h3>
-            <div className="space-y-2">
+          <fieldset>
+            <legend className="font-medium text-sm text-warm-900 mb-3">Experience Level</legend>
+            <div className="space-y-2" role="group">
               {levels.map(level => (
                 <div key={level} className="flex items-center space-x-2">
                   <Checkbox
@@ -184,12 +192,12 @@ export default function FilterSidebar({
                 </div>
               ))}
             </div>
-          </div>
+          </fieldset>
 
           {/* Industry */}
-          <div>
-            <h3 className="font-medium text-sm text-warm-900 mb-3">Industry</h3>
-            <div className="space-y-2 max-h-48 overflow-y-auto">
+          <fieldset>
+            <legend className="font-medium text-sm text-warm-900 mb-3">Industry</legend>
+            <div className="space-y-2 max-h-48 overflow-y-auto" role="group">
               {categories.map(category => (
                 <div key={category} className="flex items-center space-x-2">
                   <Checkbox
@@ -203,12 +211,12 @@ export default function FilterSidebar({
                 </div>
               ))}
             </div>
-          </div>
+          </fieldset>
 
           {/* Company Size */}
-          <div>
-            <h3 className="font-medium text-sm text-warm-900 mb-3">Company Size</h3>
-            <div className="space-y-2">
+          <fieldset>
+            <legend className="font-medium text-sm text-warm-900 mb-3">Company Size</legend>
+            <div className="space-y-2" role="group">
               {sizes.map(size => (
                 <div key={size.value} className="flex items-center space-x-2">
                   <Checkbox
@@ -222,13 +230,13 @@ export default function FilterSidebar({
                 </div>
               ))}
             </div>
-          </div>
+          </fieldset>
 
           {/* Cities */}
           {cities.length > 0 && (
-            <div>
-              <h3 className="font-medium text-sm text-warm-900 mb-3">City</h3>
-              <div className="space-y-2 max-h-48 overflow-y-auto">
+            <fieldset>
+              <legend className="font-medium text-sm text-warm-900 mb-3">City</legend>
+              <div className="space-y-2 max-h-48 overflow-y-auto" role="group">
                 {cities.map(city => (
                   <div key={city} className="flex items-center space-x-2">
                     <Checkbox
@@ -242,11 +250,11 @@ export default function FilterSidebar({
                   </div>
                 ))}
               </div>
-            </div>
+            </fieldset>
           )}
         </div>
       </ScrollArea>
-    </div>
+    </aside>
   );
 
   if (isMobile) {
@@ -260,13 +268,19 @@ export default function FilterSidebar({
               exit={{ opacity: 0 }}
               className="fixed inset-0 bg-black/50 z-40"
               onClick={onClose}
+              aria-hidden="true"
             />
             <motion.div
+              ref={panelRef}
+              tabIndex={-1}
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
               className="fixed inset-y-0 left-0 w-80 z-50 shadow-2xl"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Job filters"
             >
               {sidebarContent}
             </motion.div>
