@@ -13,15 +13,13 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
   // Home page uses dark header variant over hero
   if (isHomePage) {
     return (
-      <>
-        <div className="relative">
-          {/* Dark header positioned absolutely over hero */}
-          <div className="absolute top-0 left-0 right-0 z-50">
-            <LayoutHeader variant="dark" />
-          </div>
-          {children}
+      <div className="relative">
+        {/* Dark header positioned absolutely over hero */}
+        <div className="absolute top-0 left-0 right-0 z-50">
+          <LayoutHeader variant="dark" />
         </div>
-      </>
+        {children}
+      </div>
     );
   }
 

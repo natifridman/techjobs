@@ -38,10 +38,10 @@ export default function CompanyProfile() {
     mutationFn: async (job: Job) => {
       const existing = savedJobs.find(s => s.url === job.url);
       if (existing) {
-        savedJobsApi.delete(existing.id);
+        await savedJobsApi.delete(existing.id);
         return { action: 'removed' };
       } else {
-        savedJobsApi.create({
+        await savedJobsApi.create({
           job_title: job.title,
           company: job.company,
           category: job.category,
