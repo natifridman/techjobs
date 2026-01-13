@@ -11,6 +11,24 @@ const AD_SLOTS = {
   IN_FEED: import.meta.env.VITE_ADSENSE_SLOT_INFEED || 'XXXXXXXXXX',
 };
 
+/**
+ * Check if ads should be shown for a given slot.
+ * Returns false in production if client ID is missing or slot is placeholder.
+ * In dev mode, always returns true to show placeholder UI.
+ */
+function shouldShowAds(adSlot: string): boolean {
+  if (import.meta.env.DEV) {
+    return true; // Show placeholder in dev
+  }
+  if (!ADSENSE_CLIENT_ID) {
+    return false;
+  }
+  if (adSlot.includes('XXXXXXXXXX')) {
+    return false;
+  }
+  return true;
+}
+
 interface GoogleAdProps {
   adSlot: string;
   adFormat?: 'auto' | 'rectangle' | 'horizontal' | 'vertical';
@@ -221,13 +239,10 @@ export function GoogleAd({
 
 // Preset ad components for common placements
 // Heights are set to common AdSense ad unit sizes to minimize CLS
+// Each component includes its own wrapper to avoid empty containers when ads aren't shown
 
 export function BannerAd({ className = '' }: { className?: string }) {
-  // Don't render container if ads won't be shown (no client ID or placeholder slot in production)
-  const shouldHide = !ADSENSE_CLIENT_ID && !import.meta.env.DEV;
-  const isPlaceholder = AD_SLOTS.BANNER.includes('XXXXXXXXXX') && !import.meta.env.DEV;
-  
-  if (shouldHide || isPlaceholder) {
+  if (!shouldShowAds(AD_SLOTS.BANNER)) {
     return null;
   }
 
@@ -244,24 +259,36 @@ export function BannerAd({ className = '' }: { className?: string }) {
 }
 
 export function SidebarAd({ className = '' }: { className?: string }) {
+  if (!shouldShowAds(AD_SLOTS.SIDEBAR)) {
+    return null;
+  }
+
   return (
-    <GoogleAd
-      adSlot={AD_SLOTS.SIDEBAR}
-      adFormat="rectangle"
-      className={`w-full ${className}`}
-      style={{ minHeight: '250px' }} // Medium rectangle (300x250)
-    />
+    <aside className={className} role="complementary" aria-label="Advertisements">
+      <GoogleAd
+        adSlot={AD_SLOTS.SIDEBAR}
+        adFormat="rectangle"
+        className="w-full"
+        style={{ minHeight: '250px' }} // Medium rectangle (300x250)
+      />
+    </aside>
   );
 }
 
 export function InFeedAd({ className = '' }: { className?: string }) {
+  if (!shouldShowAds(AD_SLOTS.IN_FEED)) {
+    return null;
+  }
+
   return (
-    <GoogleAd
-      adSlot={AD_SLOTS.IN_FEED}
-      adFormat="auto"
-      className={`w-full ${className}`}
-      style={{ minHeight: '100px' }} // Reasonable minimum for in-feed
-    />
+    <div className={className} role="complementary" aria-label="Sponsored content">
+      <GoogleAd
+        adSlot={AD_SLOTS.IN_FEED}
+        adFormat="auto"
+        className="w-full"
+        style={{ minHeight: '100px' }} // Reasonable minimum for in-feed
+      />
+    </div>
   );
 }
 
