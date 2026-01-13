@@ -50,7 +50,11 @@ export function useEscapeKey(
 ) {
   // Use ref to avoid stale closure issues with onClose
   const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
+  
+  // Update ref in effect to avoid "Cannot update ref during render" error
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   useEffect(() => {
     if (!isActive) return;
@@ -173,7 +177,11 @@ export function useMobileDialogAccessibility({
   
   // Use ref to avoid stale closure issues with onClose
   const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
+  
+  // Update ref in effect to avoid "Cannot update ref during render" error
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   // Store the element that was focused when opening
   useEffect(() => {
