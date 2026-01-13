@@ -205,6 +205,10 @@ router.put('/:id', async (req: Request, res: Response) => {
 
     for (const field of allowedFields) {
       if (updates[field] !== undefined) {
+        // Validate URL format if updating url field
+        if (field === 'url' && !isValidUrl(updates[field])) {
+          return res.status(400).json({ error: 'Invalid URL format' });
+        }
         (updateData as Record<string, unknown>)[field] = updates[field];
       }
     }

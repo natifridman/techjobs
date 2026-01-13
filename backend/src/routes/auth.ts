@@ -9,6 +9,9 @@ const ALLOWED_REDIRECT_ORIGINS = (process.env.CORS_ORIGIN || 'http://localhost:5
   .split(',')
   .map(o => o.trim());
 
+// Default redirect should be from allowed origins to ensure consistency
+const DEFAULT_REDIRECT = process.env.FRONTEND_URL || ALLOWED_REDIRECT_ORIGINS[0] || 'http://localhost:8080';
+
 /**
  * Validates that a redirect URL is safe (same origin or allowed origins)
  * Prevents open redirect attacks in OAuth flow
@@ -67,12 +70,11 @@ router.get('/me', (req: Request, res: Response) => {
 router.get('/google', (req: Request, res: Response, next: NextFunction) => {
   // Store the redirect URL in session (with validation to prevent open redirect)
   const requestedRedirect = req.query.redirect as string;
-  const defaultRedirect = process.env.FRONTEND_URL || 'http://localhost:8080';
   
   // Validate redirect URL to prevent open redirect attacks
   const redirectUrl = requestedRedirect && isValidRedirectUrl(requestedRedirect) 
     ? requestedRedirect 
-    : defaultRedirect;
+    : DEFAULT_REDIRECT;
   
   (req.session as any).returnTo = redirectUrl;
   
@@ -94,7 +96,9 @@ router.get('/google/callback',
   }),
   (req: Request, res: Response) => {
     // Redirect to frontend after successful login
-    const returnTo = (req.session as any).returnTo || process.env.FRONTEND_URL || 'http://localhost:8080';
+    // Re-validate returnTo for defense-in-depth against session manipulation
+    const storedReturn = (req.session as any).returnTo;
+    const returnTo = storedReturn && isValidRedirectUrl(storedReturn) ? storedReturn : DEFAULT_REDIRECT;
     delete (req.session as any).returnTo;
     res.redirect(returnTo);
   }

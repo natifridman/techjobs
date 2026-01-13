@@ -1,6 +1,5 @@
 import {
   clearAllData,
-  clearCompanies,
   insertCompany,
   getCompanyById,
   createUnauthenticatedRequest,
