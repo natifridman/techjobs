@@ -20,4 +20,12 @@ module.exports = {
   restoreMocks: true,
   // Run tests sequentially to avoid SQLite locking issues
   maxWorkers: 1,
+  // Transform ESM-only modules (uuid v12+ is ESM-only)
+  transformIgnorePatterns: [
+    'node_modules/(?!(uuid)/)'
+  ],
+  transform: {
+    '^.+\\.ts$': 'ts-jest',
+    '^.+\\.js$': 'babel-jest',
+  },
 };

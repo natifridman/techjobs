@@ -101,7 +101,7 @@ if (process.env.NODE_ENV === 'production') {
   app.use(express.static(publicPath));
   
   // SPA fallback - serve index.html for all non-API routes
-  app.get('*', (req, res) => {
+  app.get('/*', (req, res) => {
     res.sendFile(path.join(publicPath, 'index.html'));
   });
 } else {
@@ -112,7 +112,7 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // Error handler
-app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error('Unhandled error:', err);
   res.status(500).json({ error: 'Internal server error' });
 });
