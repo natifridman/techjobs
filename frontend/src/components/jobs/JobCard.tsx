@@ -1,11 +1,14 @@
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, Users, Bookmark, BookmarkCheck, ExternalLink, CheckCircle2 } from "lucide-react";
+import { MapPin, Users, Bookmark, BookmarkCheck, ExternalLink, CheckCircle2, Banknote, MessageSquarePlus } from "lucide-react";
 import { motion } from "framer-motion";
 import { usePostHog } from 'posthog-js/react';
 import CompanyLogo from "@/components/CompanyLogo";
 import type { Job } from "./jobsData";
+import { estimateSalary, formatSalaryRange, generateGlassdoorUrl } from "./salaryEstimate";
+import SalaryReportModal from "@/components/SalaryReportModal";
 
 const sizeLabels: Record<string, string> = {
   'xs': '1-10',
@@ -33,6 +36,9 @@ interface JobCardProps {
 
 export default function JobCard({ job, onSave, isSaved, onApply, isApplied, index = 0 }: JobCardProps) {
   const posthog = usePostHog();
+  const [showSalaryModal, setShowSalaryModal] = useState(false);
+  const salaryEstimate = estimateSalary(job);
+  const glassdoorUrl = generateGlassdoorUrl(job);
 
   const handleApplyClick = () => {
     posthog.capture('job_apply_clicked', {
@@ -101,6 +107,27 @@ export default function JobCard({ job, onSave, isSaved, onApply, isApplied, inde
                   <Users className="w-4 h-4 text-warm-400" aria-hidden="true" />
                   <span aria-label={`Company size: ${sizeLabels[job.size] || job.size} employees`}>{sizeLabels[job.size] || job.size} employees</span>
                 </div>
+                <div className="flex items-center gap-2">
+                  <a
+                    href={glassdoorUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 text-warm-500 hover:text-emerald-600 transition-colors"
+                    aria-label={`Estimated salary: ${formatSalaryRange(salaryEstimate)} - Click to view on Glassdoor`}
+                    title="Salary estimate - Click to view on Glassdoor"
+                  >
+                    <Banknote className="w-4 h-4" aria-hidden="true" />
+                    <span className="font-medium">{formatSalaryRange(salaryEstimate)}</span>
+                  </a>
+                  <button
+                    onClick={() => setShowSalaryModal(true)}
+                    className="text-xs text-warm-400 hover:text-iris-600 transition-colors flex items-center gap-0.5"
+                    title="Report your salary"
+                  >
+                    <MessageSquarePlus className="w-3 h-3" />
+                    <span className="hidden sm:inline">Report</span>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -155,6 +182,14 @@ export default function JobCard({ job, onSave, isSaved, onApply, isApplied, inde
           </div>
         </CardContent>
       </Card>
+
+      {/* Salary Report Modal */}
+      <SalaryReportModal
+        isOpen={showSalaryModal}
+        onClose={() => setShowSalaryModal(false)}
+        prefillCompany={job.company}
+        prefillTitle={job.title}
+      />
     </motion.div>
   );
 }

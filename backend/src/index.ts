@@ -4,10 +4,13 @@ import cors from 'cors';
 import session from 'express-session';
 import pgSession from 'connect-pg-simple';
 import { Pool } from 'pg';
+import cron from 'node-cron';
 import passport from './config/passport';
 import authRouter from './routes/auth';
 import savedJobsRouter from './routes/savedJobs';
 import companiesRouter from './routes/companies';
+import salariesRouter from './routes/salaries';
+import { fetchAllSalaryData } from './services/salaryFetcher';
 import path from 'path';
 
 const app = express();
@@ -93,6 +96,7 @@ app.use('/auth', authRouter);
 // API routes
 app.use('/api/saved-jobs', savedJobsRouter);
 app.use('/api/companies', companiesRouter);
+app.use('/api/salaries', salariesRouter);
 
 // Serve frontend in production
 const publicPath = path.join(__dirname, '..', 'public');
@@ -130,12 +134,29 @@ app.listen(PORT, () => {
   console.log(`   Auth:         http://localhost:${PORT}/auth/me`);
   console.log(`   Saved Jobs:   http://localhost:${PORT}/api/saved-jobs`);
   console.log(`   Companies:    http://localhost:${PORT}/api/companies`);
+  console.log(`   Salaries:     http://localhost:${PORT}/api/salaries`);
   console.log('');
   if (!process.env.GOOGLE_CLIENT_ID) {
     console.log('⚠️  Google OAuth not configured. Set these environment variables:');
     console.log('   GOOGLE_CLIENT_ID=your-client-id');
     console.log('   GOOGLE_CLIENT_SECRET=your-client-secret');
   }
+
+  // Schedule daily salary data fetch at 3:00 AM Israel time
+  // Cron format: minute hour day-of-month month day-of-week
+  cron.schedule('0 3 * * *', async () => {
+    console.log('🔄 Starting scheduled salary data fetch...');
+    try {
+      await fetchAllSalaryData();
+      console.log('✅ Scheduled salary data fetch completed');
+    } catch (error) {
+      console.error('❌ Scheduled salary data fetch failed:', error);
+    }
+  }, {
+    timezone: 'Asia/Jerusalem'
+  });
+
+  console.log('⏰ Salary data fetch scheduled daily at 3:00 AM Israel time');
 });
 
 export default app;
