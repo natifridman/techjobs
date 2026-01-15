@@ -8,6 +8,7 @@ import passport from './config/passport';
 import authRouter from './routes/auth';
 import savedJobsRouter from './routes/savedJobs';
 import companiesRouter from './routes/companies';
+import jobPreviewRouter from './routes/jobPreview';
 import path from 'path';
 
 const app = express();
@@ -93,6 +94,7 @@ app.use('/auth', authRouter);
 // API routes
 app.use('/api/saved-jobs', savedJobsRouter);
 app.use('/api/companies', companiesRouter);
+app.use('/api/job-preview', jobPreviewRouter);
 
 // Serve frontend in production
 const publicPath = path.join(__dirname, '..', 'public');

@@ -1,11 +1,13 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, Users, Bookmark, BookmarkCheck, ExternalLink, CheckCircle2 } from "lucide-react";
-import { motion } from "framer-motion";
+import { MapPin, Users, Bookmark, BookmarkCheck, ExternalLink, CheckCircle2, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { usePostHog } from 'posthog-js/react';
+import { useState } from "react";
 import CompanyLogo from "@/components/CompanyLogo";
 import type { Job } from "./jobsData";
+import { jobPreviewApi } from "@/api/storage";
 
 const sizeLabels: Record<string, string> = {
   'xs': '1-10',
@@ -33,6 +35,35 @@ interface JobCardProps {
 
 export default function JobCard({ job, onSave, isSaved, onApply, isApplied, index = 0 }: JobCardProps) {
   const posthog = usePostHog();
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
+  const [previewDescription, setPreviewDescription] = useState<string | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+
+  const handleTogglePreview = async () => {
+    if (isExpanded) {
+      setIsExpanded(false);
+      return;
+    }
+
+    setIsExpanded(true);
+
+    // If we already have the description, don't fetch again
+    if (previewDescription) return;
+
+    setIsLoadingPreview(true);
+    setPreviewError(null);
+
+    const result = await jobPreviewApi.getDescription(job.url);
+
+    if (result.error) {
+      setPreviewError(result.error);
+    } else {
+      setPreviewDescription(result.description);
+    }
+
+    setIsLoadingPreview(false);
+  };
 
   const handleApplyClick = () => {
     posthog.capture('job_apply_clicked', {
@@ -136,14 +167,31 @@ export default function JobCard({ job, onSave, isSaved, onApply, isApplied, inde
             </time>
             <div className="flex items-center gap-2">
               <Button
+                variant="outline"
+                size="sm"
+                onClick={handleTogglePreview}
+                className="gap-1.5 text-warm-600 hover:text-iris-600 border-warm-200"
+                aria-expanded={isExpanded}
+                aria-label={isExpanded ? "Hide job description preview" : "Show job description preview"}
+              >
+                {isLoadingPreview ? (
+                  <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                ) : isExpanded ? (
+                  <ChevronUp className="w-4 h-4" aria-hidden="true" />
+                ) : (
+                  <ChevronDown className="w-4 h-4" aria-hidden="true" />
+                )}
+                Preview
+              </Button>
+              <Button
                 asChild
                 size="sm"
                 className="bg-copper-500 hover:bg-copper-600 text-white gap-2 rounded-lg"
                 onClick={handleApplyClick}
               >
-                <a 
-                  href={job.url} 
-                  target="_blank" 
+                <a
+                  href={job.url}
+                  target="_blank"
                   rel="noopener noreferrer"
                   aria-label={`Apply to ${job.title} at ${job.company} (opens in new window)`}
                 >
@@ -153,6 +201,38 @@ export default function JobCard({ job, onSave, isSaved, onApply, isApplied, inde
               </Button>
             </div>
           </div>
+
+          <AnimatePresence>
+            {isExpanded && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden"
+              >
+                <div className="mt-4 pt-4 border-t border-warm-100">
+                  {isLoadingPreview ? (
+                    <div className="flex items-center justify-center py-8 text-warm-400">
+                      <Loader2 className="w-6 h-6 animate-spin mr-2" />
+                      <span>Loading description...</span>
+                    </div>
+                  ) : previewError ? (
+                    <div className="py-4 text-center text-warm-500">
+                      <p className="text-sm">{previewError}</p>
+                      <p className="text-xs mt-1">Click "Apply Now" to view the full job posting</p>
+                    </div>
+                  ) : previewDescription ? (
+                    <div className="prose prose-sm prose-warm max-w-none">
+                      <div className="text-sm text-warm-700 whitespace-pre-wrap leading-relaxed max-h-64 overflow-y-auto">
+                        {previewDescription}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </CardContent>
       </Card>
     </motion.div>

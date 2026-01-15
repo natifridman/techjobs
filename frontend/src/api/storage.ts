@@ -200,6 +200,41 @@ export const savedJobsApi = {
   }
 };
 
+// Job preview API
+export interface JobPreviewResponse {
+  description: string;
+  platform?: string;
+  cached?: boolean;
+  error?: string;
+}
+
+export const jobPreviewApi = {
+  getDescription: async (url: string): Promise<JobPreviewResponse> => {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/job-preview?url=${encodeURIComponent(url)}`,
+        { credentials: 'include' }
+      );
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        return {
+          description: '',
+          error: error.message || 'Failed to fetch job description',
+        };
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching job preview:', error);
+      return {
+        description: '',
+        error: 'Failed to connect to server',
+      };
+    }
+  },
+};
+
 // Company operations
 export const companiesApi = {
   list: async (): Promise<Company[]> => {
