@@ -29,7 +29,7 @@ jobs:
         run: cd backend && npm test
 
       - name: Upload backend coverage
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         if: always()
         with:
           directory: backend/coverage
@@ -58,7 +58,7 @@ jobs:
         run: cd frontend && npm run test:run
 
       - name: Upload frontend coverage
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         if: always()
         with:
           directory: frontend/coverage
