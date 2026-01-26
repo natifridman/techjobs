@@ -1,6 +1,8 @@
 import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import supabase, { Company } from '../database';
+import { requireAuth } from './auth';
+import { isValidUUID, isValidName } from '../utils/validation';
 
 const router = Router();
 
@@ -53,10 +55,17 @@ router.get('/by-name/:name', async (req: Request, res: Response) => {
 // GET company by ID
 router.get('/:id', async (req: Request, res: Response) => {
   try {
+    const { id } = req.params;
+
+    // Validate UUID format
+    if (!isValidUUID(id)) {
+      return res.status(400).json({ error: 'Invalid company ID format' });
+    }
+
     const { data: company, error } = await supabase
       .from('companies')
       .select('*')
-      .eq('id', req.params.id)
+      .eq('id', id)
       .single();
 
     if (error) {
@@ -74,8 +83,8 @@ router.get('/:id', async (req: Request, res: Response) => {
   }
 });
 
-// POST create new company
-router.post('/', async (req: Request, res: Response) => {
+// POST create new company (requires authentication)
+router.post('/', requireAuth, async (req: Request, res: Response) => {
   try {
     const {
       name,
@@ -90,6 +99,11 @@ router.post('/', async (req: Request, res: Response) => {
 
     if (!name) {
       return res.status(400).json({ error: 'name is required' });
+    }
+
+    // Validate company name format
+    if (!isValidName(name)) {
+      return res.status(400).json({ error: 'Invalid company name' });
     }
 
     const id = uuidv4();
@@ -130,11 +144,16 @@ router.post('/', async (req: Request, res: Response) => {
   }
 });
 
-// PUT update company
-router.put('/:id', async (req: Request, res: Response) => {
+// PUT update company (requires authentication)
+router.put('/:id', requireAuth, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const updates = req.body;
+
+    // Validate UUID format
+    if (!isValidUUID(id)) {
+      return res.status(400).json({ error: 'Invalid company ID format' });
+    }
     
     // Check if company exists
     const { data: existing, error: selectError } = await supabase
@@ -185,11 +204,16 @@ router.put('/:id', async (req: Request, res: Response) => {
   }
 });
 
-// PUT upsert company by name
-router.put('/by-name/:name', async (req: Request, res: Response) => {
+// PUT upsert company by name (requires authentication)
+router.put('/by-name/:name', requireAuth, async (req: Request, res: Response) => {
   try {
     const name = decodeURIComponent(req.params.name as string);
     const updates = req.body;
+
+    // Validate company name
+    if (!isValidName(name)) {
+      return res.status(400).json({ error: 'Invalid company name' });
+    }
     
     // Check if company exists
     const { data: existing, error: selectError } = await supabase
@@ -271,10 +295,15 @@ router.put('/by-name/:name', async (req: Request, res: Response) => {
   }
 });
 
-// DELETE company
-router.delete('/:id', async (req: Request, res: Response) => {
+// DELETE company (requires authentication)
+router.delete('/:id', requireAuth, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+
+    // Validate UUID format
+    if (!isValidUUID(id)) {
+      return res.status(400).json({ error: 'Invalid company ID format' });
+    }
     
     // Check if company exists
     const { data: existing, error: selectError } = await supabase

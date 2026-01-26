@@ -1,6 +1,8 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import session from 'express-session';
 import pgSession from 'connect-pg-simple';
 import { Pool } from 'pg';
@@ -28,6 +30,21 @@ if (process.env.NODE_ENV === 'production') {
   app.set('trust proxy', 1);
 }
 
+// Security headers with Helmet
+app.use(helmet({
+  contentSecurityPolicy: process.env.NODE_ENV === 'production' ? {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://accounts.google.com", "https://pagead2.googlesyndication.com", "https://www.googletagservices.com", "https://*.posthog.com"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'", "https://accounts.google.com", "https://raw.githubusercontent.com", "https://*.posthog.com"],
+      frameSrc: ["https://accounts.google.com", "https://googleads.g.doubleclick.net", "https://tpc.googlesyndication.com"],
+    }
+  } : false,  // Disable in development for easier debugging
+  crossOriginEmbedderPolicy: false, // Allow embedding of Google OAuth
+}));
+
 // CORS configuration
 const corsOrigin = process.env.CORS_ORIGIN || 'http://localhost:5173';
 app.use(cors({
@@ -37,8 +54,32 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// Body parser
-app.use(express.json());
+// Rate limiting to prevent abuse
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: { error: 'Too many requests, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  // Skip rate limiting in test environment
+  skip: () => process.env.NODE_ENV === 'test'
+});
+
+// Apply rate limiter to all routes
+app.use(limiter);
+
+// Stricter rate limit for auth routes (prevent brute force)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20, // Limit each IP to 20 auth requests per 15 minutes
+  message: { error: 'Too many authentication attempts, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: () => process.env.NODE_ENV === 'test'
+});
+
+// Body parser with size limits to prevent large payload attacks
+app.use(express.json({ limit: '10kb' }));
 
 // PostgreSQL session store using Supabase
 const PgStore = pgSession(session);
@@ -87,8 +128,8 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Auth routes
-app.use('/auth', authRouter);
+// Auth routes (with stricter rate limiting)
+app.use('/auth', authLimiter, authRouter);
 
 // API routes
 app.use('/api/saved-jobs', savedJobsRouter);

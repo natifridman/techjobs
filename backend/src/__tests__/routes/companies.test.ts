@@ -1,17 +1,27 @@
 import {
-  clearCompanies,
+  clearAllData,
   insertCompany,
   getCompanyById,
   createUnauthenticatedRequest,
+  createAuthenticatedRequest,
+  createTestUser,
+  generateTestId,
+  TestUser,
 } from '../helpers';
 
 describe('Companies Routes', () => {
+  let testUser: TestUser;
+
   beforeEach(async () => {
-    await clearCompanies();
+    await clearAllData();
+    testUser = await createTestUser({
+      name: 'Test User',
+      email: 'test@example.com',
+    });
   });
 
   afterAll(async () => {
-    await clearCompanies();
+    await clearAllData();
   });
 
   describe('GET /api/companies', () => {
@@ -27,7 +37,7 @@ describe('Companies Routes', () => {
       const now = new Date().toISOString();
 
       await insertCompany({
-        id: 'company-b',
+        id: generateTestId(),
         name: 'Beta Corp',
         description: 'Beta description',
         created_date: now,
@@ -35,7 +45,7 @@ describe('Companies Routes', () => {
       });
 
       await insertCompany({
-        id: 'company-a',
+        id: generateTestId(),
         name: 'Alpha Inc',
         description: 'Alpha description',
         created_date: now,
@@ -56,7 +66,7 @@ describe('Companies Routes', () => {
       const similarCompanies = ['Company A', 'Company B'];
 
       await insertCompany({
-        id: 'company-1',
+        id: generateTestId(),
         name: 'Test Corp',
         similar_companies: similarCompanies,
         created_date: now,
@@ -73,9 +83,10 @@ describe('Companies Routes', () => {
 
   describe('GET /api/companies/:id', () => {
     it('should return company by ID', async () => {
+      const companyId = generateTestId();
       const now = new Date().toISOString();
       await insertCompany({
-        id: 'company-123',
+        id: companyId,
         name: 'Test Corp',
         description: 'A great company',
         website_url: 'https://test.com',
@@ -84,11 +95,11 @@ describe('Companies Routes', () => {
       });
 
       const response = await createUnauthenticatedRequest()
-        .get('/api/companies/company-123')
+        .get(`/api/companies/${companyId}`)
         .expect(200);
 
       expect(response.body).toMatchObject({
-        id: 'company-123',
+        id: companyId,
         name: 'Test Corp',
         description: 'A great company',
         website_url: 'https://test.com',
@@ -96,8 +107,9 @@ describe('Companies Routes', () => {
     });
 
     it('should return 404 for non-existent ID', async () => {
+      const nonExistentId = generateTestId();
       const response = await createUnauthenticatedRequest()
-        .get('/api/companies/non-existent')
+        .get(`/api/companies/${nonExistentId}`)
         .expect(404);
 
       expect(response.body).toEqual({ error: 'Company not found' });
@@ -106,9 +118,10 @@ describe('Companies Routes', () => {
 
   describe('GET /api/companies/by-name/:name', () => {
     it('should return company by name', async () => {
+      const companyId = generateTestId();
       const now = new Date().toISOString();
       await insertCompany({
-        id: 'company-test',
+        id: companyId,
         name: 'Test Corp',
         description: 'A great company',
         created_date: now,
@@ -120,7 +133,7 @@ describe('Companies Routes', () => {
         .expect(200);
 
       expect(response.body).toMatchObject({
-        id: 'company-test',
+        id: companyId,
         name: 'Test Corp',
       });
     });
@@ -135,8 +148,17 @@ describe('Companies Routes', () => {
   });
 
   describe('POST /api/companies', () => {
-    it('should create a new company', async () => {
+    it('should return 401 when not authenticated', async () => {
       const response = await createUnauthenticatedRequest()
+        .post('/api/companies')
+        .send({ name: 'Test Corp' })
+        .expect(401);
+
+      expect(response.body).toEqual({ error: 'Authentication required' });
+    });
+
+    it('should create a new company when authenticated', async () => {
+      const response = await createAuthenticatedRequest(testUser)
         .post('/api/companies')
         .send({
           name: 'New Corp',
@@ -158,7 +180,7 @@ describe('Companies Routes', () => {
     });
 
     it('should create company with similar_companies array', async () => {
-      const response = await createUnauthenticatedRequest()
+      const response = await createAuthenticatedRequest(testUser)
         .post('/api/companies')
         .send({
           name: 'New Corp',
@@ -170,7 +192,7 @@ describe('Companies Routes', () => {
     });
 
     it('should return 400 when name is missing', async () => {
-      const response = await createUnauthenticatedRequest()
+      const response = await createAuthenticatedRequest(testUser)
         .post('/api/companies')
         .send({
           description: 'A company without a name',
@@ -183,13 +205,13 @@ describe('Companies Routes', () => {
     it('should return 409 for duplicate name', async () => {
       const now = new Date().toISOString();
       await insertCompany({
-        id: 'existing-company',
+        id: generateTestId(),
         name: 'Existing Corp',
         created_date: now,
         updated_date: now,
       });
 
-      const response = await createUnauthenticatedRequest()
+      const response = await createAuthenticatedRequest(testUser)
         .post('/api/companies')
         .send({
           name: 'Existing Corp',
@@ -201,18 +223,29 @@ describe('Companies Routes', () => {
   });
 
   describe('PUT /api/companies/:id', () => {
-    it('should update company', async () => {
+    it('should return 401 when not authenticated', async () => {
+      const companyId = generateTestId();
+      const response = await createUnauthenticatedRequest()
+        .put(`/api/companies/${companyId}`)
+        .send({ description: 'Updated' })
+        .expect(401);
+
+      expect(response.body).toEqual({ error: 'Authentication required' });
+    });
+
+    it('should update company when authenticated', async () => {
+      const companyId = generateTestId();
       const now = new Date().toISOString();
       await insertCompany({
-        id: 'update-company',
+        id: companyId,
         name: 'Update Corp',
         description: 'Original description',
         created_date: now,
         updated_date: now,
       });
 
-      const response = await createUnauthenticatedRequest()
-        .put('/api/companies/update-company')
+      const response = await createAuthenticatedRequest(testUser)
+        .put(`/api/companies/${companyId}`)
         .send({ description: 'Updated description' })
         .expect(200);
 
@@ -220,16 +253,17 @@ describe('Companies Routes', () => {
     });
 
     it('should update similar_companies', async () => {
+      const companyId = generateTestId();
       const now = new Date().toISOString();
       await insertCompany({
-        id: 'similar-company',
+        id: companyId,
         name: 'Similar Corp',
         created_date: now,
         updated_date: now,
       });
 
-      const response = await createUnauthenticatedRequest()
-        .put('/api/companies/similar-company')
+      const response = await createAuthenticatedRequest(testUser)
+        .put(`/api/companies/${companyId}`)
         .send({ similar_companies: ['Related A', 'Related B'] })
         .expect(200);
 
@@ -237,8 +271,9 @@ describe('Companies Routes', () => {
     });
 
     it('should return 404 for non-existent ID', async () => {
-      const response = await createUnauthenticatedRequest()
-        .put('/api/companies/non-existent')
+      const nonExistentId = generateTestId();
+      const response = await createAuthenticatedRequest(testUser)
+        .put(`/api/companies/${nonExistentId}`)
         .send({ description: 'Updated' })
         .expect(404);
 
@@ -246,16 +281,17 @@ describe('Companies Routes', () => {
     });
 
     it('should return 400 when no valid fields provided', async () => {
+      const companyId = generateTestId();
       const now = new Date().toISOString();
       await insertCompany({
-        id: 'no-update-company',
+        id: companyId,
         name: 'No Update Corp',
         created_date: now,
         updated_date: now,
       });
 
-      const response = await createUnauthenticatedRequest()
-        .put('/api/companies/no-update-company')
+      const response = await createAuthenticatedRequest(testUser)
+        .put(`/api/companies/${companyId}`)
         .send({ invalid_field: 'value' })
         .expect(400);
 
@@ -264,8 +300,17 @@ describe('Companies Routes', () => {
   });
 
   describe('PUT /api/companies/by-name/:name', () => {
-    it('should create new company if not exists (upsert)', async () => {
+    it('should return 401 when not authenticated', async () => {
       const response = await createUnauthenticatedRequest()
+        .put(`/api/companies/by-name/${encodeURIComponent('Test Corp')}`)
+        .send({ description: 'Updated' })
+        .expect(401);
+
+      expect(response.body).toEqual({ error: 'Authentication required' });
+    });
+
+    it('should create new company if not exists (upsert) when authenticated', async () => {
+      const response = await createAuthenticatedRequest(testUser)
         .put(`/api/companies/by-name/${encodeURIComponent('New Upsert Corp')}`)
         .send({
           description: 'Created via upsert',
@@ -281,16 +326,17 @@ describe('Companies Routes', () => {
     });
 
     it('should update existing company (upsert)', async () => {
+      const companyId = generateTestId();
       const now = new Date().toISOString();
       await insertCompany({
-        id: 'upsert-existing',
+        id: companyId,
         name: 'Existing Upsert Corp',
         description: 'Original',
         created_date: now,
         updated_date: now,
       });
 
-      const response = await createUnauthenticatedRequest()
+      const response = await createAuthenticatedRequest(testUser)
         .put(`/api/companies/by-name/${encodeURIComponent('Existing Upsert Corp')}`)
         .send({
           description: 'Updated via upsert',
@@ -298,32 +344,43 @@ describe('Companies Routes', () => {
         .expect(200);
 
       expect(response.body.description).toBe('Updated via upsert');
-      expect(response.body.id).toBe('upsert-existing');
+      expect(response.body.id).toBe(companyId);
     });
   });
 
   describe('DELETE /api/companies/:id', () => {
-    it('should delete company', async () => {
+    it('should return 401 when not authenticated', async () => {
+      const companyId = generateTestId();
+      const response = await createUnauthenticatedRequest()
+        .delete(`/api/companies/${companyId}`)
+        .expect(401);
+
+      expect(response.body).toEqual({ error: 'Authentication required' });
+    });
+
+    it('should delete company when authenticated', async () => {
+      const companyId = generateTestId();
       const now = new Date().toISOString();
       await insertCompany({
-        id: 'delete-company',
+        id: companyId,
         name: 'Delete Corp',
         created_date: now,
         updated_date: now,
       });
 
-      await createUnauthenticatedRequest()
-        .delete('/api/companies/delete-company')
+      await createAuthenticatedRequest(testUser)
+        .delete(`/api/companies/${companyId}`)
         .expect(204);
 
       // Verify it's deleted
-      const company = await getCompanyById('delete-company');
+      const company = await getCompanyById(companyId);
       expect(company).toBeFalsy();
     });
 
     it('should return 404 for non-existent ID', async () => {
-      const response = await createUnauthenticatedRequest()
-        .delete('/api/companies/non-existent')
+      const nonExistentId = generateTestId();
+      const response = await createAuthenticatedRequest(testUser)
+        .delete(`/api/companies/${nonExistentId}`)
         .expect(404);
 
       expect(response.body).toEqual({ error: 'Company not found' });

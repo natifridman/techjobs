@@ -12,6 +12,13 @@ export interface TestUser {
 }
 
 /**
+ * Generates a valid UUID for test entities
+ */
+export function generateTestId(): string {
+  return uuidv4();
+}
+
+/**
  * Creates a test user in the database
  */
 export async function createTestUser(overrides: Partial<TestUser> = {}): Promise<TestUser> {
