@@ -155,14 +155,14 @@ export default function AddCompanyModal({ open, onOpenChange }: AddCompanyModalP
         {!showYaml ? (
           <form onSubmit={handleSubmit} className="space-y-4 mt-4">
             <div className="space-y-2">
-              <Label htmlFor="companyNumber">Company Number (ח.פ) *</Label>
+              <Label htmlFor="companyNumber">Company Number *</Label>
               <Input
                 id="companyNumber"
                 placeholder="e.g., 513674309"
                 value={formData.companyNumber}
                 onChange={(e) => setFormData({ ...formData, companyNumber: e.target.value })}
               />
-              <p className="text-xs text-slate-500">Israeli company registration number from רשם החברות</p>
+              <p className="text-xs text-slate-500">Israeli company registration number</p>
             </div>
 
             <div className="space-y-2">

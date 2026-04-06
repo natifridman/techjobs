@@ -49,6 +49,55 @@ CREATE TABLE IF NOT EXISTS companies (
   updated_date TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Salary data cache (fetched from Glassdoor/Levels.fyi)
+CREATE TABLE IF NOT EXISTS salary_data (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_name TEXT NOT NULL,
+  company_name_normalized TEXT NOT NULL,
+  job_title TEXT,
+  job_title_normalized TEXT,
+  location TEXT DEFAULT 'Israel',
+  min_salary INTEGER,
+  max_salary INTEGER,
+  median_salary INTEGER,
+  currency TEXT DEFAULT 'ILS',
+  salary_type TEXT DEFAULT 'monthly', -- 'monthly', 'annual', 'hourly'
+  sample_count INTEGER DEFAULT 0,
+  source TEXT NOT NULL, -- 'glassdoor', 'levels_fyi', 'manual', 'estimated', 'user_reports'
+  source_url TEXT,
+  confidence TEXT DEFAULT 'medium', -- 'low', 'medium', 'high'
+  fetched_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  created_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(company_name_normalized, job_title_normalized, location)
+);
+
+-- User salary reports (anonymous, crowd-sourced data)
+CREATE TABLE IF NOT EXISTS salary_reports (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id) ON DELETE SET NULL, -- Optional, for verified reports
+  company_name TEXT NOT NULL,
+  company_name_normalized TEXT NOT NULL,
+  job_title TEXT NOT NULL,
+  job_title_normalized TEXT NOT NULL,
+  experience_years INTEGER,
+  location TEXT DEFAULT 'Israel',
+  base_salary INTEGER NOT NULL, -- Monthly base in ILS
+  total_compensation INTEGER, -- Including bonuses, equity (monthly equivalent)
+  currency TEXT DEFAULT 'ILS',
+  is_verified BOOLEAN DEFAULT FALSE,
+  verification_method TEXT, -- 'payslip', 'offer_letter', 'linkedin', null
+  status TEXT DEFAULT 'pending', -- 'pending', 'approved', 'rejected'
+  ip_hash TEXT, -- Hashed IP for spam prevention
+  created_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_date TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Index for aggregating salary reports
+CREATE INDEX IF NOT EXISTS idx_salary_reports_company ON salary_reports(company_name_normalized);
+CREATE INDEX IF NOT EXISTS idx_salary_reports_title ON salary_reports(job_title_normalized);
+CREATE INDEX IF NOT EXISTS idx_salary_reports_status ON salary_reports(status);
+
 -- Session table for connect-pg-simple (express-session persistence)
 CREATE TABLE IF NOT EXISTS "session" (
   "sid" VARCHAR NOT NULL COLLATE "default",
@@ -64,11 +113,15 @@ CREATE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);
 CREATE INDEX IF NOT EXISTS idx_saved_jobs_user_id ON saved_jobs(user_id);
 CREATE INDEX IF NOT EXISTS idx_saved_jobs_url ON saved_jobs(url);
 CREATE INDEX IF NOT EXISTS idx_saved_jobs_company ON saved_jobs(company);
+CREATE INDEX IF NOT EXISTS idx_salary_data_company ON salary_data(company_name_normalized);
+CREATE INDEX IF NOT EXISTS idx_salary_data_title ON salary_data(job_title_normalized);
+CREATE INDEX IF NOT EXISTS idx_salary_data_fetched ON salary_data(fetched_date);
 
 -- Enable Row Level Security (RLS)
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE saved_jobs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE companies ENABLE ROW LEVEL SECURITY;
+ALTER TABLE salary_data ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies for users table
 -- Service role can do everything (for backend)
@@ -90,6 +143,35 @@ CREATE POLICY "Anyone can read companies" ON companies
 
 -- Service role can manage companies
 CREATE POLICY "Service role can manage companies" ON companies
+  FOR ALL
+  USING (auth.role() = 'service_role');
+
+-- RLS Policies for salary_data table
+-- Everyone can read salary data
+CREATE POLICY "Anyone can read salary_data" ON salary_data
+  FOR SELECT
+  USING (true);
+
+-- Service role can manage salary data
+CREATE POLICY "Service role can manage salary_data" ON salary_data
+  FOR ALL
+  USING (auth.role() = 'service_role');
+
+-- RLS Policies for salary_reports table
+ALTER TABLE salary_reports ENABLE ROW LEVEL SECURITY;
+
+-- Anyone can submit salary reports
+CREATE POLICY "Anyone can insert salary_reports" ON salary_reports
+  FOR INSERT
+  WITH CHECK (true);
+
+-- Only approved reports are visible to public
+CREATE POLICY "Public can read approved salary_reports" ON salary_reports
+  FOR SELECT
+  USING (status = 'approved');
+
+-- Service role can manage all reports
+CREATE POLICY "Service role can manage salary_reports" ON salary_reports
   FOR ALL
   USING (auth.role() = 'service_role');
 
@@ -124,5 +206,11 @@ CREATE TRIGGER update_saved_jobs_updated_date
 DROP TRIGGER IF EXISTS update_companies_updated_date ON companies;
 CREATE TRIGGER update_companies_updated_date
   BEFORE UPDATE ON companies
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_date();
+
+DROP TRIGGER IF EXISTS update_salary_data_updated_date ON salary_data;
+CREATE TRIGGER update_salary_data_updated_date
+  BEFORE UPDATE ON salary_data
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_date();
