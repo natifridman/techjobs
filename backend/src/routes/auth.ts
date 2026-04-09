@@ -4,6 +4,36 @@ import type { User } from '../config/passport';
 
 const router = Router();
 
+// Allowed redirect origins for OAuth flow (prevents open redirect attacks)
+const ALLOWED_REDIRECT_ORIGINS = (process.env.CORS_ORIGIN || 'http://localhost:5173,http://localhost:8080')
+  .split(',')
+  .map(o => o.trim());
+
+// Default redirect should be from allowed origins to ensure consistency
+const DEFAULT_REDIRECT = process.env.FRONTEND_URL || ALLOWED_REDIRECT_ORIGINS[0] || 'http://localhost:8080';
+
+/**
+ * Validates that a redirect URL is safe (same origin or allowed origins)
+ * Prevents open redirect attacks in OAuth flow
+ */
+function isValidRedirectUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    // Check if the origin is in our allowed list
+    return ALLOWED_REDIRECT_ORIGINS.some(allowed => {
+      try {
+        const allowedUrl = new URL(allowed);
+        return parsed.origin === allowedUrl.origin;
+      } catch {
+        return false;
+      }
+    });
+  } catch {
+    // If URL parsing fails, check if it's a relative path (safe)
+    return url.startsWith('/') && !url.startsWith('//');
+  }
+}
+
 // Extend Express Request to include user
 declare global {
   namespace Express {
@@ -38,8 +68,14 @@ router.get('/me', (req: Request, res: Response) => {
 
 // Initiate Google OAuth
 router.get('/google', (req: Request, res: Response, next: NextFunction) => {
-  // Store the redirect URL in session
-  const redirectUrl = req.query.redirect as string || process.env.FRONTEND_URL || 'http://localhost:8080';
+  // Store the redirect URL in session (with validation to prevent open redirect)
+  const requestedRedirect = req.query.redirect as string;
+  
+  // Validate redirect URL to prevent open redirect attacks
+  const redirectUrl = requestedRedirect && isValidRedirectUrl(requestedRedirect) 
+    ? requestedRedirect 
+    : DEFAULT_REDIRECT;
+  
   (req.session as any).returnTo = redirectUrl;
   
   // Save session before redirecting to Google
@@ -60,7 +96,9 @@ router.get('/google/callback',
   }),
   (req: Request, res: Response) => {
     // Redirect to frontend after successful login
-    const returnTo = (req.session as any).returnTo || process.env.FRONTEND_URL || 'http://localhost:8080';
+    // Re-validate returnTo for defense-in-depth against session manipulation
+    const storedReturn = (req.session as any).returnTo;
+    const returnTo = storedReturn && isValidRedirectUrl(storedReturn) ? storedReturn : DEFAULT_REDIRECT;
     delete (req.session as any).returnTo;
     res.redirect(returnTo);
   }

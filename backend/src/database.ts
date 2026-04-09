@@ -45,6 +45,21 @@ export interface Company {
   updated_date: string;
 }
 
+export interface JobApplication {
+  id: string;
+  user_id?: string | null;
+  user_email?: string | null;
+  job_title: string;
+  company: string;
+  category?: string | null;
+  city?: string | null;
+  url: string;
+  level?: string | null;
+  size?: string | null;
+  job_category?: string | null;
+  clicked_at: string;
+}
+
 // Initialize Supabase client
 const supabaseUrl = process.env.SUPABASE_URL;
 

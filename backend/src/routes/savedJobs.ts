@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import supabase, { SavedJob } from '../database';
 import { requireAuth } from './auth';
+import { isValidUUID, isValidUrl } from '../utils/validation';
 
 const router = Router();
 
@@ -69,11 +70,17 @@ router.get('/by-url/:url', async (req: Request, res: Response) => {
 router.get('/:id', async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
+    const { id } = req.params;
+
+    // Validate UUID format
+    if (!isValidUUID(id)) {
+      return res.status(400).json({ error: 'Invalid job ID format' });
+    }
     
     const { data: job, error } = await supabase
       .from('saved_jobs')
       .select('*')
-      .eq('id', req.params.id)
+      .eq('id', id)
       .eq('user_id', userId)
       .single();
 
@@ -112,6 +119,11 @@ router.post('/', async (req: Request, res: Response) => {
 
     if (!job_title || !company || !url) {
       return res.status(400).json({ error: 'job_title, company, and url are required' });
+    }
+
+    // Validate URL format
+    if (!isValidUrl(url)) {
+      return res.status(400).json({ error: 'Invalid URL format' });
     }
 
     const id = uuidv4();
@@ -166,6 +178,11 @@ router.put('/:id', async (req: Request, res: Response) => {
     const userId = req.user!.id;
     const { id } = req.params;
     const updates = req.body;
+
+    // Validate UUID format
+    if (!isValidUUID(id)) {
+      return res.status(400).json({ error: 'Invalid job ID format' });
+    }
     
     // Check if job exists and belongs to user
     const { data: existing, error: selectError } = await supabase
@@ -188,6 +205,10 @@ router.put('/:id', async (req: Request, res: Response) => {
 
     for (const field of allowedFields) {
       if (updates[field] !== undefined) {
+        // Validate URL format if updating url field
+        if (field === 'url' && !isValidUrl(updates[field])) {
+          return res.status(400).json({ error: 'Invalid URL format' });
+        }
         (updateData as Record<string, unknown>)[field] = updates[field];
       }
     }
@@ -223,6 +244,11 @@ router.delete('/:id', async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
     const { id } = req.params;
+
+    // Validate UUID format
+    if (!isValidUUID(id)) {
+      return res.status(400).json({ error: 'Invalid job ID format' });
+    }
     
     // Check if job exists and belongs to user
     const { data: existing, error: selectError } = await supabase

@@ -6,6 +6,7 @@ import {
   insertSavedJob,
   getSavedJobById,
   TestUser,
+  generateTestId,
 } from '../helpers';
 
 describe('Saved Jobs Routes', () => {
@@ -74,7 +75,7 @@ describe('Saved Jobs Routes', () => {
     });
 
     it('should return user saved jobs', async () => {
-      const jobId = 'test-job-id';
+      const jobId = generateTestId();
       const now = new Date().toISOString();
       await insertSavedJob({
         id: jobId,
@@ -103,7 +104,7 @@ describe('Saved Jobs Routes', () => {
     it('should not return other users jobs', async () => {
       const now = new Date().toISOString();
       await insertSavedJob({
-        id: 'other-job',
+        id: generateTestId(),
         user_id: testUser2.id,
         job_title: 'Other Job',
         company: 'Other Corp',
@@ -123,9 +124,11 @@ describe('Saved Jobs Routes', () => {
       const now = new Date();
       const earlier = new Date(now.getTime() - 60000).toISOString();
       const later = now.toISOString();
+      const job1Id = generateTestId();
+      const job2Id = generateTestId();
 
       await insertSavedJob({
-        id: 'job-1',
+        id: job1Id,
         user_id: testUser.id,
         job_title: 'First Job',
         company: 'Corp',
@@ -135,7 +138,7 @@ describe('Saved Jobs Routes', () => {
       });
 
       await insertSavedJob({
-        id: 'job-2',
+        id: job2Id,
         user_id: testUser.id,
         job_title: 'Second Job',
         company: 'Corp',
@@ -149,15 +152,15 @@ describe('Saved Jobs Routes', () => {
         .expect(200);
 
       expect(response.body).toHaveLength(2);
-      expect(response.body[0].id).toBe('job-2'); // Later should be first (DESC)
-      expect(response.body[1].id).toBe('job-1');
+      expect(response.body[0].id).toBe(job2Id); // Later should be first (DESC)
+      expect(response.body[1].id).toBe(job1Id);
     });
 
     it('should sort by job_title when specified', async () => {
       const now = new Date().toISOString();
 
       await insertSavedJob({
-        id: 'job-b',
+        id: generateTestId(),
         user_id: testUser.id,
         job_title: 'Backend Engineer',
         company: 'Corp',
@@ -167,7 +170,7 @@ describe('Saved Jobs Routes', () => {
       });
 
       await insertSavedJob({
-        id: 'job-a',
+        id: generateTestId(),
         user_id: testUser.id,
         job_title: 'Analytics Engineer',
         company: 'Corp',
@@ -250,7 +253,7 @@ describe('Saved Jobs Routes', () => {
     it('should return 409 when duplicate URL for same user', async () => {
       const now = new Date().toISOString();
       await insertSavedJob({
-        id: 'existing-job',
+        id: generateTestId(),
         user_id: testUser.id,
         job_title: 'Existing Job',
         company: 'Corp',
@@ -274,7 +277,7 @@ describe('Saved Jobs Routes', () => {
     it('should allow same URL for different users', async () => {
       const now = new Date().toISOString();
       await insertSavedJob({
-        id: 'user1-job',
+        id: generateTestId(),
         user_id: testUser.id,
         job_title: 'User 1 Job',
         company: 'Corp',
@@ -298,9 +301,10 @@ describe('Saved Jobs Routes', () => {
 
   describe('GET /api/saved-jobs/:id', () => {
     it('should return saved job by ID', async () => {
+      const jobId = generateTestId();
       const now = new Date().toISOString();
       await insertSavedJob({
-        id: 'job-123',
+        id: jobId,
         user_id: testUser.id,
         job_title: 'Test Job',
         company: 'Test Corp',
@@ -310,28 +314,30 @@ describe('Saved Jobs Routes', () => {
       });
 
       const response = await createAuthenticatedRequest(testUser)
-        .get('/api/saved-jobs/job-123')
+        .get(`/api/saved-jobs/${jobId}`)
         .expect(200);
 
       expect(response.body).toMatchObject({
-        id: 'job-123',
+        id: jobId,
         job_title: 'Test Job',
         company: 'Test Corp',
       });
     });
 
     it('should return 404 for non-existent ID', async () => {
+      const nonExistentId = generateTestId();
       const response = await createAuthenticatedRequest(testUser)
-        .get('/api/saved-jobs/non-existent')
+        .get(`/api/saved-jobs/${nonExistentId}`)
         .expect(404);
 
       expect(response.body).toEqual({ error: 'Job not found' });
     });
 
     it('should return 404 for other users job', async () => {
+      const otherUserJobId = generateTestId();
       const now = new Date().toISOString();
       await insertSavedJob({
-        id: 'other-user-job',
+        id: otherUserJobId,
         user_id: testUser2.id,
         job_title: 'Other Job',
         company: 'Corp',
@@ -341,7 +347,7 @@ describe('Saved Jobs Routes', () => {
       });
 
       const response = await createAuthenticatedRequest(testUser)
-        .get('/api/saved-jobs/other-user-job')
+        .get(`/api/saved-jobs/${otherUserJobId}`)
         .expect(404);
 
       expect(response.body).toEqual({ error: 'Job not found' });
@@ -350,10 +356,11 @@ describe('Saved Jobs Routes', () => {
 
   describe('GET /api/saved-jobs/by-url/:url', () => {
     it('should return saved job by URL', async () => {
+      const jobId = generateTestId();
       const now = new Date().toISOString();
       const jobUrl = 'http://test.com/job/123';
       await insertSavedJob({
-        id: 'job-by-url',
+        id: jobId,
         user_id: testUser.id,
         job_title: 'Test Job',
         company: 'Test Corp',
@@ -367,7 +374,7 @@ describe('Saved Jobs Routes', () => {
         .expect(200);
 
       expect(response.body).toMatchObject({
-        id: 'job-by-url',
+        id: jobId,
         url: jobUrl,
       });
     });
@@ -383,9 +390,10 @@ describe('Saved Jobs Routes', () => {
 
   describe('PUT /api/saved-jobs/:id', () => {
     it('should update saved job', async () => {
+      const jobId = generateTestId();
       const now = new Date().toISOString();
       await insertSavedJob({
-        id: 'update-job',
+        id: jobId,
         user_id: testUser.id,
         job_title: 'Original Title',
         company: 'Corp',
@@ -395,7 +403,7 @@ describe('Saved Jobs Routes', () => {
       });
 
       const response = await createAuthenticatedRequest(testUser)
-        .put('/api/saved-jobs/update-job')
+        .put(`/api/saved-jobs/${jobId}`)
         .send({ job_title: 'Updated Title' })
         .expect(200);
 
@@ -403,9 +411,10 @@ describe('Saved Jobs Routes', () => {
     });
 
     it('should update applied status', async () => {
+      const jobId = generateTestId();
       const now = new Date().toISOString();
       await insertSavedJob({
-        id: 'apply-job',
+        id: jobId,
         user_id: testUser.id,
         job_title: 'Test Job',
         company: 'Corp',
@@ -416,7 +425,7 @@ describe('Saved Jobs Routes', () => {
       });
 
       const response = await createAuthenticatedRequest(testUser)
-        .put('/api/saved-jobs/apply-job')
+        .put(`/api/saved-jobs/${jobId}`)
         .send({ applied: true, applied_date: now })
         .expect(200);
 
@@ -425,9 +434,10 @@ describe('Saved Jobs Routes', () => {
     });
 
     it('should update comments', async () => {
+      const jobId = generateTestId();
       const now = new Date().toISOString();
       await insertSavedJob({
-        id: 'comment-job',
+        id: jobId,
         user_id: testUser.id,
         job_title: 'Test Job',
         company: 'Corp',
@@ -437,7 +447,7 @@ describe('Saved Jobs Routes', () => {
       });
 
       const response = await createAuthenticatedRequest(testUser)
-        .put('/api/saved-jobs/comment-job')
+        .put(`/api/saved-jobs/${jobId}`)
         .send({ comments: 'Great opportunity!' })
         .expect(200);
 
@@ -445,8 +455,9 @@ describe('Saved Jobs Routes', () => {
     });
 
     it('should return 404 for non-existent ID', async () => {
+      const nonExistentId = generateTestId();
       const response = await createAuthenticatedRequest(testUser)
-        .put('/api/saved-jobs/non-existent')
+        .put(`/api/saved-jobs/${nonExistentId}`)
         .send({ job_title: 'Updated' })
         .expect(404);
 
@@ -454,9 +465,10 @@ describe('Saved Jobs Routes', () => {
     });
 
     it('should return 404 for other users job', async () => {
+      const otherJobId = generateTestId();
       const now = new Date().toISOString();
       await insertSavedJob({
-        id: 'other-job-update',
+        id: otherJobId,
         user_id: testUser2.id,
         job_title: 'Other Job',
         company: 'Corp',
@@ -466,7 +478,7 @@ describe('Saved Jobs Routes', () => {
       });
 
       const response = await createAuthenticatedRequest(testUser)
-        .put('/api/saved-jobs/other-job-update')
+        .put(`/api/saved-jobs/${otherJobId}`)
         .send({ job_title: 'Hacked!' })
         .expect(404);
 
@@ -474,9 +486,10 @@ describe('Saved Jobs Routes', () => {
     });
 
     it('should return 400 when no valid fields provided', async () => {
+      const jobId = generateTestId();
       const now = new Date().toISOString();
       await insertSavedJob({
-        id: 'no-update-job',
+        id: jobId,
         user_id: testUser.id,
         job_title: 'Test Job',
         company: 'Corp',
@@ -486,7 +499,7 @@ describe('Saved Jobs Routes', () => {
       });
 
       const response = await createAuthenticatedRequest(testUser)
-        .put('/api/saved-jobs/no-update-job')
+        .put(`/api/saved-jobs/${jobId}`)
         .send({ invalid_field: 'value' })
         .expect(400);
 
@@ -496,9 +509,10 @@ describe('Saved Jobs Routes', () => {
 
   describe('DELETE /api/saved-jobs/:id', () => {
     it('should delete saved job', async () => {
+      const jobId = generateTestId();
       const now = new Date().toISOString();
       await insertSavedJob({
-        id: 'delete-job',
+        id: jobId,
         user_id: testUser.id,
         job_title: 'Delete Me',
         company: 'Corp',
@@ -508,26 +522,28 @@ describe('Saved Jobs Routes', () => {
       });
 
       await createAuthenticatedRequest(testUser)
-        .delete('/api/saved-jobs/delete-job')
+        .delete(`/api/saved-jobs/${jobId}`)
         .expect(204);
 
       // Verify it's deleted
-      const job = await getSavedJobById('delete-job');
+      const job = await getSavedJobById(jobId);
       expect(job).toBeFalsy();
     });
 
     it('should return 404 for non-existent ID', async () => {
+      const nonExistentId = generateTestId();
       const response = await createAuthenticatedRequest(testUser)
-        .delete('/api/saved-jobs/non-existent')
+        .delete(`/api/saved-jobs/${nonExistentId}`)
         .expect(404);
 
       expect(response.body).toEqual({ error: 'Job not found' });
     });
 
     it('should return 404 for other users job', async () => {
+      const otherJobId = generateTestId();
       const now = new Date().toISOString();
       await insertSavedJob({
-        id: 'other-delete-job',
+        id: otherJobId,
         user_id: testUser2.id,
         job_title: 'Other Job',
         company: 'Corp',
@@ -537,13 +553,13 @@ describe('Saved Jobs Routes', () => {
       });
 
       const response = await createAuthenticatedRequest(testUser)
-        .delete('/api/saved-jobs/other-delete-job')
+        .delete(`/api/saved-jobs/${otherJobId}`)
         .expect(404);
 
       expect(response.body).toEqual({ error: 'Job not found' });
 
       // Verify it's NOT deleted
-      const job = await getSavedJobById('other-delete-job');
+      const job = await getSavedJobById(otherJobId);
       expect(job).toBeDefined();
     });
   });
