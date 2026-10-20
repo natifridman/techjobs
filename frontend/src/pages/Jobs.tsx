@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usePostHog } from 'posthog-js/react';
 import { Button } from "@/components/ui/button";
@@ -8,11 +8,12 @@ import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
 import FilterSidebar from "@/components/jobs/FilterSidebar";
-import { EMPTY_FILTERS, type Filters } from "@/components/jobs/filters";
+import type { Filters } from "@/components/jobs/filters";
+import { filtersFromParams, filtersToParams } from "@/components/jobs/filterUrl";
 import SearchHeader from "@/components/jobs/SearchHeader";
 import JobCard from "@/components/jobs/JobCard";
 import JobsLoader from "@/components/jobs/JobsLoader";
-import { CATEGORY_LABELS, displayCity, fetchJobsPayload, isClosed, JOBS_PAYLOAD_QUERY_KEY, selectCityLabels, selectSortedJobs, type Job } from "@/components/jobs/jobsData";
+import { displayCity, fetchJobsPayload, isClosed, JOBS_PAYLOAD_QUERY_KEY, selectCityLabels, selectSortedJobs, type Job } from "@/components/jobs/jobsData";
 import { savedJobsApi } from "@/api/storage";
 
 // Types for mutation results
@@ -23,50 +24,63 @@ const JOBS_PER_PAGE = 20;
 
 export default function Jobs() {
   const posthog = usePostHog();
-  const [filters, setFilters] = useState<Filters>({ ...EMPTY_FILTERS });
+  // The URL is the shareable, refresh-safe source of truth for filters:
+  // state initializes from it, router navigations parse into state, and
+  // state changes write back via history.replaceState (no router
+  // navigation, so no render/effect loop; nothing is pushed to history).
   const location = useLocation();
-  const searchParams = new URLSearchParams(location.search);
-  const initialSearch = searchParams.get('search') || '';
-  const initialCategoryParam = searchParams.get('category') || '';
-  const initialCity = searchParams.get('city') || '';
+  const urlState = useMemo(() => filtersFromParams(new URLSearchParams(location.search)), [location.search]);
+  const [filters, setFilters] = useState<Filters>(urlState.filters);
+  const [searchQuery, setSearchQuery] = useState(urlState.searchQuery);
 
-  const [searchQuery, setSearchQuery] = useState(initialSearch);
-
-  // Apply category/city from URL on mount. Categories are role-category
-  // slugs from the jobs taxonomy (see CATEGORY_LABELS in jobsData).
+  // URL -> state (covers landing on a shared link, back/forward, and
+  // navigating from /jobs?category=qa to plain /jobs). location.key is a
+  // dependency so re-navigating to the same router URL (e.g. clicking the
+  // plain Jobs link while filters were set via history.replaceState, which
+  // leaves location.search stale) still resets state to the URL.
   useEffect(() => {
-    // Ignore a param that is not a real taxonomy slug or canonical city: an
-    // unknown value would silently filter the board to zero jobs with no
-    // visible filter chip explaining why.
-    // Own-property check: CATEGORY_LABELS is a plain object, so inherited
-    // keys like 'toString' or '__proto__' must not be accepted as slugs.
-    if (initialCategoryParam && Object.prototype.hasOwnProperty.call(CATEGORY_LABELS, initialCategoryParam)) {
-      setFilters(prev => ({ ...prev, jobCategories: [initialCategoryParam] }));
-    } else {
-      // Like the city param: navigating from /jobs?category=qa to plain
-      // /jobs must drop the filter, or the list stays filtered with no URL
-      // state explaining why.
-      setFilters(prev => (prev.jobCategories.length > 0 ? { ...prev, jobCategories: [] } : prev));
-    }
-    if (initialCity) {
-      setFilters(prev => ({ ...prev, cities: [initialCity] }));
-    } else {
-      // The city filter follows the URL: navigating from /jobs?city=X back
-      // to plain /jobs must drop it, or the list stays filtered with no URL
-      // state explaining why.
-      setFilters(prev => (prev.cities.length > 0 ? { ...prev, cities: [] } : prev));
-    }
-  }, [initialCategoryParam, initialCity]);
+    setFilters(prev => (JSON.stringify(prev) === JSON.stringify(urlState.filters) ? prev : urlState.filters));
+    setSearchQuery(prev => (prev === urlState.searchQuery ? prev : urlState.searchQuery));
+  }, [urlState, location.key]);
+
+  // The browser path this page owns. Recorded when the router location
+  // changes; during a pending (lazy) navigation the router location is still
+  // the Jobs route while window.location already points at the destination,
+  // and filter writes must not leak into that destination.
+  const ownPathRef = useRef<string | null>(null);
+  useEffect(() => {
+    ownPathRef.current = window.location.pathname;
+  }, [location.pathname, location.key]);
+
+  // State -> URL. Unknown params (utm, ...) are preserved; only the known
+  // filter keys are rewritten. The strict-equality guard keeps this a
+  // no-op whenever the URL already reflects the state. Writes are debounced
+  // (browsers cap history.replaceState at ~100 calls per 10s and throw
+  // SecurityError past it), skipped if the page no longer owns the path,
+  // and failures are swallowed so a quota error cannot take the page down.
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      if (ownPathRef.current !== null && window.location.pathname !== ownPathRef.current) return;
+      const current = new URLSearchParams(window.location.search);
+      const next = new URLSearchParams(window.location.search);
+      for (const key of ["search", "category", "workModel", "employmentType", "seniority", "city", "region", "showClosed"]) {
+        next.delete(key);
+      }
+      filtersToParams(filters, searchQuery).forEach((value, key) => next.set(key, value));
+      if (next.toString() === current.toString()) return;
+      const search = next.toString();
+      try {
+        // Keep the existing history state: React Router stores idx/key/usr there.
+        window.history.replaceState(window.history.state, "", window.location.pathname + (search ? `?${search}` : "") + window.location.hash);
+      } catch (error) {
+        console.warn('Could not update the URL with the current filters:', error);
+      }
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [filters, searchQuery]);
+
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-
-  // Update local state when URL param changes
-  useEffect(() => {
-    const query = new URLSearchParams(location.search).get('search');
-    if (query !== null) {
-      setSearchQuery(query);
-    }
-  }, [location.search]);
 
   const queryClient = useQueryClient();
 
@@ -180,11 +194,14 @@ export default function Jobs() {
   // that can lag new cities and would silently drop a valid filter.
   const validCities = useMemo(() => new Set(jobs.flatMap(job => job.cities)), [jobs]);
   useEffect(() => {
-    if (!initialCity || validCities.size === 0) return;
-    if (!validCities.has(initialCity)) {
-      setFilters(prev => ({ ...prev, cities: prev.cities.filter(c => c !== initialCity) }));
-    }
-  }, [initialCity, validCities]);
+    if (validCities.size === 0) return;
+    setFilters(prev => {
+      const kept = prev.cities.filter(c => validCities.has(c));
+      return kept.length === prev.cities.length ? prev : { ...prev, cities: kept };
+    });
+    // Also re-run when the selected cities change: an in-app navigation to
+    // /jobs?city=Bogus installs the invalid city without changing validCities.
+  }, [validCities, filters.cities]);
 
   // Filter jobs
   const filteredJobs = useMemo(() => {
@@ -193,14 +210,17 @@ export default function Jobs() {
       if (isClosed(job) && !filters.showClosed) return false;
 
       // Search filter
-      if (searchQuery) {
-        const search = searchQuery.toLowerCase();
+      // Trimmed, to match what the URL serializes: ?search=%20Backend and
+      // ?search=Backend must filter identically.
+      const trimmedQuery = searchQuery.trim();
+      if (trimmedQuery) {
+        const search = trimmedQuery.toLowerCase();
         const matchesSearch =
           job.title?.toLowerCase().includes(search) ||
           job.company?.toLowerCase().includes(search) ||
           job.department?.toLowerCase().includes(search) ||
           job.city?.toLowerCase().includes(search) ||
-          job.cityHe?.includes(searchQuery) ||
+          job.cityHe?.includes(trimmedQuery) ||
           job.cities.some(city =>
             city.toLowerCase().includes(search) ||
             (cityLabels[city] || '').toLowerCase().includes(search)
