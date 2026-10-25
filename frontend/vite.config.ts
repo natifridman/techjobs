@@ -17,6 +17,10 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
+    // CPU-heavy parser fuzzing can starve jsdom's first accessibility query on
+    // shared CI runners. Keep the normal timeouts and assertions, but run CI
+    // files sequentially; local runs retain parallel workers.
+    fileParallelism: !process.env.CI,
     setupFiles: ['./src/__tests__/setup.ts'],
     include: ['src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     coverage: {
