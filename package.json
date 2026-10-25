@@ -20,5 +20,8 @@
   "bugs": {
     "url": "https://github.com/natifridman/techjobs/issues"
   },
-  "homepage": "https://github.com/natifridman/techjobs#readme"
+  "homepage": "https://github.com/natifridman/techjobs#readme",
+  "engines": {
+    "node": ">=24.15.0"
+  }
 }

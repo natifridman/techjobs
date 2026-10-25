@@ -15,7 +15,7 @@ The full feed is never bundled into the frontend or supplied as a public downloa
 
 ## Local development
 
-Use Node.js 20 or newer. Install dependencies:
+Use Node.js 24 LTS (at least 24.15.0). The `.nvmrc`, CI workflows, and Docker images use Node 24. With nvm, run `nvm install && nvm use` before installing dependencies:
 
 ```sh
 npm --prefix backend ci
@@ -102,6 +102,8 @@ npm --prefix backend run build
 ```
 
 Tests cover payload validation, guest limits and query tampering, catalog projections, private feed caching, authenticated exports, OAuth continuation, cache isolation, URL state, guest-save reconciliation, and the existing converter behavior. Browser QA should cover 360px, 390px, 768px, and 1280px viewports, keyboard navigation, long/Hebrew titles, reduced motion, and the tenth-result sign-in panel.
+
+Dependency updates currently retain TypeScript 5.9 and Babel 7 for toolchain compatibility. Tailwind Typography's pinned selector parser is overridden to 7.1.6 or newer to address [GHSA-rj75-hqrm-r3gf](https://github.com/advisories/GHSA-rj75-hqrm-r3gf); remove the override once Typography uses a patched version directly.
 
 ## Deployment
 

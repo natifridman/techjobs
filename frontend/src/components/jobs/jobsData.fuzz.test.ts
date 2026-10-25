@@ -65,7 +65,7 @@ describe('parseJobsPayload fuzz', () => {
       const before = ({} as Record<string, unknown>).polluted;
       let p;
       try { p = parseJobsPayload({ updatedAt: 'x', count: jobs.length, schemaVersion: 1, jobs }); }
-      catch (e) { throw new Error(`batch ${batch} threw: ${(e as Error).message}`); }
+      catch (e) { throw new Error(`batch ${batch} threw: ${(e as Error).message}`, { cause: e }); }
       expect(({} as Record<string, unknown>).polluted).toBe(before);
       for (const j of p.jobs) {
         for (const f of REQ) expect(typeof (j as unknown as Record<string, unknown>)[f]).toBe('string');

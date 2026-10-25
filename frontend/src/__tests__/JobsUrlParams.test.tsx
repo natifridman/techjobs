@@ -82,6 +82,20 @@ describe('Jobs URL params', () => {
     mockApi(); renderJobs('/jobs?search=Engineer&category=software&company=A'); await screen.findByText('Backend Engineer');
     fireEvent.click(screen.getByRole('button', { name: /Clear all/ })); await screen.findByText('Product Designer'); expect(screen.getByTestId('location').textContent).toBe('/jobs'); expect(screen.getByRole('searchbox')).toHaveValue('');
   });
+  it('restores company search on history navigation and cancels pending edits', async () => {
+    const calls = mockApi(); renderJobs('/companyprofile?name=A', true);
+    await screen.findByText('Backend Engineer');
+    const searchbox = screen.getByRole('searchbox', { name: "Search this company's jobs" });
+    fireEvent.change(searchbox, { target: { value: 'Engineer' } });
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('search=Engineer'));
+    fireEvent.change(searchbox, { target: { value: 'stale draft' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Back in history' }));
+    expect(searchbox).toHaveValue('');
+    await waitFor(() => expect(screen.getByTestId('location').textContent).toBe('/companyprofile?name=A'));
+    fireEvent.change(searchbox, { target: { value: 'Backend' } });
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('search=Backend'));
+    expect(calls.some(url => url.searchParams.get('search') === 'stale draft')).toBe(false);
+  });
 });
 
 describe('guest browsing', () => {

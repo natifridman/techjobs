@@ -1,7 +1,7 @@
 # Combined Dockerfile - Frontend served by Backend (no nginx)
 
 # ============ Build Frontend ============
-FROM node:20-alpine AS frontend-builder
+FROM node:24-alpine AS frontend-builder
 
 # Build args for Vite environment variables
 ARG VITE_PUBLIC_POSTHOG_KEY
@@ -31,7 +31,7 @@ ENV VITE_SUBMIT_COMPANY_URL=$VITE_SUBMIT_COMPANY_URL
 RUN LOGOS_DEPLOY_KEY="$LOGOS_DEPLOY_KEY" npm run build
 
 # ============ Build Backend ============
-FROM node:20-alpine AS backend-builder
+FROM node:24-alpine AS backend-builder
 
 WORKDIR /app/backend
 COPY backend/package*.json ./
@@ -41,7 +41,7 @@ COPY backend/src ./src
 RUN npm run build
 
 # ============ Production ============
-FROM node:20-alpine
+FROM node:24-alpine
 
 WORKDIR /app
 

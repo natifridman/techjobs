@@ -19,7 +19,11 @@ export default function CompanyProfile() {
   const rawPage = params.get('page') || '1';
   const parsedPage = /^\d+$/.test(rawPage) && Number.isSafeInteger(Number(rawPage)) && Number(rawPage) > 0 ? Number(rawPage) : 1;
   const page = auth.isLoading || auth.isAuthenticated ? parsedPage : 1;
-  const [searchQuery, setSearchQuery] = useState(search);
+  const [input, setInput] = useState({ key: location.key, value: search });
+  // Reset drafts when navigating, including when returning to a history entry.
+  if (input.key !== location.key) setInput({ key: location.key, value: search });
+  const searchQuery = input.key === location.key ? input.value : search;
+  const setSearchQuery = (value: string) => setInput({ key: location.key, value });
   const catalog = useJobsCatalog();
   const company = catalog.data?.companies.find(item => item.name === name);
   const jobs = useJobs({ company: name, search, page }, Boolean(name));
@@ -30,7 +34,6 @@ export default function CompanyProfile() {
     if (nextPage > 1) next.set('page', String(nextPage));
     setParams(next, { replace, preventScrollReset: true });
   };
-  useEffect(() => { setSearchQuery(search); }, [search, location.key]);
   useEffect(() => {
     if (searchQuery === search) return;
     const timer = setTimeout(() => update(searchQuery), 250);
