@@ -4,9 +4,7 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Build-time provider configuration (empty args fall back to code defaults)
-ARG VITE_JOBS_DATA_URL
 ARG VITE_SUBMIT_COMPANY_URL
-ENV VITE_JOBS_DATA_URL=$VITE_JOBS_DATA_URL
 ENV VITE_SUBMIT_COMPANY_URL=$VITE_SUBMIT_COMPANY_URL
 # Optional read-only deploy key for the private logo assets repo (see
 # scripts/pull_logos.mjs). Empty/unset: build keeps letter avatars.

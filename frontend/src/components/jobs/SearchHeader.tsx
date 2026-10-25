@@ -1,87 +1,50 @@
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Search, SlidersHorizontal, Bookmark, Download } from "lucide-react";
-import { Link } from "react-router-dom";
-import { createPageUrl } from "@/utils";
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Search, SlidersHorizontal, Bookmark, Download, MoreHorizontal } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
 
 interface SearchHeaderProps {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   onFilterClick: () => void;
   totalJobs: number;
+  visibleJobs: number;
   activeFiltersCount: number;
   isLoading?: boolean;
-  /** When provided, an Export CSV button is shown (exports the filtered list). */
+  isGuest?: boolean;
   onExportCsv?: () => void;
-  exportCount?: number;
+  isExporting?: boolean;
 }
 
-export default function SearchHeader({ 
-  searchQuery, 
-  setSearchQuery, 
-  onFilterClick, 
-  totalJobs,
-  activeFiltersCount,
-  isLoading = false,
-  onExportCsv,
-  exportCount = 0
-}: SearchHeaderProps) {
+export default function SearchHeader({ searchQuery, setSearchQuery, onFilterClick, totalJobs, visibleJobs,
+  activeFiltersCount, isLoading, isGuest, onExportCsv, isExporting }: SearchHeaderProps) {
   return (
-    <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-lg border-b border-warm-200" role="search">
-      <div className="px-4 py-4">
-        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-warm-400" aria-hidden="true" />
-            <Input
-              type="search"
-              placeholder="Search jobs, companies, or keywords..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 h-11 bg-warm-50 border-warm-200 focus:bg-white transition-colors"
-              aria-label="Search jobs, companies, or keywords"
-              autoComplete="off"
-            />
+    <div className="sticky top-16 z-20 border-b border-warm-200 bg-white/95 backdrop-blur-md" role="search">
+      <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="relative min-w-0 flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-warm-400" aria-hidden="true" />
+            <Input type="search" placeholder="Job title, company, or keyword" value={searchQuery}
+              onChange={event => setSearchQuery(event.target.value)} className="h-11 bg-warm-50 pl-9 border-warm-200"
+              aria-label="Search jobs, companies, or keywords" autoComplete="off" />
           </div>
-
-          <div className="flex gap-2">
-            {onExportCsv && (
-              <Button
-                variant="outline"
-                onClick={onExportCsv}
-                disabled={exportCount === 0}
-                className="h-11 gap-2"
-                aria-label={`Export ${exportCount} filtered jobs to CSV`}
-              >
-                <Download className="w-4 h-4" aria-hidden="true" />
-                Export CSV
-              </Button>
-            )}
-            <Button
-              variant="outline"
-              onClick={onFilterClick}
-              className="lg:hidden h-11 gap-2"
-              aria-label={`Open filters${activeFiltersCount > 0 ? ` (${activeFiltersCount} active)` : ''}`}
-            >
-              <SlidersHorizontal className="w-4 h-4" aria-hidden="true" />
-              Filters
-              {activeFiltersCount > 0 && (
-                <span className="bg-iris-600 text-white text-xs px-1.5 py-0.5 rounded-full" aria-hidden="true">
-                  {activeFiltersCount}
-                </span>
-              )}
-            </Button>
-
-            <Button asChild variant="outline" className="h-11 gap-2">
-              <Link to={createPageUrl("SavedJobs")} aria-label="View saved jobs">
-                <Bookmark className="w-4 h-4" aria-hidden="true" />
-                <span className="hidden sm:inline">Saved</span>
-              </Link>
-            </Button>
-          </div>
+          <Button data-job-filter-trigger variant="outline" onClick={onFilterClick} className="lg:hidden gap-2"
+            aria-label={`Open filters${activeFiltersCount ? ` (${activeFiltersCount} active)` : ''}`}>
+            <SlidersHorizontal className="h-4 w-4" aria-hidden="true" /><span className="hidden sm:inline">Filters</span>
+            {!!activeFiltersCount && <span className="rounded-full bg-iris-700 px-1.5 py-0.5 text-xs text-white">{activeFiltersCount}</span>}
+          </Button>
+          <Button asChild variant="outline" className="gap-2"><Link to={createPageUrl('SavedJobs')} aria-label="View saved jobs"><Bookmark className="h-4 w-4" aria-hidden="true" /><span className="hidden sm:inline">Saved jobs</span></Link></Button>
+          {onExportCsv && <details className="relative shrink-0">
+            <summary className="flex h-11 w-11 cursor-pointer list-none items-center justify-center rounded-lg border border-warm-200 bg-white text-warm-600 hover:bg-warm-50 focus-visible:outline-2 focus-visible:outline-iris-600" aria-label="More job actions"><MoreHorizontal className="h-5 w-5" aria-hidden="true" /></summary>
+            <div className="absolute right-0 top-full mt-2 w-56 rounded-lg border border-warm-200 bg-white p-1 shadow-lg">
+              <button type="button" onClick={onExportCsv} disabled={isExporting || (!isGuest && totalJobs === 0)} className="flex min-h-11 w-full items-center gap-2 rounded-md px-3 text-left text-sm text-warm-700 hover:bg-warm-50 disabled:opacity-50"><Download className="h-4 w-4" aria-hidden="true" />{isExporting ? 'Preparing export…' : isGuest ? 'Sign in to export CSV' : 'Export filtered jobs to CSV'}</button>
+            </div>
+          </details>}
         </div>
-
-        <div className="mt-3 text-sm text-warm-500" role="status" aria-live="polite" aria-atomic="true">
-          {isLoading ? 'Loading jobs...' : `${totalJobs.toLocaleString()} jobs found`}
+        <div className="mt-2 text-xs text-warm-500" role="status" aria-live="polite" aria-atomic="true">
+          {isLoading ? 'Loading jobs…' : `Showing ${visibleJobs.toLocaleString()} of ${totalJobs.toLocaleString()} matching jobs`}
+          {isGuest && !isLoading && <span className="ml-2 text-iris-700">Guest preview</span>}
         </div>
       </div>
     </div>

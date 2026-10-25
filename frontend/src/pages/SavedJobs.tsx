@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   ArrowLeft,
+  LogIn,
   Bookmark,
   BookmarkX,
   MapPin,
@@ -21,11 +22,11 @@ import {
   X
 } from "lucide-react";
 import { toast } from "sonner";
-import { motion, AnimatePresence } from "framer-motion";
 import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
 import { reconcileGuestSavedJobs, savedJobsApi, type SavedJob } from "@/api/storage";
 import { useAuth } from "@/hooks/useAuth";
+import { useSavedJobs } from '@/hooks/useSavedJobs';
 
 const levelColors: Record<string, string> = {
   intern: 'bg-green-50 text-green-700 border-green-200',
@@ -45,16 +46,11 @@ export default function SavedJobs() {
   const [commentText, setCommentText] = useState('');
   const [filter, setFilter] = useState<FilterType>('all');
 
-  const { data: savedJobs = [], isLoading } = useQuery({
-    queryKey: ['savedJobs'],
-    queryFn: () => savedJobsApi.list('-created_date'),
-    staleTime: 30 * 1000, // Cache for 30 seconds
-    refetchOnWindowFocus: true,
-  });
+  const { data: savedJobs = [], isLoading } = useSavedJobs();
 
   // Pending guest records (failed reconciliation uploads) stay visible in
   // the list; retry the sync whenever this page is opened signed in.
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, login } = useAuth();
   useEffect(() => {
     if (!isAuthenticated) return;
     reconcileGuestSavedJobs().finally(() => {
@@ -142,7 +138,7 @@ export default function SavedJobs() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-warm-50 to-iris-50/30">
+    <div className="min-h-screen bg-page">
       {/* Header */}
       <div className="bg-white border-b border-warm-200">
         <div className="max-w-4xl mx-auto px-4 py-6">
@@ -163,7 +159,14 @@ export default function SavedJobs() {
             </div>
           </div>
 
-          {pendingCount > 0 && (
+          {!isAuthenticated && (
+            <div className="mt-5 flex flex-col gap-4 rounded-xl border border-iris-100 bg-iris-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div><h2 className="text-sm font-semibold text-ink">Saved on this browser</h2><p className="mt-1 text-sm text-muted">Guest bookmarks and notes stay on this device. Sign in to sync them to your account and access them elsewhere.</p></div>
+              <Button onClick={() => login(window.location.href)} className="shrink-0"><LogIn className="mr-2 h-4 w-4" aria-hidden="true" />Sign in to sync</Button>
+            </div>
+          )}
+
+          {isAuthenticated && pendingCount > 0 && (
             <div className="mt-4 flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3" role="status">
               <p className="text-sm text-amber-800">
                 {pendingCount} saved {pendingCount === 1 ? 'job has' : 'jobs have'} not synced to your account yet.
@@ -183,12 +186,13 @@ export default function SavedJobs() {
 
           {/* Filter Tabs */}
           {savedJobs.length > 0 && (
-            <div className="flex gap-2 mt-4">
+            <div className="flex flex-wrap gap-2 mt-4" role="group" aria-label="Filter saved jobs">
               <Button
                 variant={filter === 'all' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setFilter('all')}
                 className={filter === 'all' ? 'bg-iris-600 hover:bg-iris-700' : ''}
+                aria-pressed={filter === 'all'}
               >
                 All ({savedJobs.length})
               </Button>
@@ -196,7 +200,8 @@ export default function SavedJobs() {
                 variant={filter === 'applied' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setFilter('applied')}
-                className={filter === 'applied' ? 'bg-emerald-600 hover:bg-emerald-700' : ''}
+                className={filter === 'applied' ? 'bg-primary hover:bg-iris-700' : ''}
+                aria-pressed={filter === 'applied'}
               >
                 <CheckCircle2 className="w-4 h-4 mr-1.5" />
                 Applied ({appliedCount})
@@ -205,7 +210,8 @@ export default function SavedJobs() {
                 variant={filter === 'not-applied' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setFilter('not-applied')}
-                className={filter === 'not-applied' ? 'bg-warm-600 hover:bg-warm-700' : ''}
+                className={filter === 'not-applied' ? 'bg-primary hover:bg-iris-700' : ''}
+                aria-pressed={filter === 'not-applied'}
               >
                 <Circle className="w-4 h-4 mr-1.5" />
                 Not Applied ({savedJobs.length - appliedCount})
@@ -257,15 +263,11 @@ export default function SavedJobs() {
             </Button>
           </div>
         ) : (
-          <AnimatePresence mode="popLayout">
+          <>
             <div className="space-y-4">
-              {filteredJobs.map((job, index) => (
-                <motion.div
+              {filteredJobs.map((job) => (
+                <div
                   key={job.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, x: -100 }}
-                  transition={{ duration: 0.3, delay: index * 0.05 }}
                 >
                   <Card className="bg-white hover:shadow-lg transition-shadow">
                     <CardContent className="p-6">
@@ -298,7 +300,7 @@ export default function SavedJobs() {
                             )}
                           </div>
 
-                          <h3 className="font-semibold text-lg text-warm-900 mb-2 truncate">
+                          <h3 className="font-semibold text-lg text-warm-900 mb-2 break-words" dir="auto">
                             {job.job_title}
                           </h3>
 
@@ -326,7 +328,8 @@ export default function SavedJobs() {
                           size="icon"
                           onClick={() => deleteMutation.mutate({ id: job.id, url: job.url })}
                           disabled={deleteMutation.isPending}
-                          className="text-warm-400 hover:text-red-500 hover:bg-red-50 disabled:opacity-50"
+                          className="text-muted hover:text-red-700 hover:bg-red-50 disabled:opacity-50"
+                          aria-label={`Remove ${job.job_title} from saved jobs`}
                         >
                           <BookmarkX className="w-5 h-5" />
                         </Button>
@@ -337,6 +340,7 @@ export default function SavedJobs() {
                         <div className="mt-4 space-y-2">
                           <Textarea
                             placeholder="Add notes about this application..."
+                            aria-label={`Note for ${job.job_title}`}
                             value={commentText}
                             onChange={(e) => setCommentText(e.target.value)}
                             className="min-h-20"
@@ -373,7 +377,8 @@ export default function SavedJobs() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-6 w-6 text-warm-400 hover:text-warm-600"
+                              className="text-muted hover:text-ink"
+                              aria-label={`Edit note for ${job.job_title}`}
                               onClick={() => startEditingComment(job)}
                             >
                               <Pencil className="w-3 h-3" />
@@ -382,8 +387,8 @@ export default function SavedJobs() {
                         </div>
                       ) : null}
 
-                      <div className="mt-4 pt-4 border-t border-warm-100 flex justify-between items-center">
-                        <div className="flex gap-2">
+                      <div className="mt-4 pt-4 border-t border-warm-100 flex flex-wrap gap-3 justify-between items-center">
+                        <div className="flex flex-wrap gap-2">
                           <Button
                             variant="outline"
                             size="sm"
@@ -421,10 +426,10 @@ export default function SavedJobs() {
                       </div>
                     </CardContent>
                   </Card>
-                </motion.div>
+                </div>
               ))}
             </div>
-          </AnimatePresence>
+          </>
         )}
       </div>
     </div>

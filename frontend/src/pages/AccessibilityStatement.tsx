@@ -133,14 +133,14 @@ export default function AccessibilityStatement() {
   const lastUpdatedDate = ACCESSIBILITY_STATEMENT_LAST_UPDATED[lang];
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-warm-50 to-iris-50/30 ${isRTL ? 'direction-rtl' : ''}`} dir={isRTL ? 'rtl' : 'ltr'}>
-      <main>
+    <div className={`min-h-screen bg-page ${isRTL ? 'direction-rtl' : ''}`} dir={isRTL ? 'rtl' : 'ltr'}>
+      <article>
         {/* Hero Section */}
-        <header className="bg-gradient-to-r from-iris-700 via-iris-800 to-iris-900 text-white">
-          <div className="max-w-4xl mx-auto px-4 py-12 md:py-16">
-            <div className="flex items-center justify-between mb-4">
+        <header className="bg-surface border-b border-border text-ink">
+          <div className="max-w-4xl mx-auto px-4 py-8 md:py-10">
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
               <div className="flex items-center gap-3">
-                <div className="p-3 bg-white/10 rounded-xl backdrop-blur">
+                <div className="p-3 bg-iris-50 text-primary rounded-xl">
                   <Accessibility className="w-8 h-8" aria-hidden="true" />
                 </div>
                 <h1 className="text-3xl md:text-4xl font-bold">{t.title}</h1>
@@ -150,14 +150,14 @@ export default function AccessibilityStatement() {
                 variant="outline"
                 size="sm"
                 onClick={() => setLang(lang === 'en' ? 'he' : 'en')}
-                className="bg-white/10 border-white/30 text-white hover:bg-white/20 hover:text-white gap-2"
+                className="gap-2"
                 aria-label={`Switch to ${lang === 'en' ? 'Hebrew' : 'English'}`}
               >
                 <Languages className="w-4 h-4" aria-hidden="true" />
                 {t.langSwitch}
               </Button>
             </div>
-            <p className="text-lg text-iris-100">
+            <p className="text-lg text-muted">
               {t.subtitle}
             </p>
           </div>
@@ -165,7 +165,7 @@ export default function AccessibilityStatement() {
 
         {/* Content */}
         <div className="max-w-4xl mx-auto px-4 py-12">
-        <div className="bg-white rounded-2xl shadow-lg p-6 md:p-10 space-y-8">
+        <div className="bg-white rounded-xl border border-border shadow-sm p-6 md:p-10 space-y-8">
           
           {/* General Statement */}
           <section aria-labelledby="general-statement">
@@ -294,7 +294,7 @@ export default function AccessibilityStatement() {
           </Button>
         </div>
       </div>
-      </main>
+      </article>
     </div>
   );
 }

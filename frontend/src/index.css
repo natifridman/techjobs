@@ -1,74 +1,69 @@
 @import "tailwindcss";
 @config "../tailwind.config.js";
 
-/* Tailwind 4 Theme Configuration */
+/* One light palette; legacy iris/warm aliases keep existing views consistent. */
 @theme {
-  /* Midnight Iris - Primary */
-  --color-iris-50: #EEEEF6;
-  --color-iris-100: #D8D7ED;
-  --color-iris-200: #ACACD4;
-  --color-iris-300: #8280BB;
-  --color-iris-400: #5C5AB2;
-  --color-iris-500: #4A489A;
-  --color-iris-600: #3D3B8E;
-  --color-iris-700: #2F2D6E;
-  --color-iris-800: #22214F;
-  --color-iris-900: #151430;
-
-  /* Warm Copper - Accent */
-  --color-copper-400: #E8956A;
-  --color-copper-500: #D97C4D;
-  --color-copper-600: #C46A3A;
-
-  /* Warm Neutrals */
-  --color-warm-50: #FDFBF7;
-  --color-warm-100: #F7F5F0;
-  --color-warm-200: #EDEAE3;
-  --color-warm-300: #D8D5CE;
-  --color-warm-400: #A09D96;
-  --color-warm-500: #6B6B76;
-  --color-warm-600: #52525B;
-  --color-warm-700: #3F3F46;
-  --color-warm-800: #2A2A32;
-  --color-warm-900: #1A1A1F;
+  --color-page: #F8FAFC;
+  --color-surface: #FFFFFF;
+  --color-ink: #0F172A;
+  --color-muted: #475569;
+  --color-primary: #4338CA;
+  --color-border: #E2E8F0;
+  --color-danger: #B91C1C;
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --color-iris-50: #EEF2FF;
+  --color-iris-100: #E0E7FF;
+  --color-iris-200: #C7D2FE;
+  --color-iris-300: #A5B4FC;
+  --color-iris-400: #818CF8;
+  --color-iris-500: #4F46E5;
+  --color-iris-600: #4338CA;
+  --color-iris-700: #3730A3;
+  --color-iris-800: #312E81;
+  --color-iris-900: #1E1B4B;
+  --color-primary-50: #EEF2FF;
+  --color-primary-100: #E0E7FF;
+  --color-primary-200: #C7D2FE;
+  --color-primary-300: #A5B4FC;
+  --color-primary-400: #818CF8;
+  --color-primary-500: #4F46E5;
+  --color-primary-600: #4338CA;
+  --color-primary-700: #3730A3;
+  --color-primary-800: #312E81;
+  --color-primary-900: #1E1B4B;
+  --color-warm-50: #F8FAFC;
+  --color-warm-100: #F1F5F9;
+  --color-warm-200: #E2E8F0;
+  --color-warm-300: #CBD5E1;
+  --color-warm-400: #64748B;
+  --color-warm-500: #475569;
+  --color-warm-600: #475569;
+  --color-warm-700: #334155;
+  --color-warm-800: #1E293B;
+  --color-warm-900: #0F172A;
+  --color-neutral-50: #F8FAFC;
+  --color-neutral-100: #F1F5F9;
+  --color-neutral-200: #E2E8F0;
+  --color-neutral-300: #CBD5E1;
+  --color-neutral-400: #64748B;
+  --color-neutral-500: #475569;
+  --color-neutral-600: #475569;
+  --color-neutral-700: #334155;
+  --color-neutral-800: #1E293B;
+  --color-neutral-900: #0F172A;
+  --color-copper-400: #818CF8;
+  --color-copper-500: #4F46E5;
+  --color-copper-600: #4338CA;
+  --color-copper-700: #3730A3;
+  --color-copper-800: #312E81;
 }
 
 :root {
-  /* Semantic aliases referencing @theme colors */
-  --color-primary-50: var(--color-iris-50);
-  --color-primary-100: var(--color-iris-100);
-  --color-primary-200: var(--color-iris-200);
-  --color-primary-300: var(--color-iris-300);
-  --color-primary-400: var(--color-iris-400);
-  --color-primary-500: var(--color-iris-500);
-  --color-primary-600: var(--color-iris-600);
-  --color-primary-700: var(--color-iris-700);
-  --color-primary-800: var(--color-iris-800);
-  --color-primary-900: var(--color-iris-900);
-
-  --color-accent-400: var(--color-copper-400);
-  --color-accent-500: var(--color-copper-500);
-  --color-accent-600: var(--color-copper-600);
-
-  --color-neutral-50: var(--color-warm-50);
-  --color-neutral-100: var(--color-warm-100);
-  --color-neutral-200: var(--color-warm-200);
-  --color-neutral-300: var(--color-warm-300);
-  --color-neutral-400: var(--color-warm-400);
-  --color-neutral-500: var(--color-warm-500);
-  --color-neutral-600: var(--color-warm-600);
-  --color-neutral-700: var(--color-warm-700);
-  --color-neutral-800: var(--color-warm-800);
-  --color-neutral-900: var(--color-warm-900);
-
-  /* Typography */
-  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-
-  /* Shadows */
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  color-scheme: light;
+  --shadow-sm: 0 1px 2px rgb(15 23 42 / 0.04);
+  --shadow-md: 0 4px 12px rgb(15 23 42 / 0.06);
+  --shadow-lg: 0 8px 24px rgb(15 23 42 / 0.08);
+  --shadow-xl: 0 16px 40px rgb(15 23 42 / 0.1);
 }
 
 @layer base {
@@ -107,8 +102,8 @@
   }
 
   .card-hover:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-lg);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
   }
 
   /* Fade up animation */
@@ -170,7 +165,7 @@
 .leaflet-container {
   height: 100%;
   width: 100%;
-  background: #FDFBF7;
+  background: #F8FAFC;
 }
 
 .leaflet-popup-content-wrapper {
@@ -345,7 +340,6 @@ html.highlight-links a {
   background-color: #ffff00 !important;
   color: #000 !important;
   text-decoration: underline !important;
-  padding: 2px 4px;
   border-radius: 2px;
 }
 
@@ -368,3 +362,18 @@ html.big-cursor input[type="button"] {
   /* Simple 32x32 hand pointer cursor */
   cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Cpath d='M10 8v14l4-4 3 6 3-1-3-6h5l-12-9z' fill='%23000' stroke='%23fff' stroke-width='2'/%3E%3C/svg%3E") 10 8, pointer !important;
 }
+
+/* Prevent oversized media and bilingual company names from widening small screens. */
+img, svg { max-width: 100%; }
+bdi { unicode-bidi: isolate; }
+button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+button:not(:disabled), [role="button"]:not([aria-disabled="true"]) { cursor: pointer; }
+html.high-contrast .bg-surface, html.high-contrast .bg-page { background: #000 !important; color: #fff !important; }
+html.high-contrast [class*="text-muted"], html.high-contrast [class*="text-ink"] { color: #fff !important; }
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-up { opacity: 1; transform: none; }
+}
+
+.leaflet-control-zoom a { min-width: 44px; min-height: 44px; line-height: 44px !important; }
+.leaflet-control-attribution a { text-decoration: underline; }
+html.high-contrast img[src="/brand/techjobsil-symbol.svg"] { filter: brightness(0) invert(1); }

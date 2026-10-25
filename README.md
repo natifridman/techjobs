@@ -1,205 +1,126 @@
-# TechJobs - Israeli Tech Job Board
+# TechJobsIL
 
-A full-stack application for browsing Israeli tech jobs, built with React, Express.js, and Supabase.
+An Israeli tech job board built with React, TypeScript, Express, Google OAuth, and Supabase.
 
-**Job data** comes from a configurable JSON feed (see `VITE_JOBS_DATA_URL` below). `scripts/convert_jobs.mjs` converts a jobs JSON file into the site payload, so data updates never require a site redeploy.
+Guests can search and filter the first **10 matching jobs** per result set, apply on employer websites, and save jobs in their browser. Signing in with Google unlocks the remaining results, CSV export, and saved-job syncing. The limit is enforced by the backend; changing a search starts a new preview, rather than consuming a lifetime allowance.
 
-**No login required to browse.** Guests can search and filter all jobs; signing in with Google is only needed to sync saved jobs and applied tracking across devices (guest saves stay in browser localStorage).
+## Architecture
 
-## ⚙️ Data source configuration
+- `frontend/`: Vite/React app. Reads paginated jobs and public company/city summaries from the backend.
+- `backend/`: Express API, Passport sessions stored in Supabase Postgres, and a private Storage feed reader.
+- `scripts/convert_jobs.mjs`: converts source records into the versioned site payload.
+- `scripts/publish_jobs.mjs`: validates and uploads that payload to private Supabase Storage.
 
-The frontend reads the jobs payload from a plain JSON URL (no API needed):
+The full feed is never bundled into the frontend or supplied as a public download URL. Backend instances cache validated snapshots for five minutes. A failed refresh preserves the last valid snapshot with a stale indicator; a cold-start failure returns a retryable 503.
 
-| Env var (build time) | Default | Purpose |
+## Local development
+
+Use Node.js 20 or newer. Install dependencies:
+
+```sh
+npm --prefix backend ci
+npm --prefix frontend ci
+```
+
+Copy `backend/.env.example` to `backend/.env` and configure:
+
+| Backend variable | Purpose |
+| --- | --- |
+| `SUPABASE_URL` | Supabase project URL |
+| `SUPABASE_SERVICE_KEY` | Server-only service-role credential |
+| `DATABASE_URL` | Supabase Postgres session-pooler connection string |
+| `SESSION_SECRET` | Strong random session secret; required in production |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Google OAuth credentials |
+| `FRONTEND_URL` | Allowed OAuth return origin; use `http://localhost:5173` locally |
+| `GOOGLE_CALLBACK_URL` | Use `http://localhost:5173/auth/google/callback` with the Vite proxy |
+| `CORS_ORIGIN` | Frontend origin |
+| `JOBS_STORAGE_BUCKET` | Private bucket, default `jobs-feed` |
+| `JOBS_STORAGE_OBJECT` | Payload object, default `jobs.json` |
+
+Run `backend/supabase-schema.sql` in the Supabase SQL editor for application tables and sessions. Configure Google OAuth with the exact callback URL above, then set up the private feed as described below.
+
+Start the two development servers:
+
+```sh
+npm --prefix backend run dev
+npm --prefix frontend run dev
+```
+
+Open `http://localhost:5173`. Vite proxies `/api` and `/auth` to port 3001. Frontend `VITE_API_URL` defaults to `/api`; no frontend secret or job-feed URL is needed. Optional analytics/advertising configuration is documented in `frontend/.env.example`.
+
+For the existing Make commands, configure the root `.env` instead; Make exports it to both processes. Do not put private configuration in a variable prefixed `VITE_`.
+
+## Private jobs feed
+
+1. Run `backend/private-jobs-storage.sql` in the Supabase SQL editor. It creates the private `jobs-feed` bucket and restricts browser-role access even if the project has broader Storage policies. If using a different bucket, update the bucket name in both the SQL and configuration.
+2. Convert source data into a local payload outside the frontend's public directory:
+
+   ```sh
+   node scripts/convert_jobs.mjs /path/to/source-jobs.json /tmp/techjobs-feed.json
+   ```
+
+3. Set backend credentials in your shell (or load them from your deployment's secret manager), then publish:
+
+   ```sh
+   npm --prefix backend run publish:jobs -- /tmp/techjobs-feed.json
+   ```
+
+   The npm command builds the backend parser first. Publishing validates the version, count, and records before making a request, then refuses to upload unless the destination bucket is private. The command reads environment variables from its process; it does not automatically load a `.env` file.
+
+4. Schedule your existing data publisher to run the conversion and private upload after each successful scrape. Feed changes do not require a frontend redeploy.
+
+The old `VITE_JOBS_DATA_URL` integration has been removed. Do not retain public copies in a web server, frontend `public/`, static hosting, or a CDN. No signed full-feed URL should be supplied to browsers.
+
+## API
+
+| Method | Endpoint | Access and behavior |
 | --- | --- | --- |
-| `VITE_JOBS_DATA_URL` | (required - no default) | Jobs payload feed. Point at the published payload maintained alongside your deployment; the build fails loudly when it is missing. |
-| `VITE_SUBMIT_COMPANY_URL` | `https://github.com/natifridman/techjobs` | Where the "Add Company" dialog sends contributors. |
+| GET | `/api/jobs` | First 10 matching jobs for guests; 20 per page when signed in |
+| GET | `/api/jobs/catalog` | Public counts, facets, and company/city summaries without individual job records |
+| GET | `/api/jobs/export` | Signed-in CSV export of all filtered matches |
+| GET | `/auth/me` | Current session status |
+| GET | `/auth/google` | Google sign-in; same-origin return destination |
+| GET | `/auth/google/callback` | Return to the search and continuation point after OAuth |
+| POST | `/auth/logout` | End session |
+| GET/POST | `/api/saved-jobs` | Account-specific saved jobs; requires sign-in |
+| PUT/DELETE | `/api/saved-jobs/:id` | Update/remove an account save; requires sign-in |
+| GET | `/api/companies` | Existing company metadata API |
 
-The payload format is produced by `scripts/convert_jobs.mjs` (see its
-regression tests in `scripts/convert_jobs.test.mjs`).
+Job queries accept `search`, `company`, `page`, and `showClosed`. Repeat `category`, `city`, `region`, `workModel`, `employmentType`, and `seniority` for multiple selections. Existing `search`, `category`, and `city` links continue to work. Closed listings are hidden by default.
 
-## 🏗️ Architecture
+Responses include `jobs`, `total`, `page`, `pageSize`, `access`, `previewLimit`, `requiresAuth`, `updatedAt`, and `stale`. Guests requesting later pages receive `401 AUTH_REQUIRED`. Client-supplied limits or access flags cannot expand the preview. Job and auth responses use private/no-store caching; browser query caches are isolated by access scope and cleared on sign-out.
 
-```
-techjobs/
-├── frontend/            # React frontend (Vite + TypeScript)
-│   ├── src/
-│   │   ├── components/  # Reusable UI components
-│   │   ├── pages/       # Page components
-│   │   ├── hooks/       # Custom React hooks (useAuth)
-│   │   └── api/         # API client
-│   ├── Dockerfile
-│   └── nginx.conf
-├── backend/             # Express.js backend
-│   ├── src/
-│   │   ├── routes/      # API routes (auth, savedJobs, companies)
-│   │   ├── config/      # Passport OAuth configuration
-│   │   └── database.ts  # Supabase (Postgres) client
-│   └── Dockerfile
-├── Makefile             # Build & run commands
-└── podman-compose.yml   # Container orchestration
+Local guest saves and application tracking remain available and reconcile into the account after sign-in. Account data continues to live in Supabase Postgres; no jobs-table migration is required.
+
+## Checks
+
+```sh
+npm test
+npm --prefix frontend run lint
+npm --prefix frontend run build
+npm --prefix backend run build
 ```
 
-## 🔐 Authentication
+Tests cover payload validation, guest limits and query tampering, catalog projections, private feed caching, authenticated exports, OAuth continuation, cache isolation, URL state, guest-save reconciliation, and the existing converter behavior. Browser QA should cover 360px, 390px, 768px, and 1280px viewports, keyboard navigation, long/Hebrew titles, reduced motion, and the tenth-result sign-in panel.
 
-This app uses **Google OAuth** for authentication. Users can:
-- Browse jobs without logging in
-- Save jobs to their personal list when logged in
-- Jobs saved while logged out use browser localStorage (not synced)
+## Deployment
 
-### Setting up Google OAuth
+The root Dockerfile builds the frontend and serves it from Express. `podman-compose.yml` alternatively runs nginx and the API separately; it requires the database, private Storage, session, and OAuth variables from root `.env`. Set production frontend/callback URLs to the actual HTTPS deployment.
 
-1. Go to [Google Cloud Console](https://console.cloud.google.com)
-2. Create a new project or select an existing one
-3. Navigate to **APIs & Services** → **Credentials**
-4. Click **Create Credentials** → **OAuth client ID**
-5. Select **Web application**
-6. Add authorized redirect URIs (the callback hits the backend, not the frontend):
-   - For production: `https://<your-backend-domain>/auth/google/callback`
-   - For development: `http://localhost:3001/auth/google/callback`
-7. Copy the **Client ID** and **Client Secret**
+Release order:
 
-### Configure Environment Variables
+1. Provision private Storage and publish a validated feed.
+2. Deploy the backend and verify guest requests return at most 10 records, later pages and exports require authentication, and catalog responses contain no individual jobs.
+3. Deploy the matching frontend. Disable the old public full-feed delivery and purge any serving caches before marking the release complete.
+4. Verify successful/cancelled live Google sign-in preserves filters, guest saves sync, and sign-out removes full results.
+5. Monitor feed read errors, 503 responses, OAuth failures, preview views, and preview sign-in conversions using existing logging/analytics.
 
-Create a `.env` file in the project root:
+A rollback must retain the private feed and server-enforced limits. Do not restore the former frontend that fetches the complete public dataset.
 
-```bash
-# Required for OAuth
-GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=your-client-secret
+## Identity
 
-# Required for the database (Supabase Postgres). The backend refuses to
-# start without these. Run backend/supabase-schema.sql in your Supabase
-# SQL editor first.
-DATABASE_URL=your-supabase-pooled-connection-string
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_KEY=your-service-role-key
+The visual identity uses a minimal geometric Israeli star, an indigo/slate wordmark, and a light neutral interface. Brand assets live in `frontend/public/brand/`, with favicon, application icon, and social preview files in `frontend/public/`. The historical `/techjobsil-logo-64.png` URL remains available with the refreshed mark.
 
-# Optional - auto-generated if not set
-SESSION_SECRET=your-session-secret-at-least-32-chars
-```
-
-## 🚀 Quick Start
-
-### Option 1: Run with Podman (Recommended for Production)
-
-```bash
-# Make sure Podman and podman-compose are installed
-# macOS: brew install podman && pip3 install podman-compose
-# Linux: sudo apt install podman && pip3 install podman-compose
-
-# Set OAuth credentials
-export GOOGLE_CLIENT_ID=your-client-id
-export GOOGLE_CLIENT_SECRET=your-client-secret
-
-# Build and start
-make build
-make up
-```
-
-The app will be available at:
-- **Frontend**: http://localhost:8080
-- **Backend API**: http://localhost:3001
-- **Health Check**: http://localhost:3001/health
-
-### Option 2: Run for Development
-
-```bash
-# Terminal 1 - Backend (with OAuth)
-export GOOGLE_CLIENT_ID=your-client-id
-export GOOGLE_CLIENT_SECRET=your-client-secret
-export GOOGLE_CALLBACK_URL=http://localhost:5173/auth/google/callback
-export FRONTEND_URL=http://localhost:5173
-export CORS_ORIGIN=http://localhost:5173
-make dev-backend    # Runs on http://localhost:3001
-
-# Terminal 2 - Frontend
-make dev-frontend   # Runs on http://localhost:5173
-```
-
-For development, the frontend's Vite proxy is configured to forward `/api` and `/auth` to the backend.
-
-## 📦 Make Commands
-
-```bash
-make help           # Show all available commands
-
-# Production (Podman)
-make build          # Build container images
-make up             # Start all services
-make down           # Stop all services
-make restart        # Restart all services
-make logs           # View container logs
-make status         # Show container status
-make clean          # Remove containers, volumes, and images
-
-# Development
-make dev-backend    # Start backend in dev mode
-make dev-frontend   # Start frontend in dev mode
-```
-
-## 🔌 API Endpoints
-
-### Authentication
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/auth/me` | Get current user |
-| GET | `/auth/google` | Initiate Google OAuth |
-| GET | `/auth/google/callback` | OAuth callback |
-| POST | `/auth/logout` | Logout user |
-
-### Saved Jobs (Requires Authentication)
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/saved-jobs` | List user's saved jobs |
-| GET | `/api/saved-jobs/:id` | Get a saved job by ID |
-| POST | `/api/saved-jobs` | Save a new job |
-| PUT | `/api/saved-jobs/:id` | Update a saved job |
-| DELETE | `/api/saved-jobs/:id` | Remove a saved job |
-
-### Companies
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/companies` | List all companies |
-| GET | `/api/companies/:id` | Get a company by ID |
-| GET | `/api/companies/by-name/:name` | Get a company by name |
-| POST | `/api/companies` | Create a company |
-| PUT | `/api/companies/by-name/:name` | Create or update a company |
-
-## 🛠️ Tech Stack
-
-### Frontend
-- **React 18** with TypeScript
-- **Vite** for build tooling
-- **TanStack Query** for data fetching
-- **Tailwind CSS** for styling
-- **shadcn/ui** components
-- **Framer Motion** for animations
-- **React Router** for navigation
-
-### Backend
-- **Express.js** with TypeScript
-- **Passport.js** with Google OAuth 2.0
-- **SQLite** (via better-sqlite3)
-- **express-session** for session management
-
-### Infrastructure
-- **Podman** containers
-- **nginx** for serving frontend and proxying API
-
-## 📊 Data Source
-
-Jobs are fetched from the [Israeli Tech Map](https://github.com/mluggy/techmap) GitHub repository.
-
-## 🔒 Data Persistence
-
-- **Authenticated users**: Saved jobs stored in SQLite, synced across devices
-- **Anonymous users**: Falls back to browser localStorage
-- **Database volume**: `techjobs-data` persists between container restarts
-
-## 📝 License
+## License
 
 MIT

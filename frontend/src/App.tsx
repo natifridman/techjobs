@@ -6,7 +6,6 @@ import AuthErrorToast from '@/components/AuthErrorToast';
 import { Toaster } from 'sonner';
 
 import Layout from '@/components/Layout';
-import AccessibilityWidget from '@/components/AccessibilityWidget';
 import Home from '@/pages/Home';
 import Jobs from '@/pages/Jobs';
 
@@ -158,7 +157,6 @@ function App() {
         </Routes>
         </Suspense>
         </ErrorBoundary>
-        <AccessibilityWidget />
       </Router>
       <Toaster position="top-right" richColors />
     </QueryClientProvider>

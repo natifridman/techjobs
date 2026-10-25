@@ -1,174 +1,42 @@
 import { useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { fetchJobsPayload, isClosed, JOBS_PAYLOAD_QUERY_KEY, selectCityLabels, selectSortedJobs } from "@/components/jobs/jobsData";
-import { Link } from "react-router-dom";
-import { createPageUrl } from "@/utils";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Search, Building2, Briefcase } from "lucide-react";
-import { motion } from "framer-motion";
-import CompanyCard from "@/components/companies/CompanyCard";
+import { Link } from 'react-router-dom';
+import { ArrowRight, Building2, MapPin, Search } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import CompanyLogo from '@/components/CompanyLogo';
+import CatalogFreshness from '@/components/CatalogFreshness';
+import { useJobsCatalog } from '@/hooks/useJobs';
+import { CATEGORY_LABELS } from '@/components/jobs/jobsData';
 
 export default function Companies() {
-  const [searchQuery, setSearchQuery] = useState('');
-
-  const { data: jobs = [], isLoading, isError, refetch } = useQuery({
-    queryKey: JOBS_PAYLOAD_QUERY_KEY,
-    queryFn: fetchJobsPayload,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    retry: 2,
-    select: (payload) => selectSortedJobs(payload).filter(j => !isClosed(j)),
-  });
-
-  // Aggregate jobs by company
+  const [search, setSearch] = useState('');
+  const { data, isLoading, isError, refetch } = useJobsCatalog();
   const companies = useMemo(() => {
-    const companyMap = new Map<string, {
-      name: string;
-      jobs: typeof jobs;
-      categories: Set<string>;
-      locations: Set<string>;
-      latestUpdate: string;
-    }>();
-
-    jobs.forEach(job => {
-      const normalizedName = job.company?.trim();
-      if (!normalizedName) return;
-
-      if (!companyMap.has(normalizedName)) {
-        companyMap.set(normalizedName, {
-          name: normalizedName,
-          jobs: [],
-          categories: new Set(),
-          locations: new Set(),
-          latestUpdate: job.updated || ''
-        });
-      }
-
-      const company = companyMap.get(normalizedName)!;
-      company.jobs.push(job);
-      // Canonical cities only - never raw location strings ("2 Locations").
-      const jobCities = job.cities?.length ? job.cities : (job.city ? [job.city] : []);
-      jobCities.forEach(c => company.locations.add(c));
-      if (job.department) company.categories.add(job.department);
-      const t = job.updated ? new Date(job.updated).getTime() : 0;
-      const cur = company.latestUpdate ? new Date(company.latestUpdate).getTime() : 0;
-      if (t > cur) {
-        company.latestUpdate = job.updated || '';
-      }
-    });
-
-    return Array.from(companyMap.values())
-      .map(c => ({
-        ...c,
-        categories: Array.from(c.categories),
-        locations: Array.from(c.locations),
-        jobCount: c.jobs.length
-      }))
-      .sort((a, b) => b.jobCount - a.jobCount); // Sort by most jobs first
-  }, [jobs]);
-
-  const { data: cityLabels = {} } = useQuery({
-    queryKey: JOBS_PAYLOAD_QUERY_KEY,
-    queryFn: fetchJobsPayload,
-    staleTime: 1000 * 60 * 5,
-    select: selectCityLabels,
-  });
-
-  const filteredCompanies = useMemo(() => {
-    if (!searchQuery) return companies;
-    const lowerQuery = searchQuery.toLowerCase();
-    return companies.filter(c =>
-      c.name.toLowerCase().includes(lowerQuery) ||
-      c.categories.some(cat => cat.toLowerCase().includes(lowerQuery)) ||
-      c.locations.some(loc =>
-        loc.toLowerCase().includes(lowerQuery) ||
-        (cityLabels[loc] || '').toLowerCase().includes(lowerQuery)
-      )
-    );
-  }, [companies, searchQuery, cityLabels]);
+    const query = search.trim().toLocaleLowerCase();
+    return (data?.companies || []).filter(company => !query || [company.name, ...company.categories, ...company.jobCategories.map(role => CATEGORY_LABELS[role] || role), ...company.locations.flatMap(city => [city, data?.cityLabels[city] || ''])].some(value => value.toLocaleLowerCase().includes(query)));
+  }, [data, search]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-warm-50 to-iris-50/30">
-      {/* Hero Section */}
-      <div className="bg-gradient-to-r from-iris-700 via-iris-800 to-iris-900 text-white">
-        <div className="max-w-7xl mx-auto px-4 py-12 md:py-16">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
-            <div>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-3 bg-white/10 rounded-xl backdrop-blur">
-                  <Building2 className="w-8 h-8" />
-                </div>
-                <h1 className="text-3xl md:text-4xl font-bold">Tech Companies</h1>
-              </div>
-              <p className="text-lg text-iris-100 max-w-2xl">
-                Discover Israel's leading tech companies and startups.
-                Find the perfect workplace for your next career move.
-              </p>
-            </div>
-            <Button asChild className="bg-copper-700 text-white hover:bg-copper-800 border-none shadow-lg">
-              <Link to={createPageUrl("Jobs")}>
-                <Briefcase className="w-4 h-4 mr-2" />
-                Browse Jobs
-              </Link>
-            </Button>
-          </div>
-
-          <div className="relative max-w-2xl">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50" />
-            <Input
-              placeholder="Search companies by name, industry, or location..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 h-12 text-lg bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:bg-white/20 rounded-xl"
-            />
-          </div>
-        </div>
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:py-10">
+      <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
+        <div><h1 className="text-3xl font-bold tracking-tight text-ink">Hiring companies</h1><p className="mt-2 text-muted">Explore tech employers and the roles they are hiring for.</p></div>
+        <Button asChild variant="outline"><Link to="/jobs">Browse jobs<ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" /></Link></Button>
       </div>
-
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* A failed background refresh must not replace loaded companies. */}
-        {isError && jobs.length > 0 && (
-          <div className="mb-4 flex items-center justify-between rounded-lg bg-amber-50 border border-amber-200 px-4 py-2 text-sm text-amber-800" role="status">
-            <span>Could not refresh the feed - showing the last loaded data.</span>
-            <button type="button" onClick={() => refetch()} className="underline hover:text-amber-900">Retry</button>
-          </div>
-        )}
-        {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="h-48 bg-warm-200 rounded-xl animate-pulse" />
-            ))}
-          </div>
-        ) : isError && jobs.length === 0 ? (
-          <div className="text-center py-16" role="alert">
-            <p className="text-lg font-medium text-warm-700 mb-2">Companies could not be loaded</p>
-            <p className="text-warm-500 mb-4">The live feed did not respond. Check your connection and try again.</p>
-            <button
-              type="button"
-              onClick={() => refetch()}
-              className="px-4 py-2 rounded-lg bg-iris-600 text-white hover:bg-iris-700 transition-colors"
-            >
-              Retry
-            </button>
-          </div>
-        ) : (
-          <>
-            <motion.p
-              className="text-warm-500 mb-6"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.4 }}
-            >
-              Found <span className="font-semibold text-warm-700">{filteredCompanies.length}</span> companies with active listings
-            </motion.p>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredCompanies.map((company, index) => (
-                <CompanyCard key={company.name} company={company} index={index} cityLabels={cityLabels} />
-              ))}
-            </div>
-          </>
-        )}
-      </div>
+      <div className="relative mt-7 max-w-2xl"><label htmlFor="company-search" className="sr-only">Search companies, roles or locations</label><Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted" aria-hidden="true" /><Input id="company-search" type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search companies, roles or locations" className="h-12 pl-12 text-base" /></div>
+      {data && <CatalogFreshness updatedAt={data.updatedAt} stale={data.stale || isError} className="mt-3" />}
+      {isError && data && <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900" role="status">Could not refresh companies. Showing the last loaded catalog.<Button variant="outline" onClick={() => refetch()}>Retry</Button></div>}
+      {isLoading ? <div role="status" aria-label="Loading companies" className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{Array.from({ length: 6 }, (_, index) => <div key={index} className="h-52 animate-pulse rounded-xl border border-border bg-warm-100" />)}</div> : isError && !data ? <div className="py-16 text-center" role="alert"><Building2 className="mx-auto h-10 w-10 text-muted" aria-hidden="true" /><h2 className="mt-4 text-lg font-semibold">Companies could not be loaded</h2><p className="mb-5 mt-2 text-muted">Please check your connection and try again.</p><Button onClick={() => refetch()}>Retry</Button></div> : <>
+        <p className="mb-4 mt-7 text-sm text-muted" role="status">{companies.length.toLocaleString()} {companies.length === 1 ? 'company' : 'companies'} with open jobs{search.trim() && ` matching “${search.trim()}”`}</p>
+        {companies.length === 0 ? <div className="rounded-xl border border-border bg-surface p-10 text-center"><h2 className="font-semibold text-ink">No companies found</h2><p className="mb-4 mt-2 text-sm text-muted">Try a company name, role or another location.</p>{search && <Button variant="outline" onClick={() => setSearch('')}>Clear search</Button>}</div> : <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {companies.map(company => <Link key={company.name} to={`/company?name=${encodeURIComponent(company.name)}`} className="group flex flex-col rounded-xl border border-border bg-surface p-5 shadow-sm transition-colors hover:border-iris-300">
+            <div className="mb-4 flex items-start justify-between gap-3"><CompanyLogo name={company.name} className="h-12 w-12" /><Badge className="font-medium">{company.jobCount.toLocaleString()} {company.jobCount === 1 ? 'job' : 'jobs'}</Badge></div>
+            <h2 className="text-lg font-semibold text-ink group-hover:text-primary"><bdi>{company.name}</bdi></h2>
+            <div className="mb-5 mt-2 flex items-start gap-2 text-sm text-muted"><MapPin className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" /><div>{company.locations.length ? company.locations.slice(0, 3).map((city, index) => <span key={city}>{index > 0 && ' · '}<bdi dir="auto">{data?.cityLabels[city] || city}</bdi></span>) : 'Location not specified'}{company.locations.length > 3 && ` +${company.locations.length - 3}`}</div></div>
+            <div className="mt-auto flex flex-wrap gap-1.5" aria-label="Hiring roles">{company.jobCategories.slice(0, 3).map(role => <Badge key={role} variant="secondary" className="font-normal">{CATEGORY_LABELS[role] || role.replace(/-/g, ' ')}</Badge>)}{company.jobCategories.length > 3 && <Badge variant="secondary" className="font-normal">+{company.jobCategories.length - 3} roles</Badge>}</div>
+          </Link>)}
+        </div>}
+      </>}
     </div>
   );
 }

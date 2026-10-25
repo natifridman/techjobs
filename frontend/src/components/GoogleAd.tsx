@@ -13,13 +13,9 @@ const AD_SLOTS = {
 
 /**
  * Check if ads should be shown for a given slot.
- * Returns false in production if client ID is missing or slot is placeholder.
- * In dev mode, always returns true to show placeholder UI.
+ * Unconfigured slots stay hidden in every environment so previews match the product.
  */
 function shouldShowAds(adSlot: string): boolean {
-  if (import.meta.env.DEV) {
-    return true; // Show placeholder in dev
-  }
   if (!ADSENSE_CLIENT_ID) {
     return false;
   }
@@ -187,35 +183,7 @@ export function GoogleAd({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // See comment above - use key prop to change adSlot
 
-  // Don't render if client ID is not configured
-  if (!ADSENSE_CLIENT_ID) {
-    if (import.meta.env.DEV) {
-      return (
-        <div 
-          className={`google-ad-placeholder bg-neutral-50 border border-dashed border-neutral-200 flex items-center justify-center text-neutral-400 text-sm ${className}`} 
-          style={{ minHeight: '90px', ...style }}
-        >
-          Set VITE_ADSENSE_CLIENT_ID to enable ads
-        </div>
-      );
-    }
-    return null;
-  }
-
-  // Don't render placeholder ads in production
-  if (adSlot.includes('XXXXXXXXXX')) {
-    if (import.meta.env.DEV) {
-      return (
-        <div 
-          className={`google-ad-placeholder bg-neutral-50 border border-dashed border-neutral-200 flex items-center justify-center text-neutral-400 text-sm ${className}`} 
-          style={{ minHeight: '90px', ...style }}
-        >
-          Ad Placeholder - Configure slot ID
-        </div>
-      );
-    }
-    return null;
-  }
+  if (!shouldShowAds(adSlot)) return null;
 
   // Graceful degradation for users with ad blockers
   if (isBlocked) {
