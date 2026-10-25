@@ -173,6 +173,7 @@ export default function AccessibilityWidget() {
         size="icon"
         className="text-muted"
         aria-label="Accessibility settings"
+        aria-haspopup="dialog"
         aria-expanded={isOpen}
         aria-controls="accessibility-panel"
       >
@@ -194,16 +195,16 @@ export default function AccessibilityWidget() {
               ref={dialogRef}
               id="accessibility-panel"
               tabIndex={-1}
-              className="fixed top-20 right-4 z-[101] max-h-[calc(100dvh-6rem)] overflow-y-auto w-80 max-w-[calc(100vw-2rem)] bg-surface rounded-xl shadow-xl border border-border"
+              className="fixed top-20 right-4 z-[101] max-h-[calc(100dvh-6rem)] overflow-y-auto w-80 max-w-[calc(100vw-2rem)] bg-surface text-ink rounded-xl shadow-xl border border-border"
               role="dialog"
               aria-modal="true"
               aria-label="Accessibility settings"
             >
               {/* Header */}
-              <div className="flex items-center justify-between p-4 border-b border-warm-200">
+              <div className="flex items-center justify-between p-4 border-b border-border">
                 <div className="flex items-center gap-2">
-                  <Accessibility className="w-5 h-5 text-iris-600" aria-hidden="true" />
-                  <h2 className="font-semibold text-warm-900">Accessibility Settings</h2>
+                  <Accessibility className="w-5 h-5 text-primary" aria-hidden="true" />
+                  <h2 className="font-semibold text-ink">Accessibility Settings</h2>
                 </div>
                 <Button
                   variant="ghost"
@@ -219,10 +220,10 @@ export default function AccessibilityWidget() {
               {/* Options */}
               <div className="p-4 space-y-4">
                 {/* Font Size */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-warm-700">
+                <div className="space-y-2" role="group" aria-labelledby="accessibility-text-size">
+                  <p id="accessibility-text-size" className="text-sm font-medium text-ink">
                     Text Size (<span role="status" aria-live="polite">{settings.fontSize}%</span>)
-                  </label>
+                  </p>
                   <div className="flex items-center gap-2">
                     <Button
                       variant="outline"
@@ -290,7 +291,7 @@ export default function AccessibilityWidget() {
                   variant="ghost"
                   size="sm"
                   onClick={resetSettings}
-                  className="w-full text-warm-500 hover:text-warm-700"
+                  className="w-full text-muted hover:text-ink"
                   aria-label="Reset all accessibility settings"
                 >
                   <Minus className="w-4 h-4 mr-1" aria-hidden="true" />
@@ -298,10 +299,10 @@ export default function AccessibilityWidget() {
                 </Button>
 
                 {/* Link to full accessibility statement */}
-                <div className="pt-2 border-t border-warm-200">
+                <div className="pt-2 border-t border-border">
                   <Link
                     to={createPageUrl("AccessibilityStatement")}
-                    className="min-h-11 text-sm text-primary hover:text-iris-700 underline flex items-center gap-1"
+                    className="min-h-11 text-sm text-primary underline underline-offset-4 hover:decoration-2 flex items-center gap-1"
                     onClick={closeAndReturnFocus}
                   >
                     <Accessibility className="w-3 h-3" aria-hidden="true" />

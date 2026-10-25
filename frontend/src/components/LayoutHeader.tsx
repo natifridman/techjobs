@@ -4,7 +4,9 @@ import { Bookmark, Briefcase, Building2, LogIn, LogOut, MapPin, Menu, X } from '
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import AccessibilityWidget from '@/components/AccessibilityWidget';
+import ThemeSwitcher from '@/components/ThemeSwitcher';
 import { useAuth } from '@/hooks/useAuth';
+import { useTheme } from '@/hooks/useTheme';
 import { useDialogAccessibility } from '@/hooks/useDialogAccessibility';
 import { createPageUrl } from '@/utils';
 
@@ -17,6 +19,7 @@ const navLinks = [
 
 export default function LayoutHeader() {
   const { pathname } = useLocation();
+  const { resolvedTheme } = useTheme();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -52,19 +55,20 @@ export default function LayoutHeader() {
       <header className="sticky top-0 z-50 border-b border-border bg-surface">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-2 px-4 sm:gap-4">
           <Link to="/" className="flex min-h-11 shrink-0 items-center gap-2.5 rounded-lg" aria-label="TechJobsIL home">
-            <img src="/brand/techjobsil-symbol.svg" alt="" width="32" height="32" />
+            <img src={resolvedTheme === 'dark' ? '/brand/techjobsil-symbol-white.svg' : '/brand/techjobsil-symbol.svg'} alt="" width="32" height="32" />
             <span className="text-base font-bold tracking-tight text-ink min-[380px]:text-xl">TechJobs<span className="text-primary">IL</span></span>
           </Link>
           <nav className="hidden items-center gap-1 md:flex" aria-label="Main navigation">
             {navLinks.map(({ page, href, label, icon: Icon }) => (
               <Button key={page} asChild variant="ghost" size="sm" className={isActive(href) ? 'bg-iris-50 text-primary' : ''}>
                 <Link to={createPageUrl(page)} aria-current={isActive(href) ? 'page' : undefined}>
-                  <Icon className="mr-2 h-4 w-4" aria-hidden="true" />{label}
+                  <Icon className="mr-2 hidden h-4 w-4 lg:block" aria-hidden="true" />{label}
                 </Link>
               </Button>
             ))}
           </nav>
-          <div className="flex items-center gap-1 sm:gap-2" aria-label="Account and accessibility">
+          <div className="flex items-center gap-1 sm:gap-2" aria-label="Account, appearance and accessibility">
+            <div className="hidden md:block"><ThemeSwitcher compact /></div>
             <AccessibilityWidget />
             {isLoading ? (
               <span className="h-11 w-20 animate-pulse rounded-lg bg-warm-100" role="status" aria-label="Loading account" />
@@ -76,9 +80,9 @@ export default function LayoutHeader() {
                 </Button>
               </>
             ) : (
-              <Button size="sm" onClick={signIn} aria-label="Sign in with Google"><LogIn className="mr-2 hidden h-4 w-4 sm:block" aria-hidden="true" />Sign in</Button>
+              <Button size="sm" onClick={signIn} aria-label="Sign in with Google"><LogIn className="mr-2 hidden h-4 w-4 lg:block" aria-hidden="true" />Sign in</Button>
             )}
-            <Button ref={triggerRef} variant="ghost" size="icon" className="md:hidden" onClick={() => setIsMobileMenuOpen(true)} aria-label="Open navigation menu" aria-expanded={isMobileMenuOpen} aria-controls="mobile-menu">
+            <Button ref={triggerRef} variant="ghost" size="icon" className="md:hidden" onClick={() => setIsMobileMenuOpen(true)} aria-label="Open navigation menu" title="Navigation and color theme" aria-expanded={isMobileMenuOpen} aria-controls="mobile-menu">
               <Menu className="h-5 w-5" aria-hidden="true" />
             </Button>
           </div>
@@ -92,6 +96,7 @@ export default function LayoutHeader() {
               <span className="font-semibold text-ink">TechJobsIL</span>
               <Button variant="ghost" size="icon" onClick={closeAndReturnFocus} aria-label="Close navigation menu"><X className="h-5 w-5" aria-hidden="true" /></Button>
             </div>
+            <ThemeSwitcher />
             <nav className="space-y-2 p-4" aria-label="Mobile navigation">
               {navLinks.map(({ page, href, label, icon: Icon }) => (
                 <Link key={page} to={createPageUrl(page)} onClick={closeAndReturnFocus} aria-current={isActive(href) ? 'page' : undefined} className={`flex min-h-12 items-center gap-3 rounded-lg px-4 font-medium ${isActive(href) ? 'bg-iris-50 text-primary' : 'text-muted hover:bg-warm-100'}`}><Icon className="h-5 w-5" aria-hidden="true" />{label}</Link>

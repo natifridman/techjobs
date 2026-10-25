@@ -2,13 +2,33 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta name="theme-color" content="#FFFFFF" />
+    <script id="theme-init">
+      // Keep these rules in sync with src/lib/theme.ts so the first paint matches React.
+      (() => {
+        let preference = 'system';
+        try {
+          const stored = localStorage.getItem('techjobs-theme');
+          if (stored === 'light' || stored === 'dark') preference = stored;
+        } catch { /* Storage may be disabled. */ }
+        let dark = preference === 'dark';
+        if (preference === 'system') {
+          try { dark = window.matchMedia('(prefers-color-scheme: dark)').matches; } catch { /* Default to light. */ }
+        }
+        const theme = dark ? 'dark' : 'light';
+        const root = document.documentElement;
+        root.classList.toggle('dark', dark);
+        root.dataset.theme = theme;
+        root.style.colorScheme = theme;
+        document.querySelector('meta[name="theme-color"]').setAttribute('content', dark ? '#111B2E' : '#FFFFFF');
+      })();
+    </script>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="TechJobsIL - Find your dream job in Israeli tech. Discover opportunities at Israel's leading startups and tech companies." />
-    <meta name="theme-color" content="#4338CA" />
     <meta property="og:title" content="TechJobsIL - Israeli Tech Jobs" />
     <meta property="og:description" content="Find your dream job in Israeli tech. Discover opportunities at Israel's leading startups and tech companies." />
     <meta property="og:type" content="website" />

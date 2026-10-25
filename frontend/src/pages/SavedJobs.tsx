@@ -28,16 +28,6 @@ import { reconcileGuestSavedJobs, savedJobsApi, type SavedJob } from "@/api/stor
 import { useAuth } from "@/hooks/useAuth";
 import { useSavedJobs } from '@/hooks/useSavedJobs';
 
-const levelColors: Record<string, string> = {
-  intern: 'bg-green-50 text-green-700 border-green-200',
-  junior: 'bg-blue-50 text-blue-700 border-blue-200',
-  senior: 'bg-purple-50 text-purple-700 border-purple-200',
-  staff: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-  principal: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-  lead: 'bg-amber-50 text-amber-700 border-amber-200',
-  manager: 'bg-amber-50 text-amber-700 border-amber-200',
-};
-
 type FilterType = 'all' | 'applied' | 'not-applied';
 
 export default function SavedJobs() {
@@ -140,7 +130,7 @@ export default function SavedJobs() {
   return (
     <div className="min-h-screen bg-page">
       {/* Header */}
-      <div className="bg-white border-b border-warm-200">
+      <div className="bg-surface border-b border-warm-200">
         <div className="max-w-4xl mx-auto px-4 py-6">
           <div className="flex items-center gap-4 mb-4">
             <Button asChild variant="ghost" size="icon">
@@ -167,8 +157,8 @@ export default function SavedJobs() {
           )}
 
           {isAuthenticated && pendingCount > 0 && (
-            <div className="mt-4 flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3" role="status">
-              <p className="text-sm text-amber-800">
+            <div className="mt-4 flex items-center justify-between gap-3 rounded-lg border border-warning-border bg-warning-bg px-4 py-3" role="status">
+              <p className="text-sm text-warning">
                 {pendingCount} saved {pendingCount === 1 ? 'job has' : 'jobs have'} not synced to your account yet.
               </p>
               <Button
@@ -191,7 +181,7 @@ export default function SavedJobs() {
                 variant={filter === 'all' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setFilter('all')}
-                className={filter === 'all' ? 'bg-iris-600 hover:bg-iris-700' : ''}
+                className={filter === 'all' ? 'bg-action hover:bg-action-hover text-action-foreground' : ''}
                 aria-pressed={filter === 'all'}
               >
                 All ({savedJobs.length})
@@ -200,7 +190,7 @@ export default function SavedJobs() {
                 variant={filter === 'applied' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setFilter('applied')}
-                className={filter === 'applied' ? 'bg-primary hover:bg-iris-700' : ''}
+                className={filter === 'applied' ? 'bg-action hover:bg-action-hover text-action-foreground' : ''}
                 aria-pressed={filter === 'applied'}
               >
                 <CheckCircle2 className="w-4 h-4 mr-1.5" />
@@ -210,7 +200,7 @@ export default function SavedJobs() {
                 variant={filter === 'not-applied' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setFilter('not-applied')}
-                className={filter === 'not-applied' ? 'bg-primary hover:bg-iris-700' : ''}
+                className={filter === 'not-applied' ? 'bg-action hover:bg-action-hover text-action-foreground' : ''}
                 aria-pressed={filter === 'not-applied'}
               >
                 <Circle className="w-4 h-4 mr-1.5" />
@@ -241,7 +231,7 @@ export default function SavedJobs() {
             <p className="text-warm-500 mb-6">
               Browse jobs and click the bookmark icon to save them here
             </p>
-            <Button asChild className="bg-iris-600 hover:bg-iris-700">
+            <Button asChild className="bg-action hover:bg-action-hover text-action-foreground">
               <Link to={createPageUrl("Jobs")}>
                 Browse Jobs
               </Link>
@@ -269,20 +259,20 @@ export default function SavedJobs() {
                 <div
                   key={job.id}
                 >
-                  <Card className="bg-white hover:shadow-lg transition-shadow">
+                  <Card className="bg-surface hover:shadow-lg transition-shadow">
                     <CardContent className="p-6">
                       <div className="flex justify-between items-start gap-4">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-2 flex-wrap">
                             {job.pending && (
-                              <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
+                              <Badge variant="outline" className="bg-warning-bg text-warning border-warning-border text-xs">
                                 Not synced yet
                               </Badge>
                             )}
                             {job.level && (
                               <Badge
                                 variant="outline"
-                                className={`${levelColors[job.level] || 'bg-warm-50 text-warm-700 border-warm-200'} text-xs capitalize`}
+                                className="bg-warm-50 text-warm-700 border-warm-200 text-xs capitalize"
                               >
                                 {job.level}
                               </Badge>
@@ -293,7 +283,7 @@ export default function SavedJobs() {
                               </Badge>
                             )}
                             {job.applied && (
-                              <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 gap-1">
+                              <Badge className="bg-success-bg text-success border-success-border hover:bg-success-bg gap-1">
                                 <CheckCircle2 className="w-3 h-3" />
                                 Applied {job.applied_date && `• ${format(new Date(job.applied_date), 'MMM d')}`}
                               </Badge>
@@ -328,7 +318,7 @@ export default function SavedJobs() {
                           size="icon"
                           onClick={() => deleteMutation.mutate({ id: job.id, url: job.url })}
                           disabled={deleteMutation.isPending}
-                          className="text-muted hover:text-red-700 hover:bg-red-50 disabled:opacity-50"
+                          className="text-muted hover:text-danger hover:bg-danger-bg disabled:opacity-50"
                           aria-label={`Remove ${job.job_title} from saved jobs`}
                         >
                           <BookmarkX className="w-5 h-5" />
@@ -361,7 +351,7 @@ export default function SavedJobs() {
                               size="sm"
                               onClick={() => saveComment(job)}
                               disabled={updateMutation.isPending}
-                              className="bg-iris-600 hover:bg-iris-700 disabled:opacity-50"
+                              className="bg-action hover:bg-action-hover text-action-foreground disabled:opacity-50"
                             >
                               {updateMutation.isPending ? 'Saving...' : 'Save'}
                             </Button>
@@ -394,7 +384,7 @@ export default function SavedJobs() {
                             size="sm"
                             onClick={() => toggleApplied(job)}
                             disabled={updateMutation.isPending}
-                            className={`${job.applied ? 'text-emerald-600 border-emerald-300 hover:bg-emerald-50' : ''} disabled:opacity-50`}
+                            className={`${job.applied ? 'text-success border-success-border hover:bg-success-bg hover:text-success' : ''} disabled:opacity-50`}
                           >
                             {job.applied ? (
                               <CheckCircle2 className="w-4 h-4 mr-1.5" />
@@ -416,7 +406,7 @@ export default function SavedJobs() {
                         <Button
                           asChild
                           size="sm"
-                          className="bg-iris-600 hover:bg-iris-700 text-white gap-2"
+                          className="bg-action hover:bg-action-hover text-action-foreground gap-2"
                         >
                           <a href={job.url} target="_blank" rel="noopener noreferrer">
                             Apply Now

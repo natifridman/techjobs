@@ -119,7 +119,11 @@ A rollback must retain the private feed and server-enforced limits. Do not resto
 
 ## Identity
 
-The visual identity uses a minimal geometric Israeli star, an indigo/slate wordmark, and a light neutral interface. Brand assets live in `frontend/public/brand/`, with favicon, application icon, and social preview files in `frontend/public/`. The historical `/techjobsil-logo-64.png` URL remains available with the refreshed mark.
+The visual identity uses a minimal geometric Israeli star, an indigo/slate wordmark, and light and dark interfaces. Brand assets live in `frontend/public/brand/`, with favicon, application icon, and social preview files in `frontend/public/`. The historical `/techjobsil-logo-64.png` URL remains available with the refreshed mark.
+
+Choose **Light**, **Dark**, or **System** from the header's color-theme control (inside the navigation menu on mobile). System is the default and follows the operating system. An explicit choice is saved on the device and synchronized between tabs. The theme is applied before the first paint, including the browser chrome color; if storage is unavailable, switching still works for the current page.
+
+Both palettes use semantic colors for surfaces, controls, status messages, and legal text. Company artwork retains its original colors. Only the map tiles are adjusted in dark mode; map controls and popups use the interface palette. Accessibility high contrast remains independent of the chosen theme. Tests cover preference persistence, system changes, keyboard controls, and WCAG AA contrast for text and action colors.
 
 ## License
 

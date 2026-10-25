@@ -24,7 +24,7 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-warm-50 to-iris-50/30 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center">
+        <div className="max-w-md w-full bg-surface rounded-2xl shadow-xl p-8 text-center">
           <div className="mx-auto w-20 h-20 bg-iris-100 rounded-full flex items-center justify-center mb-6">
             <Lock className="w-10 h-10 text-iris-600" />
           </div>
@@ -36,7 +36,7 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
           </p>
           <Button
             onClick={() => login(window.location.href)}
-            className="w-full bg-iris-600 hover:bg-iris-700 text-white py-6 text-lg rounded-xl"
+            className="w-full bg-action hover:bg-action-hover text-action-foreground py-6 text-lg rounded-xl"
           >
             <LogIn className="w-5 h-5 mr-2" />
             Sign In with Google

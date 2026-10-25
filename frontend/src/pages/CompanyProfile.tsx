@@ -45,7 +45,7 @@ export default function CompanyProfile() {
   const cityLabels = catalog.data?.cityLabels || {};
   if (!name) return <div className="min-h-[60vh] bg-warm-50 px-4 py-20 text-center"><h1 className="mb-5 text-xl font-semibold text-warm-900">Company not found</h1><Button asChild><Link to={createPageUrl('Companies')}>Back to companies</Link></Button></div>;
   return <div className="min-h-screen bg-warm-50">
-    <header className="border-b border-warm-200 bg-white">
+    <header className="border-b border-warm-200 bg-surface">
       <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
         <Link to={createPageUrl('Companies')} className="mb-5 inline-flex min-h-8 items-center gap-2 text-sm text-warm-500 hover:text-iris-700"><ArrowLeft className="h-4 w-4" aria-hidden="true" />All companies</Link>
         <div className="flex flex-wrap items-start justify-between gap-5">
@@ -56,8 +56,8 @@ export default function CompanyProfile() {
       </div>
     </header>
     <section aria-label="Company jobs" className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
-      <div className="mb-5 flex flex-col justify-between gap-4 sm:flex-row sm:items-center"><div><h2 className="text-lg font-semibold text-warm-900">Open positions</h2><p role="status" className="mt-1 text-xs text-warm-500">{jobs.isLoading ? 'Loading jobs…' : `Showing ${jobs.data?.jobs.length || 0} of ${(jobs.data?.total || 0).toLocaleString()} matching jobs`}</p></div><div className="relative w-full sm:w-80"><Search className="absolute left-3 top-3 h-4 w-4 text-warm-400" aria-hidden="true" /><Input type="search" value={searchQuery} onChange={event => setSearchQuery(event.target.value)} placeholder="Search this company's jobs" aria-label="Search this company's jobs" className="h-11 bg-white pl-9" /></div></div>
-      {catalog.isError && <div role="status" className="mb-4 flex items-center justify-between rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800"><span>Company details could not be refreshed.</span><button type="button" onClick={() => catalog.refetch()} className="underline">Retry</button></div>}
+      <div className="mb-5 flex flex-col justify-between gap-4 sm:flex-row sm:items-center"><div><h2 className="text-lg font-semibold text-warm-900">Open positions</h2><p role="status" className="mt-1 text-xs text-warm-500">{jobs.isLoading ? 'Loading jobs…' : `Showing ${jobs.data?.jobs.length || 0} of ${(jobs.data?.total || 0).toLocaleString()} matching jobs`}</p></div><div className="relative w-full sm:w-80"><Search className="absolute left-3 top-3 h-4 w-4 text-warm-400" aria-hidden="true" /><Input type="search" value={searchQuery} onChange={event => setSearchQuery(event.target.value)} placeholder="Search this company's jobs" aria-label="Search this company's jobs" className="h-11 bg-surface pl-9" /></div></div>
+      {catalog.isError && <div role="status" className="mb-4 flex items-center justify-between rounded-lg bg-warning-bg px-4 py-3 text-sm text-warning"><span>Company details could not be refreshed.</span><button type="button" onClick={() => catalog.refetch()} className="underline">Retry</button></div>}
       <JobResults data={jobs.data} isLoading={jobs.isLoading} isError={jobs.isError} refetch={jobs.refetch} page={page} setPage={next => update(search, next)} onClear={() => update('')} />
     </section>
   </div>;

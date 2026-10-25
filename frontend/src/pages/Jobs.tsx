@@ -53,7 +53,7 @@ export default function Jobs() {
     } finally { setExporting(false); }
   };
   return <div className="min-h-screen bg-warm-50">
-    <header className="border-b border-warm-200 bg-white">
+    <header className="border-b border-warm-200 bg-surface">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-5 sm:px-6 lg:px-8 lg:py-3.5">
         <div><p className="mb-1 text-xs font-medium uppercase tracking-wider text-iris-700">Find your next role</p><h1 className="text-2xl font-bold tracking-tight text-warm-900 sm:text-3xl">Israeli tech jobs</h1><p className="mt-1 text-sm text-warm-500">Fresh opportunities from startups and established teams.</p></div>
         <Button asChild variant="outline" className="hidden gap-2 sm:flex"><Link to={createPageUrl('Companies')}><Building2 className="h-4 w-4" aria-hidden="true" />Companies</Link></Button>

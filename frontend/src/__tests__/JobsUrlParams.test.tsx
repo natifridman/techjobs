@@ -54,7 +54,8 @@ describe('Jobs URL params', () => {
   });
   it('drops an unknown city once the catalog canonical city list loads', async () => {
     mockApi(); renderJobs('/jobs?city=BogusCity'); await screen.findByText('Backend Engineer'); await screen.findByText('Product Designer');
-    expect(screen.getByTestId('location').textContent).not.toContain('city=');
+    // Results can settle before the catalog-driven URL replacement commits.
+    await waitFor(() => expect(screen.getByTestId('location').textContent).not.toContain('city='));
   });
   it('keeps a valid city parameter', async () => {
     mockApi(); renderJobs('/jobs?city=Tel Aviv'); await screen.findByText('Backend Engineer'); expect(screen.queryByText('Product Designer')).toBeNull();

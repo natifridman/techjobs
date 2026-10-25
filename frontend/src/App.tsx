@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import AuthErrorToast from '@/components/AuthErrorToast';
 import { Toaster } from 'sonner';
+import { useTheme } from '@/hooks/useTheme';
 
 import Layout from '@/components/Layout';
 import Home from '@/pages/Home';
@@ -66,6 +67,7 @@ const queryClient = new QueryClient({
 });
 
 function App() {
+  const { resolvedTheme } = useTheme();
   return (
     <QueryClientProvider client={queryClient}>
       <Router>
@@ -158,7 +160,7 @@ function App() {
         </Suspense>
         </ErrorBoundary>
       </Router>
-      <Toaster position="top-right" richColors />
+      <Toaster position="top-right" theme={resolvedTheme} richColors />
     </QueryClientProvider>
   );
 }

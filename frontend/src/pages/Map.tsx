@@ -4,6 +4,7 @@ import { ArrowRight, MapPin, Search } from 'lucide-react';
 import { MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import '@/components/map/map-theme.css';
 import { CITY_COORDS } from '@/components/map/cityCoords';
 import { useJobsCatalog } from '@/hooks/useJobs';
 import { Button } from '@/components/ui/button';
@@ -14,7 +15,7 @@ const createCustomIcon = (count: number) => {
   const size = Math.min(52, Math.max(44, 24 + Math.log(Math.max(count, 1)) * 4));
   return L.divIcon({
     className: 'custom-marker',
-    html: `<div style="width:${size}px;height:${size}px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#4338CA;color:white;font:600 12px system-ui;border:2px solid white;box-shadow:0 2px 8px rgb(15 23 42 / .18)">${count}</div>`,
+    html: `<div class="job-count-marker" style="width:${size}px;height:${size}px">${count}</div>`,
     iconSize: [size, size], iconAnchor: [size / 2, size / 2],
   });
 };
@@ -55,7 +56,7 @@ export default function Map() {
       <h1 className="text-3xl font-bold tracking-tight text-ink">Explore jobs by location</h1>
       <p className="mt-2 text-muted">Choose a city from the list or map to see its open roles.</p>
       {data && <><p className="mt-4 text-sm text-muted">{data.stats.jobs.toLocaleString()} open jobs · {data.stats.companies.toLocaleString()} companies · {data.stats.cities.toLocaleString()} cities</p><CatalogFreshness updatedAt={data.updatedAt} stale={data.stale || isError} className="mt-2" /></>}
-      {isError && data && <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900" role="status">Could not refresh locations. Showing the last loaded catalog.<Button variant="outline" onClick={() => refetch()}>Retry</Button></div>}
+      {isError && data && <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-warning-border bg-warning-bg p-4 text-sm text-warning" role="status">Could not refresh locations. Showing the last loaded catalog.<Button variant="outline" onClick={() => refetch()}>Retry</Button></div>}
       {isLoading ? <div className="mt-7 flex h-96 items-center justify-center rounded-xl border border-border bg-surface text-muted" role="status">Loading locations…</div> : isError && !data ? <div className="mt-7 rounded-xl border border-border bg-surface p-10 text-center" role="alert"><h2 className="text-lg font-semibold">Locations could not be loaded</h2><p className="mb-5 mt-2 text-muted">Please check your connection and try again.</p><Button onClick={() => refetch()}>Retry</Button></div> : <>
         <div className="mt-7 grid gap-5 lg:grid-cols-[21rem_minmax(0,1fr)]">
           <section className="overflow-hidden rounded-xl border border-border bg-surface" aria-labelledby="city-list-title">
@@ -66,7 +67,7 @@ export default function Map() {
             {cities.length === 0 && <div className="p-6 text-sm text-muted">No matching cities.{search && <Button variant="link" onClick={() => setSearch('')}>Clear search</Button>}</div>}
           </section>
           <section aria-label="Map of jobs in Israeli cities" aria-describedby="map-help" className="relative z-0 h-[26rem] overflow-hidden rounded-xl border border-border bg-surface lg:h-[40rem]">
-            <MapContainer center={[31.5, 34.75]} zoom={8} style={{ height: '100%', width: '100%', background: '#F8FAFC' }}>
+            <MapContainer center={[31.5, 34.75]} zoom={8} className="jobs-map" style={{ height: '100%', width: '100%' }}>
               <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
               <FitBounds cities={mappedCities} />
               {mappedCities.map(city => <Marker key={city.city} position={city.coords} icon={createCustomIcon(city.jobCount)} title={`${city.city}: ${city.jobCount} open jobs`} alt={`${city.city}: ${city.jobCount} open jobs`}>

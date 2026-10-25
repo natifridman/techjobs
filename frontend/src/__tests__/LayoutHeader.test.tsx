@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import LayoutHeader from '@/components/LayoutHeader';
+import { ThemeProvider } from '@/components/ThemeProvider';
 import { toast } from 'sonner';
 
 const auth = vi.hoisted(() => ({ login: vi.fn(), logout: vi.fn(), isAuthenticated: false, isLoading: false, user: null as null | { name: string; email: string } }));
@@ -13,7 +14,7 @@ beforeEach(() => {
   auth.isAuthenticated = false; auth.user = null;
   auth.logout.mockResolvedValue(undefined);
 });
-function renderHeader() { render(<MemoryRouter><LayoutHeader /></MemoryRouter>); }
+function renderHeader() { render(<ThemeProvider><MemoryRouter><LayoutHeader /></MemoryRouter></ThemeProvider>); }
 describe('global header', () => {
   it('keeps sign in directly available and preserves the current destination', async () => {
     renderHeader();
@@ -40,6 +41,19 @@ describe('global header', () => {
     expect(JSON.parse(localStorage.getItem('accessibility-settings') || '{}').fontSize).toBe(110);
     await user.click(screen.getByRole('button', { name: 'Reset all accessibility settings' }));
     expect(document.documentElement.style.fontSize).toBe('100%');
+  });
+  it('offers keyboard-accessible color themes in the mobile navigation drawer', async () => {
+    const user = userEvent.setup(); renderHeader();
+    await user.click(screen.getByRole('button', { name: 'Open navigation menu' }));
+    const dark = screen.getByRole('radio', { name: 'Dark' });
+    await user.click(dark);
+    expect(dark).toBeChecked();
+    expect(document.documentElement).toHaveAttribute('data-theme', 'dark');
+    expect(localStorage.getItem('techjobs-theme')).toBe('dark');
+    dark.focus();
+    await user.keyboard('{ArrowRight}');
+    expect(screen.getByRole('radio', { name: 'System' })).toBeChecked();
+    expect(localStorage.getItem('techjobs-theme')).toBe('system');
   });
   it('reports failed logout while retaining account controls', async () => {
     auth.isAuthenticated = true; auth.user = { name: 'Test User', email: 'test@example.com' };

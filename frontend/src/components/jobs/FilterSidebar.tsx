@@ -58,16 +58,16 @@ function FilterFields({ filters, setFilters, cities, cityLabels = {} }: Pick<Fil
 function MobileFilters({ filters, setFilters, cities, cityLabels, onClose }: FilterSidebarProps) {
   const [draft, setDraft] = useState(filters);
   return <Dialog.Portal>
-    <Dialog.Overlay className="fixed inset-0 z-50 bg-warm-900/40" />
-    <Dialog.Content onCloseAutoFocus={event => { event.preventDefault(); document.querySelector<HTMLButtonElement>('[data-job-filter-trigger]')?.focus(); }} className="fixed inset-y-0 left-0 z-50 flex h-dvh w-full max-w-md flex-col bg-white shadow-xl focus:outline-none">
+    <Dialog.Overlay className="fixed inset-0 z-50 bg-slate-950/60" />
+    <Dialog.Content onCloseAutoFocus={event => { event.preventDefault(); document.querySelector<HTMLButtonElement>('[data-job-filter-trigger]')?.focus(); }} className="fixed inset-y-0 left-0 z-50 flex h-dvh w-full max-w-md flex-col bg-surface shadow-xl focus:outline-none">
       <div className="flex items-center justify-between border-b border-warm-200 px-5 py-4">
         <div><Dialog.Title className="text-lg font-semibold text-warm-900">Filter jobs</Dialog.Title><Dialog.Description className="mt-0.5 text-xs text-warm-500">Choose filters, then show your results.</Dialog.Description></div>
         <Dialog.Close asChild><Button variant="ghost" size="icon" aria-label="Cancel filter changes"><X className="h-5 w-5" /></Button></Dialog.Close>
       </div>
       <div className="flex-1 overflow-y-auto px-5"><FilterFields filters={draft} setFilters={setDraft} cities={cities} cityLabels={cityLabels} /></div>
-      <div className="border-t border-warm-200 bg-white px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+      <div className="border-t border-warm-200 bg-surface px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
         <div className="mb-3 flex justify-between"><Button variant="ghost" onClick={() => setDraft({ ...EMPTY_FILTERS, search: filters.search })}>Reset</Button><Dialog.Close asChild><Button variant="ghost">Cancel</Button></Dialog.Close></div>
-        <Button className="w-full bg-iris-700 text-white hover:bg-iris-800" onClick={() => { setFilters(draft); onClose(); }}>Show results{activeFilterCount(draft) ? ` (${activeFilterCount(draft)} ${activeFilterCount(draft) === 1 ? 'filter' : 'filters'})` : ''}</Button>
+        <Button className="w-full bg-action text-action-foreground hover:bg-action-hover" onClick={() => { setFilters(draft); onClose(); }}>Show results{activeFilterCount(draft) ? ` (${activeFilterCount(draft)} ${activeFilterCount(draft) === 1 ? 'filter' : 'filters'})` : ''}</Button>
       </div>
     </Dialog.Content>
   </Dialog.Portal>;
@@ -77,7 +77,7 @@ export default function FilterSidebar(props: FilterSidebarProps) {
   if (props.isMobile) return <Dialog.Root open={props.isOpen} onOpenChange={open => { if (!open) props.onClose(); }}>
     {props.isOpen && <MobileFilters {...props} />}
   </Dialog.Root>;
-  return <aside className="hidden w-[260px] shrink-0 self-start rounded-xl border border-warm-200 bg-white px-5 lg:block" aria-label="Job filters">
+  return <aside className="hidden w-[260px] shrink-0 self-start rounded-xl border border-warm-200 bg-surface px-5 lg:block" aria-label="Job filters">
     <div className="flex items-center justify-between border-b border-warm-100 py-3"><h2 className="font-semibold text-warm-900">Filters</h2><Button variant="ghost" size="sm" className="text-xs text-warm-500" onClick={() => props.setFilters({ ...EMPTY_FILTERS, search: props.filters.search })}>Reset</Button></div>
     <FilterFields {...props} />
   </aside>;

@@ -165,7 +165,7 @@ export default function AccessibilityStatement() {
 
         {/* Content */}
         <div className="max-w-4xl mx-auto px-4 py-12">
-        <div className="bg-white rounded-xl border border-border shadow-sm p-6 md:p-10 space-y-8">
+        <div className="bg-surface rounded-xl border border-border shadow-sm p-6 md:p-10 space-y-8">
           
           {/* General Statement */}
           <section aria-labelledby="general-statement">
@@ -173,7 +173,7 @@ export default function AccessibilityStatement() {
               <span className="w-1 h-6 bg-iris-600 rounded-full"></span>
               {t.generalTitle}
             </h2>
-            <div className="prose prose-warm max-w-none text-warm-700 leading-relaxed space-y-4">
+            <div className="prose max-w-none text-warm-700 leading-relaxed space-y-4">
               <p>{t.generalText1}</p>
               <p>{t.generalText2}</p>
             </div>
@@ -205,7 +205,7 @@ export default function AccessibilityStatement() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-warm-700">
                 {t.keyboardKeys.map(({ key, desc }, index) => (
                   <div key={index} className="flex items-center gap-3">
-                    <kbd className="px-3 py-1 bg-white rounded-lg shadow text-sm font-mono">{key}</kbd>
+                    <kbd className="px-3 py-1 bg-surface rounded-lg shadow text-sm font-mono">{key}</kbd>
                     <span>{desc}</span>
                   </div>
                 ))}
@@ -268,7 +268,7 @@ export default function AccessibilityStatement() {
               <ul className="space-y-2" role="list">
                 {t.standards.map((standard, index) => (
                   <li key={index} className="flex items-start gap-3">
-                    <span className="w-2 h-2 bg-green-500 rounded-full mt-2 shrink-0"></span>
+                    <span className="w-2 h-2 bg-success rounded-full mt-2 shrink-0"></span>
                     <span>{standard}</span>
                   </li>
                 ))}
