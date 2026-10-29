@@ -11,6 +11,8 @@ export function useJobsFilters(cities?: string[], allowPagination = true) {
   const { filters, company } = parsed;
   const page = allowPagination ? parsed.page : 1;
   const [input, setInput] = useState({ key: location.key, value: filters.search });
+  // Discard drafts on navigation so revisiting an entry cannot revive old edits.
+  if (input.key !== location.key) setInput({ key: location.key, value: filters.search });
   const searchQuery = input.key === location.key ? input.value : filters.search;
   const setSearchQuery = (value: string) => setInput({ key: location.key, value });
 

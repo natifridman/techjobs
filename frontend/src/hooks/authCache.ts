@@ -13,6 +13,8 @@ export function clearJobAccessCache(queryClient: QueryClient, keepScope?: string
 }
 
 export function revokeJobAccess(queryClient: QueryClient) {
+  // A refresh started before logout or session expiry must not restore identity.
+  void queryClient.cancelQueries({ queryKey: ['auth'], exact: true });
   clearJobAccessCache(queryClient);
   queryClient.setQueryData(['auth'], { authenticated: false, user: null });
   void queryClient.invalidateQueries({ queryKey: ['savedJobs'] });

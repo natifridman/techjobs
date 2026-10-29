@@ -70,6 +70,20 @@ describe('jobs access API', () => {
     expect(closed.body.total).toBe(2);
   });
 
+  it.each(['software', 'SOFTWARE'])('matches company jobs by category with search=%s', async search => {
+    const target = job({ title: 'Backend Engineer', company: 'Acme', department: 'Engineering', job_category: 'software' });
+    jest.mocked(jobsService.getSnapshot).mockResolvedValue({ payload: payload([
+      target,
+      job({ company: 'Other', title: 'Backend Engineer', url: 'https://jobs.example.com/other' }),
+      job({ company: 'Acme', title: 'Product Designer', job_category: 'design', url: 'https://jobs.example.com/design' }),
+    ]), stale: false });
+
+    const response = await createUnauthenticatedRequest().get('/api/jobs').query({ company: 'Acme', search }).expect(200);
+
+    expect(response.body.total).toBe(1);
+    expect(response.body.jobs).toEqual([target]);
+  });
+
   it('marks stale last-good results and exposes only a generic 503 for cold failures', async () => {
     jest.mocked(jobsService.getSnapshot).mockResolvedValueOnce({ payload: payload([job()]), stale: true });
     expect((await createUnauthenticatedRequest().get('/api/jobs').expect(200)).body.stale).toBe(true);

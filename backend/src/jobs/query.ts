@@ -70,7 +70,7 @@ export function filterJobs(payload: JobsPayload, filters: JobsFilters): Job[] {
   return sortJobs(payload.jobs.filter(job => {
     if (!filters.showClosed && isClosed(job)) return false;
     if (search && !(
-      [job.title, job.company, job.department, job.city].some(value => value?.toLowerCase().includes(search)) ||
+      [job.title, job.company, job.department, job.city, job.job_category].some(value => value?.toLowerCase().includes(search)) ||
       job.cityHe?.includes(filters.search) ||
       job.cities.some(city => city.toLowerCase().includes(search) || (labels[city] || '').toLowerCase().includes(search)) ||
       job.technologies.some(value => value.toLowerCase().includes(search))

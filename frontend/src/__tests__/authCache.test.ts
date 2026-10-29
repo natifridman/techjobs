@@ -1,5 +1,6 @@
 import { QueryClient } from '@tanstack/react-query';
 import { describe, expect, it } from 'vitest';
+import type { AuthState } from '@/api/auth';
 import { clearJobAccessCache, revokeJobAccess } from '@/hooks/authCache';
 
 describe('job access cache isolation', () => {
@@ -41,6 +42,28 @@ describe('job access cache isolation', () => {
     expect(client.getQueriesData({ queryKey: ['savedJobs'] })).toEqual([]);
     expect(JSON.parse(localStorage.getItem('techjobs_saved_jobs')!)).toEqual([{ id: 'guest-save' }]);
     await pending;
+    client.clear();
+  });
+
+  it('keeps guest identity when a refresh started before logout resolves afterward', async () => {
+    const client = new QueryClient();
+    const signedIn: AuthState = {
+      authenticated: true,
+      user: { id: 'user', name: 'User', email: 'user@example.com', picture: '' },
+    };
+    client.setQueryData(['auth'], signedIn);
+    let release!: (value: AuthState) => void;
+    const response = new Promise<AuthState>(resolve => { release = resolve; });
+    // Like authApi.getMe, this query does not consume the abort signal.
+    const refresh = client.fetchQuery({ queryKey: ['auth'], queryFn: () => response }).catch(() => undefined);
+
+    revokeJobAccess(client);
+    expect(client.getQueryData(['auth'])).toEqual({ authenticated: false, user: null });
+    release(signedIn);
+    await response;
+    await refresh;
+
+    expect(client.getQueryData(['auth'])).toEqual({ authenticated: false, user: null });
     client.clear();
   });
 });
