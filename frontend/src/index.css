@@ -307,9 +307,9 @@ textarea:focus-visible {
 /* Skip to content link - Accessibility requirement */
 .skip-to-content {
   position: absolute;
-  top: -100px;
+  top: 0;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate(-50%, -100%);
   z-index: 9999;
   padding: 16px 24px;
   background-color: var(--color-action);
@@ -318,12 +318,12 @@ textarea:focus-visible {
   font-size: 1rem;
   border-radius: 0 0 12px 12px;
   text-decoration: none;
-  transition: top 0.3s ease;
+  transition: transform 0.3s ease;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .skip-to-content:focus {
-  top: 0;
+  transform: translateX(-50%);
   outline: none;
 }
 

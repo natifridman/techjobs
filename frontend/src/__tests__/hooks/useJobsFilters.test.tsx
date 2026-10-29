@@ -18,6 +18,28 @@ beforeEach(() => vi.useFakeTimers());
 afterEach(() => { cleanup(); vi.useRealTimers(); });
 
 describe('jobs search history', () => {
+  it('preserves draft whitespace without creating duplicate history entries', () => {
+    const { result } = renderFilters('/jobs');
+    act(() => result.current.setSearchQuery(' software '));
+    act(() => vi.advanceTimersByTime(300));
+    expect(result.current.searchQuery).toBe(' software ');
+    expect(result.current.location.search).toBe('?search=software');
+    const committedKey = result.current.location.key;
+    act(() => vi.advanceTimersByTime(1000));
+    expect(result.current.location.key).toBe(committedKey);
+
+    act(() => result.current.setSearchQuery(' software engineer '));
+    act(() => vi.advanceTimersByTime(300));
+    expect(result.current.searchQuery).toBe(' software engineer ');
+    expect(result.current.location.search).toBe('?search=software+engineer');
+    act(() => result.current.navigate(-1));
+    expect(result.current.searchQuery).toBe('software');
+    act(() => result.current.navigate(1));
+    expect(result.current.searchQuery).toBe('software engineer');
+    act(() => vi.advanceTimersByTime(500));
+    expect(result.current.location.search).toBe('?search=software+engineer');
+  });
+
   it.each(['', '?search=Backend'])('restores the committed search after Back and Forward from /jobs%s', query => {
     const { result } = renderFilters(`/jobs${query}`);
     const originalSearch = result.current.searchQuery;

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, waitFor, cleanup, fireEvent, within } from '@testing-library/react';
+import { act, render, screen, waitFor, cleanup, fireEvent, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Link, useLocation, useNavigate } from 'react-router-dom';
 import Jobs from '@/pages/Jobs';
@@ -77,6 +78,23 @@ describe('Jobs URL params', () => {
     mockApi(); renderJobs('/jobs?page=3'); await screen.findByText('Backend Engineer'); expect(screen.getByTestId('location').textContent).not.toContain('page=');
     fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'Designer' } }); expect(screen.getByTestId('location').textContent).not.toContain('search=Designer');
     await waitFor(() => expect(screen.getByTestId('location').textContent).toContain('search=Designer')); await waitFor(() => expect(screen.queryByText('Backend Engineer')).toBeNull());
+  });
+  it.each([false, true])('preserves word separators across paused typing (company profile: %s)', async profile => {
+    mockApi(); renderJobs(profile ? '/companyprofile?name=A' : '/jobs', profile);
+    await screen.findByText('Backend Engineer');
+    const user = userEvent.setup({ delay: 40 });
+    const searchbox = screen.getByRole('searchbox');
+    await user.type(searchbox, 'software ');
+    await act(() => new Promise(resolve => setTimeout(resolve, 300)));
+    expect(screen.getByTestId('location')).toHaveTextContent('search=software');
+    expect(searchbox).toHaveValue('software ');
+    await user.type(searchbox, 'engineer');
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('search=software+engineer'));
+    expect(searchbox).toHaveValue('software engineer');
+    fireEvent.click(screen.getByRole('button', { name: 'Back in history' }));
+    expect(searchbox).toHaveValue('software');
+    await act(() => new Promise(resolve => setTimeout(resolve, 300)));
+    expect(screen.getByTestId('location').textContent).not.toContain('engineer');
   });
   it('clears search, company and all chips together', async () => {
     mockApi(); renderJobs('/jobs?search=Engineer&category=software&company=A'); await screen.findByText('Backend Engineer');

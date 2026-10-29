@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useLocation, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigationType, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, MapPin, Globe, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,17 +13,19 @@ import { createPageUrl } from '@/utils';
 export default function CompanyProfile() {
   const [params, setParams] = useSearchParams();
   const location = useLocation();
+  const navigationType = useNavigationType();
   const auth = useAuth();
   const name = params.get('name')?.trim() || '';
   const search = params.get('search') || '';
   const rawPage = params.get('page') || '1';
   const parsedPage = /^\d+$/.test(rawPage) && Number.isSafeInteger(Number(rawPage)) && Number(rawPage) > 0 ? Number(rawPage) : 1;
   const page = auth.isLoading || auth.isAuthenticated ? parsedPage : 1;
-  const [input, setInput] = useState({ key: location.key, value: search });
-  // Reset drafts when navigating, including when returning to a history entry.
-  if (input.key !== location.key) setInput({ key: location.key, value: search });
-  const searchQuery = input.key === location.key ? input.value : search;
-  const setSearchQuery = (value: string) => setInput({ key: location.key, value });
+  const [input, setInput] = useState({ key: location.key, company: name, value: search, pendingSearch: null as string | null });
+  // Keep whitespace through our own commit; history and company changes reset it.
+  const keepDraft = input.key === location.key || (navigationType !== 'POP' && input.company === name && input.pendingSearch === search);
+  const searchQuery = keepDraft ? input.value : search;
+  if (input.key !== location.key) setInput({ key: location.key, company: name, value: searchQuery, pendingSearch: null });
+  const setSearchQuery = (value: string) => setInput({ key: location.key, company: name, value, pendingSearch: null });
   const catalog = useJobsCatalog();
   const company = catalog.data?.companies.find(item => item.name === name);
   const jobs = useJobs({ company: name, search, page }, Boolean(name));
@@ -35,12 +37,15 @@ export default function CompanyProfile() {
     setParams(next, { replace, preventScrollReset: true });
   };
   useEffect(() => {
-    if (searchQuery === search) return;
-    const timer = setTimeout(() => update(searchQuery), 250);
+    if (searchQuery.trim() === search.trim()) return;
+    const timer = setTimeout(() => {
+      setInput({ key: location.key, company: name, value: searchQuery, pendingSearch: searchQuery.trim() });
+      update(searchQuery);
+    }, 250);
     return () => clearTimeout(timer);
     // update uses only the URL values already listed here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery, search, name, setParams]);
+  }, [searchQuery, search, name, setParams, location.key]);
   useEffect(() => {
     if (page !== parsedPage || (params.has('page') && parsedPage === 1)) update(search, page, true);
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -53,10 +53,10 @@ export default function LayoutHeader() {
   return (
     <>
       <header className="sticky top-0 z-50 border-b border-border bg-surface">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-2 px-4 sm:gap-4">
+        <div className="mx-auto flex min-h-16 max-w-7xl flex-wrap items-center justify-between gap-2 px-4 py-2 sm:gap-4">
           <Link to="/" className="flex min-h-11 shrink-0 items-center gap-2.5 rounded-lg" aria-label="TechJobsIL home">
             <img src={resolvedTheme === 'dark' ? '/brand/techjobsil-symbol-white.svg' : '/brand/techjobsil-symbol.svg'} alt="" width="32" height="32" />
-            <span className="text-base font-bold tracking-tight text-ink min-[380px]:text-xl">TechJobs<span className="text-primary">IL</span></span>
+            <span className="hidden text-xl font-bold tracking-tight text-ink sm:inline">TechJobs<span className="text-primary">IL</span></span>
           </Link>
           <nav className="hidden items-center gap-1 md:flex" aria-label="Main navigation">
             {navLinks.map(({ page, href, label, icon: Icon }) => (

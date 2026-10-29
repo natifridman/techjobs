@@ -215,7 +215,7 @@ export function BannerAd({ className = '' }: { className?: string }) {
   }
 
   return (
-    <div className={`max-w-7xl mx-auto px-4 py-2 ${className}`} role="complementary" aria-label="Advertisements">
+    <div className={`w-full max-w-7xl mx-auto px-4 py-2 ${className}`} role="complementary" aria-label="Advertisements">
       <GoogleAd
         adSlot={AD_SLOTS.BANNER}
         adFormat="horizontal"

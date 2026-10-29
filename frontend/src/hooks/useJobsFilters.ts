@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type SetStateAction } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useNavigationType } from 'react-router-dom';
 import { jobsQueryParams } from '@/api/jobs';
 import { EMPTY_FILTERS, filtersToQuery, readJobsFilters, type Filters } from '@/components/jobs/filters';
 
@@ -7,14 +7,16 @@ import { EMPTY_FILTERS, filtersToQuery, readJobsFilters, type Filters } from '@/
 export function useJobsFilters(cities?: string[], allowPagination = true) {
   const location = useLocation();
   const navigate = useNavigate();
+  const navigationType = useNavigationType();
   const parsed = useMemo(() => readJobsFilters(new URLSearchParams(location.search), cities), [location.search, cities]);
   const { filters, company } = parsed;
   const page = allowPagination ? parsed.page : 1;
-  const [input, setInput] = useState({ key: location.key, value: filters.search });
-  // Discard drafts on navigation so revisiting an entry cannot revive old edits.
-  if (input.key !== location.key) setInput({ key: location.key, value: filters.search });
-  const searchQuery = input.key === location.key ? input.value : filters.search;
-  const setSearchQuery = (value: string) => setInput({ key: location.key, value });
+  const [input, setInput] = useState({ key: location.key, value: filters.search, pendingSearch: null as string | null });
+  // Keep whitespace through our own commit; history navigation restores URL text.
+  const keepDraft = input.key === location.key || (navigationType !== 'POP' && input.pendingSearch === filters.search);
+  const searchQuery = keepDraft ? input.value : filters.search;
+  if (input.key !== location.key) setInput({ key: location.key, value: searchQuery, pendingSearch: null });
+  const setSearchQuery = (value: string) => setInput({ key: location.key, value, pendingSearch: null });
 
   const write = useCallback((next: Filters, nextPage = 1, nextCompany = company, replace = false) => {
     const search = jobsQueryParams(filtersToQuery(next, nextPage, nextCompany)).toString();
@@ -23,10 +25,13 @@ export function useJobsFilters(cities?: string[], allowPagination = true) {
 
   // A history navigation changes the key, immediately restoring the URL's text.
   useEffect(() => {
-    if (searchQuery === filters.search) return;
-    const timer = setTimeout(() => write({ ...filters, search: searchQuery }), 250);
+    if (searchQuery.trim() === filters.search) return;
+    const timer = setTimeout(() => {
+      setInput({ key: location.key, value: searchQuery, pendingSearch: searchQuery.trim() });
+      write({ ...filters, search: searchQuery });
+    }, 250);
     return () => clearTimeout(timer);
-  }, [searchQuery, filters, write]);
+  }, [searchQuery, filters, write, location.key]);
 
   useEffect(() => {
     const canonical = jobsQueryParams(filtersToQuery(filters, page, company)).toString();
