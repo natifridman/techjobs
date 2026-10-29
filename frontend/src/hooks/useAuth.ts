@@ -3,6 +3,7 @@ import { usePostHog } from 'posthog-js/react';
 import { useEffect } from 'react';
 import { authApi, type AuthState } from '@/api/auth';
 import { reconcileGuestSavedJobs } from '@/api/storage';
+import { clearJobAccessCache, revokeJobAccess } from './authCache';
 
 export function useAuth() {
   const queryClient = useQueryClient();
@@ -12,8 +13,14 @@ export function useAuth() {
     queryKey: ['auth'],
     queryFn: authApi.getMe,
     staleTime: 1000 * 60 * 5, // 5 minutes
+    refetchOnWindowFocus: 'always',
     retry: false
   });
+
+  const scope = authState?.authenticated && authState.user ? authState.user.id : 'guest';
+  useEffect(() => {
+    if (!isLoading) clearJobAccessCache(queryClient, scope);
+  }, [isLoading, scope, queryClient]);
 
   // Identify user in PostHog and refresh data when authenticated
   useEffect(() => {
@@ -43,10 +50,11 @@ export function useAuth() {
   };
 
   const logout = async () => {
-    await authApi.logout();
+    if (!await authApi.logout()) {
+      throw new Error('Could not sign out. Please try again.');
+    }
     posthog.reset(); // Clear PostHog identity on logout
-    queryClient.setQueryData(['auth'], { authenticated: false, user: null });
-    queryClient.invalidateQueries({ queryKey: ['savedJobs'] });
+    revokeJobAccess(queryClient);
   };
 
   return {

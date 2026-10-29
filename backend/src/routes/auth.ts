@@ -1,15 +1,37 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import passport from '../config/passport';
-import type { User } from '../config/passport';
 
 const router = Router();
 
-// Where a browser lands when Google sign-in fails (denied consent, Google
-// error): back at the app, where the frontend turns the authError param
-// into a toast - never a bare JSON error page. Trailing slashes on
-// FRONTEND_URL are stripped so the param URL stays clean.
-export const authFailureRedirect = (): string =>
-  `${(process.env.FRONTEND_URL || 'http://localhost:8080').replace(/\/+$/, '')}/?authError=1`;
+declare module 'express-session' {
+  interface SessionData { returnTo?: string }
+}
+
+/** OAuth must only return to this frontend, including its search and hash. */
+export function safeReturnTo(value?: unknown): string {
+  const frontend = new URL(process.env.FRONTEND_URL || 'http://localhost:8080');
+  if (typeof value !== 'string') return frontend.href;
+  try {
+    const destination = new URL(value, frontend);
+    if (destination.origin === frontend.origin && !destination.username && !destination.password
+      && ['http:', 'https:'].includes(destination.protocol)) {
+      return destination.href;
+    }
+  } catch { /* Invalid destinations return to the configured frontend. */ }
+  return frontend.href;
+}
+
+export function authFailureRedirect(returnTo?: unknown): string {
+  const destination = new URL(safeReturnTo(returnTo));
+  destination.searchParams.set('authError', '1');
+  return destination.href;
+}
+
+router.use((_req, res, next) => {
+  res.set('Cache-Control', 'private, no-store');
+  res.vary('Cookie');
+  next();
+});
 
 // Extend Express Request to include user
 declare global {
@@ -45,14 +67,14 @@ router.get('/me', (req: Request, res: Response) => {
 
 // Initiate Google OAuth
 router.get('/google', (req: Request, res: Response, next: NextFunction) => {
-  // Store the redirect URL in session
-  const redirectUrl = req.query.redirect as string || process.env.FRONTEND_URL || 'http://localhost:8080';
-  (req.session as any).returnTo = redirectUrl;
+  req.session.returnTo = safeReturnTo(req.query.redirect);
   
   // Save session before redirecting to Google
   req.session.save((err) => {
     if (err) {
       console.error('Error saving session:', err);
+      res.status(503).json({ error: 'Sign-in is temporarily unavailable. Please try again.' });
+      return;
     }
     passport.authenticate('google', {
       scope: ['profile', 'email']
@@ -61,17 +83,33 @@ router.get('/google', (req: Request, res: Response, next: NextFunction) => {
 });
 
 // Google OAuth callback
-router.get('/google/callback',
-  passport.authenticate('google', {
-    failureRedirect: authFailureRedirect()
-  }),
-  (req: Request, res: Response) => {
-    // Redirect to frontend after successful login
-    const returnTo = (req.session as any).returnTo || process.env.FRONTEND_URL || 'http://localhost:8080';
-    delete (req.session as any).returnTo;
-    res.redirect(returnTo);
-  }
-);
+router.get('/google/callback', (req: Request, res: Response, next: NextFunction) => {
+  // Passport regenerates the session on login. Capture the destination first
+  // so the user's filters and continuation point survive that regeneration.
+  const returnTo = safeReturnTo(req.session.returnTo);
+  delete req.session.returnTo;
+  const fail = () => req.session.save(() => res.redirect(authFailureRedirect(returnTo)));
+  passport.authenticate('google', (err: Error | null, user: Express.User | false | null) => {
+    if (err || !user) {
+      if (err) console.error('Google sign-in failed:', err.message);
+      fail();
+      return;
+    }
+    req.logIn(user, (loginError) => {
+      if (loginError) {
+        fail();
+        return;
+      }
+      req.session.save((saveError) => {
+        if (saveError) {
+          res.redirect(authFailureRedirect(returnTo));
+          return;
+        }
+        res.redirect(returnTo);
+      });
+    });
+  })(req, res, next);
+});
 
 // Auth failure
 router.get('/failure', (req: Request, res: Response) => {

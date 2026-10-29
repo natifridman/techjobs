@@ -152,7 +152,7 @@ export default function AddCompanyModal({ open, onOpenChange }: AddCompanyModalP
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Building2 className="w-5 h-5 text-indigo-600" />
+            <Building2 className="w-5 h-5 text-primary" />
             Add a Company to TechJobsIL
           </DialogTitle>
           <DialogDescription>
@@ -170,7 +170,7 @@ export default function AddCompanyModal({ open, onOpenChange }: AddCompanyModalP
                 value={formData.companyNumber}
                 onChange={(e) => setFormData({ ...formData, companyNumber: e.target.value })}
               />
-              <p className="text-xs text-slate-500">Israeli company registration number from רשם החברות</p>
+              <p className="text-xs text-muted">Israeli company registration number from רשם החברות</p>
             </div>
 
             <div className="space-y-2">
@@ -191,7 +191,7 @@ export default function AddCompanyModal({ open, onOpenChange }: AddCompanyModalP
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               />
-              <p className="text-xs text-slate-500">One-liner tagline or mission statement</p>
+              <p className="text-xs text-muted">One-liner tagline or mission statement</p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -278,19 +278,19 @@ export default function AddCompanyModal({ open, onOpenChange }: AddCompanyModalP
               </div>
             </div>
 
-            <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700">
+            <Button type="submit" className="w-full bg-action hover:bg-action-hover text-action-foreground">
               Generate company JSON
             </Button>
           </form>
         ) : (
           <div className="space-y-4 mt-4">
             <div className="space-y-2">
-              <Label>Generated JSON <span className="text-slate-500 font-normal">({formData.companyNumber}.json)</span></Label>
+              <Label>Generated JSON <span className="text-muted font-normal">({formData.companyNumber}.json)</span></Label>
               <div className="relative">
                 <Textarea
                   readOnly
                   value={generateJson()}
-                  className="font-mono text-sm bg-slate-50 h-56"
+                  className="font-mono text-sm bg-page h-56"
                 />
                 <Button
                   type="button"
@@ -305,7 +305,7 @@ export default function AddCompanyModal({ open, onOpenChange }: AddCompanyModalP
               </div>
             </div>
 
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800">
+            <div className="bg-warning-bg border border-warning-border rounded-lg p-4 text-sm text-warning">
               <p className="font-medium mb-2">Next steps:</p>
               <ol className="list-decimal list-inside space-y-1">
                 <li>Review the generated JSON</li>
@@ -325,7 +325,7 @@ export default function AddCompanyModal({ open, onOpenChange }: AddCompanyModalP
               </Button>
               <Button
                 type="button"
-                className="flex-1 bg-slate-900 hover:bg-slate-800 gap-2"
+                className="flex-1 bg-action hover:bg-action-hover text-action-foreground gap-2"
                 onClick={openGitHubPR}
               >
                 <ExternalLink className="w-4 h-4" />

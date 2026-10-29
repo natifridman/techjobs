@@ -30,7 +30,7 @@ export default function CompanyCard({ company, index = 0, cityLabels = {} }: Com
         <Card className="h-full hover:shadow-lg transition-all duration-300 hover:border-iris-200 group cursor-pointer border-warm-100 rounded-xl card-hover">
           <CardContent className="p-6 flex flex-col h-full">
             <div className="flex justify-between items-start mb-4">
-              <CompanyLogo name={company.name} className="w-12 h-12 bg-warm-50 group-hover:bg-white transition-colors" />
+              <CompanyLogo name={company.name} className="w-12 h-12" />
               <Badge className="bg-iris-50 text-iris-700 hover:bg-iris-100">
                 {company.jobCount} Jobs
               </Badge>

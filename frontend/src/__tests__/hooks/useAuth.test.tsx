@@ -102,6 +102,14 @@ describe('useAuth', () => {
         expect(result.current.isAuthenticated).toBe(false);
       });
     });
+
+    it('keeps the account session when the server rejects logout', async () => {
+      server.use(http.post('/auth/logout', () => HttpResponse.json({ error: 'Unavailable' }, { status: 503 })));
+      const { result } = renderHook(() => useAuth(), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.isAuthenticated).toBe(true));
+      await expect(result.current.logout()).rejects.toThrow('Could not sign out');
+      expect(result.current.isAuthenticated).toBe(true);
+    });
   });
 
   describe('when not authenticated', () => {

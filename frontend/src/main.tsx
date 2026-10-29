@@ -4,6 +4,7 @@ import './index.css'
 import App from './App.tsx'
 import { PostHogProvider } from 'posthog-js/react'
 import type { PostHogConfig } from 'posthog-js'
+import { ThemeProvider } from './components/ThemeProvider'
 
 const posthogKey = import.meta.env.VITE_PUBLIC_POSTHOG_KEY
 const posthogHost = import.meta.env.VITE_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com'
@@ -16,12 +17,14 @@ const options: Partial<PostHogConfig> = {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    {posthogKey ? (
-      <PostHogProvider apiKey={posthogKey} options={options}>
+    <ThemeProvider>
+      {posthogKey ? (
+        <PostHogProvider apiKey={posthogKey} options={options}>
+          <App />
+        </PostHogProvider>
+      ) : (
         <App />
-      </PostHogProvider>
-    ) : (
-      <App />
-    )}
+      )}
+    </ThemeProvider>
   </StrictMode>,
 )

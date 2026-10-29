@@ -1,317 +1,115 @@
-import { useState } from 'react';
-import { Link, useNavigate, useLocation } from "react-router-dom";
-import { createPageUrl } from "@/utils";
-import { Button } from "@/components/ui/button";
-import { Building2, Bookmark, LogIn, LogOut, User, MapPin, Briefcase, Menu, X } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
-import { motion, AnimatePresence } from "framer-motion";
-import { useDialogAccessibility } from "@/hooks/useDialogAccessibility";
+import { useEffect, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Bookmark, Briefcase, Building2, LogIn, LogOut, MapPin, Menu, X } from 'lucide-react';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import AccessibilityWidget from '@/components/AccessibilityWidget';
+import ThemeSwitcher from '@/components/ThemeSwitcher';
+import { useAuth } from '@/hooks/useAuth';
+import { useTheme } from '@/hooks/useTheme';
+import { useDialogAccessibility } from '@/hooks/useDialogAccessibility';
+import { createPageUrl } from '@/utils';
 
-interface LayoutHeaderProps {
-  variant?: 'light' | 'dark';
-}
+const navLinks = [
+  { page: 'Jobs', href: '/jobs', label: 'Jobs', icon: Briefcase },
+  { page: 'Companies', href: '/companies', label: 'Companies', icon: Building2 },
+  { page: 'SavedJobs', href: '/saved', label: 'Saved', icon: Bookmark },
+  { page: 'Map', href: '/map', label: 'Map', icon: MapPin },
+];
 
-export default function LayoutHeader({ variant = 'light' }: LayoutHeaderProps) {
+export default function LayoutHeader() {
+  const { pathname } = useLocation();
+  const { resolvedTheme } = useTheme();
   const navigate = useNavigate();
-  const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { user, isAuthenticated, isLoading, login, logout } = useAuth();
-
-  const { dialogRef: drawerRef, triggerRef: menuButtonRef, closeAndReturnFocus } = useDialogAccessibility({
+  const { dialogRef, triggerRef, closeAndReturnFocus } = useDialogAccessibility({
     isOpen: isMobileMenuOpen,
     onClose: () => setIsMobileMenuOpen(false),
   });
-
-  const isDark = variant === 'dark';
-
-  const handleLogin = () => {
-    login(window.location.href);
-  };
-
-  const handleLogout = async () => {
-    await logout();
-    navigate(createPageUrl("Home"));
-  };
-
-  const isActive = (path: string) => location.pathname.includes(path);
-
-  const navLinks = [
-    { path: "Jobs", icon: Briefcase, label: "Jobs", checkActive: () => isActive("jobs") && !isActive("saved") },
-    { path: "Companies", icon: Building2, label: "Companies", checkActive: () => isActive("companies") },
-    { path: "SavedJobs", icon: Bookmark, label: "Saved", checkActive: () => isActive("saved") },
-    { path: "Map", icon: MapPin, label: "Map", checkActive: () => isActive("map") },
-  ];
-
-  // Style configurations based on variant
-  const styles = {
-    header: isDark
-      ? "bg-transparent"
-      : "bg-white border-b border-warm-200",
-    logo: isDark
-      ? "text-white"
-      : "text-warm-900",
-    navButton: (active: boolean) => isDark
-      ? active
-        ? "text-white bg-white/20"
-        : "text-white/80 hover:text-white hover:bg-white/10"
-      : active
-        ? "text-iris-600 bg-iris-50"
-        : "text-warm-600 hover:text-warm-900 hover:bg-warm-100",
-    divider: isDark
-      ? "border-white/20"
-      : "border-warm-200",
-    userText: isDark
-      ? "text-white/90"
-      : "text-warm-700",
-    userIcon: isDark
-      ? "bg-white/20 text-white"
-      : "bg-iris-100 text-iris-600",
-    userImage: isDark
-      ? "border-white/30"
-      : "border-warm-200",
-    logoutButton: isDark
-      ? "text-white/80 hover:text-white hover:bg-white/10"
-      : "text-warm-600 hover:text-red-600",
-    loginButton: isDark
-      ? "bg-white text-iris-700 hover:bg-iris-50"
-      : "bg-iris-600 hover:bg-iris-700 text-white",
-    mobileMenuButton: isDark
-      ? "text-white hover:bg-white/10"
-      : "text-warm-600 hover:bg-warm-100",
+  useEffect(() => {
+    const media = window.matchMedia('(min-width: 768px)');
+    const closeOnDesktop = () => { if (media.matches) setIsMobileMenuOpen(false); };
+    closeOnDesktop();
+    media.addEventListener('change', closeOnDesktop);
+    return () => media.removeEventListener('change', closeOnDesktop);
+  }, []);
+  const isActive = (href: string) => pathname === href || (href === '/companies' && pathname === '/company');
+  const signIn = () => login(window.location.href);
+  const signOut = async () => {
+    setIsLoggingOut(true);
+    try {
+      await logout();
+      setIsMobileMenuOpen(false);
+      navigate(createPageUrl('Home'));
+    } catch {
+      toast.error('Could not sign out. Please try again.');
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
 
   return (
     <>
-      <header className={`${styles.header} sticky top-0 z-50`} role="banner">
-        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
-          {/* Logo */}
-          <Link 
-            to={createPageUrl("Home")} 
-            className={`flex items-center gap-2 font-bold text-xl ${styles.logo} shrink-0`}
-            aria-label="TechJobsIL - Back to home"
-          >
-            <img src="/techjobsil-logo-64.png" alt="" className="w-8 h-8" />
-            <span className="hidden sm:inline">TechJobsIL</span>
+      <header className="sticky top-0 z-50 border-b border-border bg-surface">
+        <div className="mx-auto flex min-h-16 max-w-7xl flex-wrap items-center justify-between gap-2 px-4 py-2 sm:gap-4">
+          <Link to="/" className="flex min-h-11 shrink-0 items-center gap-2.5 rounded-lg" aria-label="TechJobsIL home">
+            <img src={resolvedTheme === 'dark' ? '/brand/techjobsil-symbol-white.svg' : '/brand/techjobsil-symbol.svg'} alt="" width="32" height="32" />
+            <span className="hidden text-xl font-bold tracking-tight text-ink sm:inline">TechJobs<span className="text-primary">IL</span></span>
           </Link>
-
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-1 shrink-0" role="navigation" aria-label="Main navigation">
-            {navLinks.map(({ path, icon: Icon, label, checkActive }) => (
-              <Button
-                key={path}
-                asChild
-                variant="ghost"
-                size="sm"
-                className={styles.navButton(checkActive())}
-                aria-current={checkActive() ? "page" : undefined}
-              >
-                <Link to={createPageUrl(path)}>
-                  <Icon className="w-4 h-4 mr-2" aria-hidden="true" />
-                  <span>{label}</span>
+          <nav className="hidden items-center gap-1 md:flex" aria-label="Main navigation">
+            {navLinks.map(({ page, href, label, icon: Icon }) => (
+              <Button key={page} asChild variant="ghost" size="sm" className={isActive(href) ? 'bg-iris-50 text-primary' : ''}>
+                <Link to={createPageUrl(page)} aria-current={isActive(href) ? 'page' : undefined}>
+                  <Icon className="mr-2 hidden h-4 w-4 lg:block" aria-hidden="true" />{label}
                 </Link>
               </Button>
             ))}
-
-            {/* Auth buttons */}
-            <div className={`ml-2 pl-2 border-l ${styles.divider}`} role="group" aria-label="User area">
-              {isLoading ? (
-                <div 
-                  className={`w-8 h-8 rounded-full ${isDark ? 'bg-white/20' : 'bg-warm-100'} animate-pulse`}
-                  role="status"
-                  aria-label="Loading user info"
-                />
-              ) : isAuthenticated && user ? (
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-2">
-                    {user.picture ? (
-                      <img
-                        src={user.picture}
-                        alt={`${user.name}'s profile picture`}
-                        className={`w-8 h-8 rounded-full border ${styles.userImage}`}
-                      />
-                    ) : (
-                      <div 
-                        className={`w-8 h-8 rounded-full flex items-center justify-center ${styles.userIcon}`}
-                        aria-hidden="true"
-                      >
-                        <User className="w-4 h-4" />
-                      </div>
-                    )}
-                    <span className={`text-sm max-w-[100px] truncate hidden lg:inline ${styles.userText}`}>
-                      {user.name?.split(' ')[0]}
-                    </span>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleLogout}
-                    className={styles.logoutButton}
-                    aria-label="Sign out"
-                  >
-                    <LogOut className="w-4 h-4" aria-hidden="true" />
-                    <span className="hidden lg:inline ml-2">Logout</span>
-                  </Button>
-                </div>
-              ) : (
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={handleLogin}
-                  className={styles.loginButton}
-                  aria-label="Sign in with Google"
-                >
-                  <LogIn className="w-4 h-4 mr-2" aria-hidden="true" />
-                  <span>Sign in</span>
-                </Button>
-              )}
-            </div>
           </nav>
-
-          {/* Mobile Menu Button */}
-          <Button
-            ref={menuButtonRef}
-            variant="ghost"
-            size="icon"
-            className={`md:hidden ${styles.mobileMenuButton}`}
-            onClick={() => setIsMobileMenuOpen(true)}
-            aria-label="Open navigation menu"
-            aria-expanded={isMobileMenuOpen}
-            aria-controls="mobile-menu"
-          >
-            <Menu className="w-6 h-6" aria-hidden="true" />
-          </Button>
+          <div className="flex items-center gap-1 sm:gap-2" aria-label="Account, appearance and accessibility">
+            <div className="hidden md:block"><ThemeSwitcher compact /></div>
+            <AccessibilityWidget />
+            {isLoading ? (
+              <span className="h-11 w-20 animate-pulse rounded-lg bg-warm-100" role="status" aria-label="Loading account" />
+            ) : isAuthenticated ? (
+              <>
+                <span className="hidden max-w-24 truncate text-sm text-muted lg:inline">{user?.name?.split(' ')[0]}</span>
+                <Button variant="outline" size="sm" onClick={signOut} disabled={isLoggingOut} aria-label="Sign out">
+                  <LogOut className="h-4 w-4 sm:mr-2" aria-hidden="true" /><span className="hidden sm:inline">{isLoggingOut ? 'Signing out…' : 'Sign out'}</span>
+                </Button>
+              </>
+            ) : (
+              <Button size="sm" onClick={signIn} aria-label="Sign in with Google"><LogIn className="mr-2 hidden h-4 w-4 lg:block" aria-hidden="true" />Sign in</Button>
+            )}
+            <Button ref={triggerRef} variant="ghost" size="icon" className="md:hidden" onClick={() => setIsMobileMenuOpen(true)} aria-label="Open navigation menu" title="Navigation and color theme" aria-expanded={isMobileMenuOpen} aria-controls="mobile-menu">
+              <Menu className="h-5 w-5" aria-hidden="true" />
+            </Button>
+          </div>
         </div>
       </header>
-
-      {/* Mobile Menu Drawer */}
-      <AnimatePresence>
-        {isMobileMenuOpen && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 z-50 md:hidden"
-              onClick={() => setIsMobileMenuOpen(false)}
-              aria-hidden="true"
-            />
-
-            {/* Drawer */}
-            <motion.div
-              ref={drawerRef}
-              id="mobile-menu"
-              tabIndex={-1}
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="fixed inset-y-0 right-0 w-80 max-w-[85vw] bg-white z-50 shadow-2xl md:hidden"
-              role="dialog"
-              aria-modal="true"
-              aria-label="Navigation menu"
-            >
-              <div className="flex flex-col h-full">
-                {/* Drawer Header */}
-                <div className="flex items-center justify-between p-4 border-b border-warm-200">
-                  <Link
-                    to={createPageUrl("Home")}
-                    className="flex items-center gap-2 font-bold text-xl text-warm-900"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    aria-label="TechJobsIL - Back to home"
-                  >
-                    <img src="/techjobsil-logo-64.png" alt="" className="w-8 h-8" />
-                    <span>TechJobsIL</span>
-                  </Link>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={closeAndReturnFocus}
-                    aria-label="Close menu"
-                  >
-                    <X className="w-6 h-6" aria-hidden="true" />
-                  </Button>
-                </div>
-
-                {/* Mobile Navigation Links */}
-                <nav className="flex-1 p-4 space-y-2" role="navigation" aria-label="Main navigation">
-                  {navLinks.map(({ path, icon: Icon, label, checkActive }) => (
-                    <Link
-                      key={path}
-                      to={createPageUrl(path)}
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className={`flex items-center gap-3 px-4 py-3 rounded-xl text-base font-medium transition-colors ${
-                        checkActive()
-                          ? "bg-iris-50 text-iris-600"
-                          : "text-warm-600 hover:bg-warm-100"
-                      }`}
-                      aria-current={checkActive() ? "page" : undefined}
-                    >
-                      <Icon className="w-5 h-5" aria-hidden="true" />
-                      {label}
-                    </Link>
-                  ))}
-                </nav>
-
-                {/* Mobile Auth Section */}
-                <div className="p-4 border-t border-warm-200" role="group" aria-label="User area">
-                  {isLoading ? (
-                    <div 
-                      className="h-12 bg-warm-100 rounded-xl animate-pulse" 
-                      role="status"
-                      aria-label="Loading user info"
-                    />
-                  ) : isAuthenticated && user ? (
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-3 px-4 py-3 bg-warm-50 rounded-xl">
-                        {user.picture ? (
-                          <img
-                            src={user.picture}
-                            alt={`${user.name}'s profile picture`}
-                            className="w-10 h-10 rounded-full border border-warm-200"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 rounded-full bg-iris-100 flex items-center justify-center" aria-hidden="true">
-                            <User className="w-5 h-5 text-iris-600" />
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-warm-900 truncate">{user.name}</p>
-                          <p className="text-sm text-warm-500 truncate">{user.email}</p>
-                        </div>
-                      </div>
-                      <Button
-                        variant="outline"
-                        className="w-full justify-center text-warm-600 hover:text-red-600 hover:border-red-200"
-                        onClick={() => {
-                          handleLogout();
-                          setIsMobileMenuOpen(false);
-                        }}
-                        aria-label="Sign out"
-                      >
-                        <LogOut className="w-4 h-4 mr-2" aria-hidden="true" />
-                        Sign Out
-                      </Button>
-                    </div>
-                  ) : (
-                    <Button
-                      className="w-full bg-iris-600 hover:bg-iris-700 text-white py-3"
-                      onClick={() => {
-                        handleLogin();
-                        setIsMobileMenuOpen(false);
-                      }}
-                      aria-label="Sign in with Google"
-                    >
-                      <LogIn className="w-4 h-4 mr-2" aria-hidden="true" />
-                      Sign in with Google
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-[100] md:hidden">
+          <div className="absolute inset-0 bg-slate-900/30" onClick={closeAndReturnFocus} aria-hidden="true" />
+          <div ref={dialogRef} id="mobile-menu" role="dialog" aria-modal="true" aria-label="Navigation menu" tabIndex={-1} className="absolute inset-y-0 right-0 flex w-80 max-w-[90vw] flex-col bg-surface shadow-xl">
+            <div className="flex items-center justify-between border-b border-border p-4">
+              <span className="font-semibold text-ink">TechJobsIL</span>
+              <Button variant="ghost" size="icon" onClick={closeAndReturnFocus} aria-label="Close navigation menu"><X className="h-5 w-5" aria-hidden="true" /></Button>
+            </div>
+            <ThemeSwitcher />
+            <nav className="space-y-2 p-4" aria-label="Mobile navigation">
+              {navLinks.map(({ page, href, label, icon: Icon }) => (
+                <Link key={page} to={createPageUrl(page)} onClick={closeAndReturnFocus} aria-current={isActive(href) ? 'page' : undefined} className={`flex min-h-12 items-center gap-3 rounded-lg px-4 font-medium ${isActive(href) ? 'bg-iris-50 text-primary' : 'text-muted hover:bg-warm-100'}`}><Icon className="h-5 w-5" aria-hidden="true" />{label}</Link>
+              ))}
+            </nav>
+            <div className="mt-auto space-y-3 border-t border-border p-4 text-sm text-muted">
+              {isAuthenticated && <p className="break-words">Signed in as {user?.email || user?.name}</p>}
+              <Link to="/accessibility" onClick={closeAndReturnFocus} className="flex min-h-11 items-center rounded-lg px-4 hover:bg-warm-100">Accessibility statement</Link>
+              <p className="px-4 text-xs">Text size, contrast and cursor controls are available in the header.</p>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 
 function LocationProbe() {
   const location = useLocation();
-  return <div data-testid="location">{location.search}</div>;
+  return <div data-testid="location">{location.search}{location.hash}</div>;
 }
 
 function renderAt(url: string) {
@@ -48,5 +48,11 @@ describe('AuthErrorToast', () => {
       expect(screen.getByTestId('location').textContent).toBe(''),
     );
     expect(toast.error).toHaveBeenCalledTimes(1);
+  });
+
+  it('retains the job continuation anchor when clearing the error', async () => {
+    renderAt('/jobs?search=backend&authError=1#continue-jobs');
+    await waitFor(() => expect(screen.getByTestId('location').textContent)
+      .toBe('?search=backend#continue-jobs'));
   });
 });

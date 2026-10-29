@@ -4,6 +4,7 @@ import passport from 'passport';
 import authRouter, { requireAuth } from '../../routes/auth';
 import savedJobsRouter from '../../routes/savedJobs';
 import companiesRouter from '../../routes/companies';
+import jobsRouter from '../../routes/jobs';
 
 /**
  * Creates an Express app configured for testing
@@ -42,6 +43,7 @@ export function createTestApp() {
   // API routes
   app.use('/api/saved-jobs', savedJobsRouter);
   app.use('/api/companies', companiesRouter);
+  app.use('/api/jobs', jobsRouter);
 
   // 404 handler
   app.use((req, res) => {

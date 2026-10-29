@@ -3,7 +3,8 @@
 
 import { authApi } from './auth';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+const configuredApi = (import.meta.env.VITE_API_URL || '/api').replace(/\/+$/, '');
+const API_BASE_URL = configuredApi.endsWith('/api') ? configuredApi : `${configuredApi}/api`;
 
 export interface SavedJob {
   id: string;

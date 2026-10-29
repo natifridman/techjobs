@@ -5,6 +5,7 @@ import request from 'supertest';
 import authRouter from '../../routes/auth';
 import savedJobsRouter from '../../routes/savedJobs';
 import companiesRouter from '../../routes/companies';
+import jobsRouter from '../../routes/jobs';
 import { TestUser } from './auth';
 
 /**
@@ -52,6 +53,7 @@ export function createAppWithAuth(authenticatedUser?: TestUser): Express {
   // API routes
   app.use('/api/saved-jobs', savedJobsRouter);
   app.use('/api/companies', companiesRouter);
+  app.use('/api/jobs', jobsRouter);
 
   // 404 handler
   app.use((req, res) => {
