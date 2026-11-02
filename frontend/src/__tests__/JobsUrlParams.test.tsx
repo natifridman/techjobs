@@ -15,12 +15,21 @@ const JOBS = parseJobsPayload({ jobs: [
   { company: 'B', title: 'Product Designer', url: 'https://x/2', job_category: 'design', cities: ['Haifa'], updated: '2026-10-16' },
 ] }).jobs;
 
-function mockApi(rows: Job[] = JOBS, cityLabels: Record<string, string> = { 'Tel Aviv': 'תל אביב', Haifa: 'חיפה' }) {
+function mockApi(
+  rows: Job[] = JOBS,
+  cityLabels: Record<string, string> = { 'Tel Aviv': 'תל אביב', Haifa: 'חיפה' },
+  companyResponse: (name: string) => Response | Promise<Response> = name => Response.json({
+    id: name, name, website_url: `https://${name.toLowerCase()}.example/`,
+  }),
+) {
   const calls: URL[] = [];
   vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
     const url = new URL(String(input), 'https://example.test'); calls.push(url);
     if (url.pathname.includes('/saved-jobs')) return { ok: false, status: 401, json: async () => ({}) } as Response;
     if (url.pathname === '/auth/me') return { ok: true, json: async () => ({ authenticated: false, user: null }) } as Response;
+    if (url.pathname.startsWith('/api/companies/by-name/')) {
+      return companyResponse(decodeURIComponent(url.pathname.slice('/api/companies/by-name/'.length)));
+    }
     if (url.pathname.endsWith('/catalog')) return { ok: true, json: async () => ({
       updatedAt: '2026-10-18', stale: false, cityLabels, facets: { cities: [...new Set(rows.flatMap(job => job.cities))] },
       stats: { jobs: rows.length, companies: 2, cities: 2 }, companies: [{ name: 'A', jobCount: rows.length, categories: [], locations: ['Tel Aviv'], jobCategories: ['software'], latestUpdate: null }], cities: [],
@@ -36,7 +45,7 @@ function mockApi(rows: Job[] = JOBS, cityLabels: Record<string, string> = { 'Tel
 }
 function Navigation() {
   const location = useLocation(); const navigate = useNavigate();
-  return <><Link to="/jobs">plain-jobs</Link><button onClick={() => navigate(-1)}>Back in history</button><output data-testid="location">{location.pathname}{location.search}{location.hash}</output></>;
+  return <><Link to="/jobs">plain-jobs</Link><Link to="/companyprofile?name=B">Company B</Link><Link to="/companyprofile?name=C">Company C</Link><button onClick={() => navigate(-1)}>Back in history</button><output data-testid="location">{location.pathname}{location.search}{location.hash}</output></>;
 }
 function renderJobs(route: string, profile = false) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -140,9 +149,82 @@ describe('guest browsing', () => {
     await waitFor(() => expect(JSON.parse(localStorage.getItem('techjobs_saved_jobs') || '[]')).toHaveLength(1)); await screen.findByRole('button', { name: 'Remove Backend Engineer from saved jobs' });
     fireEvent.click(screen.getByRole('button', { name: 'Mark Backend Engineer as applied' })); await waitFor(() => expect(JSON.parse(localStorage.getItem('techjobs_saved_jobs') || '[]')[0].applied).toBe(true));
   });
-  it('uses the same company preview gate and honestly labels the website search', async () => {
+  it('uses the same company preview gate and links directly to the company website', async () => {
     mockApi(manyJobs); renderJobs('/companyprofile?name=A', true); await screen.findByText('Engineer 10'); expect(screen.getAllByRole('article')).toHaveLength(10);
-    expect(screen.getByText('Keep exploring Israeli tech jobs')).toBeInTheDocument(); expect(screen.getByRole('link', { name: 'Search for company website (Google)' })).toHaveAttribute('href', expect.stringContaining('google.com/search'));
+    expect(screen.getByText('Keep exploring Israeli tech jobs')).toBeInTheDocument();
+    const website = await screen.findByRole('link', { name: 'Company website' });
+    expect(website).toHaveAttribute('href', 'https://a.example/');
+    expect(website).toHaveAttribute('target', '_blank');
+    expect(website).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(screen.queryByRole('link', { name: /Search for company website/ })).not.toBeInTheDocument();
     expect(screen.getAllByText('Software').length).toBeGreaterThan(0);
+  });
+});
+
+describe('company websites', () => {
+  it('loads the official Elbit homepage using its encoded company name', async () => {
+    const rows = [{ ...JOBS[0], company: 'Elbit Systems' }];
+    const calls = mockApi(rows, undefined, name => Response.json({
+      id: 'elbit', name, website_url: '  https://www.elbitsystems.com/  ',
+    }));
+    renderJobs('/company?name=Elbit%20Systems', true);
+    expect(await screen.findByRole('link', { name: 'Company website' })).toHaveAttribute('href', 'https://www.elbitsystems.com/');
+    expect(calls.some(url => url.pathname === '/api/companies/by-name/Elbit%20Systems')).toBe(true);
+    await screen.findByText('Backend Engineer');
+  });
+
+  it('supports absolute HTTP websites', async () => {
+    mockApi(JOBS, undefined, name => Response.json({ id: name, name, website_url: ' http://a.example/ ' }));
+    renderJobs('/company?name=A', true);
+    expect(await screen.findByRole('link', { name: 'Company website' })).toHaveAttribute('href', 'http://a.example/');
+  });
+
+  it.each([
+    undefined, null, '', '  ', 'not a url', '/relative', '//a.example/',
+    'https:a.example', 'https://', 'javascript:alert(1)', 'ftp://a.example/', 42,
+  ])('hides missing or invalid website %s while loading jobs', async website_url => {
+    mockApi(JOBS, undefined, name => Response.json({ id: name, name, website_url }));
+    renderJobs('/company?name=A', true);
+    await screen.findByText('Backend Engineer');
+    expect(screen.queryByRole('link', { name: 'Company website' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Search for company website/ })).not.toBeInTheDocument();
+  });
+
+  it.each([404, 500, 'network'])('keeps jobs and search working after a metadata %s failure', async failure => {
+    localStorage.setItem('techjobs_companies', JSON.stringify([
+      { id: 'local-a', name: 'A', website_url: 'https://stale.example/' },
+    ]));
+    mockApi(JOBS, undefined, () => {
+      if (failure === 'network') throw new TypeError('Failed to fetch');
+      return Response.json({ error: 'Company unavailable' }, { status: Number(failure) });
+    });
+    renderJobs('/company?name=A', true);
+    await screen.findByText('Backend Engineer');
+    expect(screen.queryByRole('link', { name: 'Company website' })).not.toBeInTheDocument();
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'Backend' } });
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('search=Backend'));
+    expect(await screen.findByText('Backend Engineer')).toBeInTheDocument();
+  });
+
+  it('hides the previous website during company navigation and restores it on Back', async () => {
+    let resolveB!: (response: Response) => void;
+    const pendingB = new Promise<Response>(resolve => { resolveB = resolve; });
+    mockApi(JOBS, undefined, name => {
+      if (name === 'B') return pendingB;
+      if (name === 'C') return Response.json({ error: 'Company not found' }, { status: 404 });
+      return Response.json({ id: name, name, website_url: 'https://a.example/' });
+    });
+    renderJobs('/company?name=A', true);
+    expect(await screen.findByRole('link', { name: 'Company website' })).toHaveAttribute('href', 'https://a.example/');
+    fireEvent.click(screen.getByRole('link', { name: 'Company B' }));
+    expect(screen.queryByRole('link', { name: 'Company website' })).not.toBeInTheDocument();
+    await screen.findByText('Product Designer');
+    await act(async () => { resolveB(Response.json({ id: 'b', name: 'B', website_url: 'https://b.example/' })); });
+    expect(await screen.findByRole('link', { name: 'Company website' })).toHaveAttribute('href', 'https://b.example/');
+    fireEvent.click(screen.getByRole('button', { name: 'Back in history' }));
+    expect(await screen.findByRole('link', { name: 'Company website' })).toHaveAttribute('href', 'https://a.example/');
+    fireEvent.click(screen.getByRole('link', { name: 'Company C' }));
+    await screen.findByText('No jobs found');
+    expect(screen.queryByRole('link', { name: 'Company website' })).not.toBeInTheDocument();
   });
 });

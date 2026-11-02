@@ -111,6 +111,8 @@ Dependency updates currently retain TypeScript 5.9 and Babel 7 for toolchain com
 
 The root Dockerfile builds the frontend and serves it from Express. `podman-compose.yml` alternatively runs nginx and the API separately; it requires the database, private Storage, session, and OAuth variables from root `.env`. Set production frontend/callback URLs to the actual HTTPS deployment.
 
+Before deploying the company profile website links, run `backend/backfill-company-websites.sql` in the Supabase SQL editor. It sets Elbit Systems' official homepage and preserves other metadata; it is safe to rerun. Profiles read `companies.website_url` through the existing public company metadata API and hide the website button when a URL is missing, invalid, or unavailable.
+
 Release order:
 
 1. Provision private Storage and publish a validated feed.

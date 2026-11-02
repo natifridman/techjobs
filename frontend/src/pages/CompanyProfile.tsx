@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Link, useLocation, useNavigationType, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, MapPin, Globe, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -11,6 +12,16 @@ import { useAuth } from '@/hooks/useAuth';
 import { createPageUrl } from '@/utils';
 import { locationLabel } from '@/lib/locations';
 import { jobsContinuationUrl } from '@/components/jobs/jobsNavigation';
+import { companiesApi } from '@/api/storage';
+
+function companyWebsiteUrl(value: unknown): string | null {
+  if (typeof value !== 'string' || !/^https?:\/\//i.test(value.trim())) return null;
+  try {
+    return new URL(value.trim()).href;
+  } catch {
+    return null;
+  }
+}
 
 export default function CompanyProfile() {
   const [params, setParams] = useSearchParams();
@@ -48,6 +59,14 @@ export default function CompanyProfile() {
     setInput({ key: location.key, company: name, value, pendingSearch: null });
   const catalog = useJobsCatalog();
   const company = catalog.data?.companies.find((item) => item.name === name);
+  const metadata = useQuery({
+    queryKey: ['company', name],
+    queryFn: async () => (await companiesApi.get(name, { localFallback: false })) ?? null,
+    enabled: Boolean(name),
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
+  const websiteUrl = companyWebsiteUrl(metadata.isError ? null : metadata.data?.website_url);
   const jobs = useJobs({ company: name, search, page, sort }, Boolean(name));
   const update = (nextSearch: string, nextPage = 1, replace = false) => {
     const next = new URLSearchParams();
@@ -125,16 +144,14 @@ export default function CompanyProfile() {
                 )}
               </div>
             </div>
-            <Button asChild variant="outline" size="sm" className="gap-2">
-              <a
-                href={`https://www.google.com/search?q=${encodeURIComponent(`${name} Israel careers website`)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Globe className="h-4 w-4" aria-hidden="true" />
-                Search for company website (Google)
-              </a>
-            </Button>
+            {websiteUrl && (
+              <Button asChild variant="outline" size="sm" className="gap-2">
+                <a href={websiteUrl} target="_blank" rel="noopener noreferrer">
+                  <Globe className="h-4 w-4" aria-hidden="true" />
+                  Company website
+                </a>
+              </Button>
+            )}
           </div>
           {!!company?.locations.length && (
             <p className="mt-4 flex items-start gap-2 text-sm text-warm-500">

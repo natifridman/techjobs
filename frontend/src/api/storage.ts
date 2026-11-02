@@ -39,7 +39,7 @@ export interface Company {
   id: string;
   name: string;
   description?: string;
-  website_url?: string;
+  website_url?: string | null;
   logo_url?: string;
   founded_year?: string;
   headquarters?: string;
@@ -807,7 +807,7 @@ export const companiesApi = {
     }
   },
 
-  get: async (name: string): Promise<Company | undefined> => {
+  get: async (name: string, options?: { localFallback?: boolean }): Promise<Company | undefined> => {
       try {
       const response = await fetch(`${API_BASE_URL}/companies/by-name/${encodeURIComponent(name)}`, {
         credentials: 'include'
@@ -816,6 +816,7 @@ export const companiesApi = {
         if (!response.ok) throw new Error('Failed to fetch');
         return await response.json();
       } catch (error) {
+        if (options?.localFallback === false) throw error;
         console.error('Backend error, falling back to localStorage:', error);
     const companies = getLocalCompanies();
     return companies.find(c => c.name === name);
