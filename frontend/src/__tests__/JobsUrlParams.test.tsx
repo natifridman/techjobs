@@ -21,6 +21,7 @@ function mockApi(
   companyResponse: (name: string) => Response | Promise<Response> = name => Response.json({
     id: name, name, website_url: `https://${name.toLowerCase()}.example/`,
   }),
+  companyWebsites: Record<string, string | null> = {},
 ) {
   const calls: URL[] = [];
   vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
@@ -32,7 +33,11 @@ function mockApi(
     }
     if (url.pathname.endsWith('/catalog')) return { ok: true, json: async () => ({
       updatedAt: '2026-10-18', stale: false, cityLabels, facets: { cities: [...new Set(rows.flatMap(job => job.cities))] },
-      stats: { jobs: rows.length, companies: 2, cities: 2 }, companies: [{ name: 'A', jobCount: rows.length, categories: [], locations: ['Tel Aviv'], jobCategories: ['software'], latestUpdate: null }], cities: [],
+      stats: { jobs: rows.length, companies: 2, cities: 2 },
+      companies: [...new Set(rows.map(job => job.company))].map(name => ({
+        name, websiteUrl: companyWebsites[name], jobCount: rows.filter(job => job.company === name).length,
+        categories: [], locations: ['Tel Aviv'], jobCategories: ['software'], latestUpdate: null,
+      })), cities: [],
     }) } as Response;
     const p = url.searchParams;
     const filtered = rows.filter(job => (!p.get('company') || p.get('company') === job.company)
@@ -162,6 +167,40 @@ describe('guest browsing', () => {
 });
 
 describe('company websites', () => {
+  it('uses catalog homepages for companies without stored metadata, including empty job searches', async () => {
+    mockApi(JOBS, undefined, () => Response.json({}, { status: 404 }), { A: 'https://a.example/', B: 'https://b.example/' });
+    renderJobs('/company?name=A', true);
+    expect(await screen.findByRole('link', { name: 'Company website' })).toHaveAttribute('href', 'https://a.example/');
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'no matching job' } });
+    await screen.findByText('No jobs found');
+    expect(screen.getByRole('link', { name: 'Company website' })).toHaveAttribute('href', 'https://a.example/');
+    fireEvent.click(screen.getByRole('link', { name: 'Company B' }));
+    await screen.findByText('Product Designer');
+    expect(screen.getByRole('link', { name: 'Company website' })).toHaveAttribute('href', 'https://b.example/');
+    fireEvent.click(screen.getByRole('button', { name: 'Back in history' }));
+    expect(await screen.findByRole('link', { name: 'Company website' })).toHaveAttribute('href', 'https://a.example/');
+  });
+
+  it('keeps the corporate homepage available when metadata fails', async () => {
+    mockApi(JOBS, undefined, () => { throw new TypeError('Failed to fetch'); }, { A: 'https://a.example/' });
+    renderJobs('/company?name=A', true);
+    await screen.findByText('Backend Engineer');
+    expect(await screen.findByRole('link', { name: 'Company website' })).toHaveAttribute('href', 'https://a.example/');
+  });
+
+  it('prefers a stored official homepage over the derived catalog URL', async () => {
+    mockApi(JOBS, undefined, name => Response.json({ id: name, name, website_url: 'https://official.example/' }), { A: 'https://a.example/' });
+    renderJobs('/company?name=A', true);
+    await waitFor(() => expect(screen.getByRole('link', { name: 'Company website' })).toHaveAttribute('href', 'https://official.example/'));
+  });
+
+  it('hides invalid catalog destinations instead of falling back to a job or search page', async () => {
+    mockApi(JOBS, undefined, () => Response.json({}, { status: 404 }), { A: 'javascript:alert(1)' });
+    renderJobs('/company?name=A', true);
+    await screen.findByText('Backend Engineer');
+    expect(screen.queryByRole('link', { name: 'Company website' })).not.toBeInTheDocument();
+  });
+
   it('loads the official Elbit homepage using its encoded company name', async () => {
     const rows = [{ ...JOBS[0], company: 'Elbit Systems' }];
     const calls = mockApi(rows, undefined, name => Response.json({

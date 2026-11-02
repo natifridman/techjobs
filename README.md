@@ -111,7 +111,9 @@ Dependency updates currently retain TypeScript 5.9 and Babel 7 for toolchain com
 
 The root Dockerfile builds the frontend and serves it from Express. `podman-compose.yml` alternatively runs nginx and the API separately; it requires the database, private Storage, session, and OAuth variables from root `.env`. Set production frontend/callback URLs to the actual HTTPS deployment.
 
-Before deploying the company profile website links, run `backend/backfill-company-websites.sql` in the Supabase SQL editor. It sets Elbit Systems' official homepage and preserves other metadata; it is safe to rerun. Profiles read `companies.website_url` through the existing public company metadata API and hide the website button when a URL is missing, invalid, or unavailable.
+Company profiles prefer `companies.website_url` when available and otherwise use the public catalog's `companies[].websiteUrl`. The backend derives corporate homepages from company-owned job-link domains, using public suffix rules so `careers.company.co.il` becomes `company.co.il`. Missing or invalid URLs hide the button. No database backfill is required; deploy the additive backend catalog field before the frontend.
+
+Verified corporate homepage mappings in `backend/src/jobs/companyHomepages.json` cover shared hiring platforms and separate careers domains. These mappings come from employer-published website references on hiring boards, the upstream company registry, and company websites. Keep them current when adding employers hosted on a shared platform; use `null` for an unidentified employer rather than linking to a recruiter or investor. The November 2, 2026 feed audit resolved corporate homepages for 592 of 593 hiring companies; the anonymous "Cyber start up" entry has no identifiable corporate homepage.
 
 Release order:
 

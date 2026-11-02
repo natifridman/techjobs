@@ -31,6 +31,7 @@ export interface JobsResponse {
 
 export interface CatalogCompany {
   name: string;
+  websiteUrl?: string | null;
   jobCount: number;
   categories: string[];
   locations: string[];
