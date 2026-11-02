@@ -8,7 +8,7 @@ export function useSavedJobs() {
   const scope = auth.isAuthenticated && auth.user ? auth.user.id : 'guest';
   const result = useQuery({
     queryKey: ['savedJobs', scope],
-    queryFn: () => savedJobsApi.list('-created_date'),
+    queryFn: () => savedJobsApi.list('-created_date', { requireAccount: auth.isAuthenticated }),
     enabled: !auth.isLoading,
     staleTime: 30_000,
     refetchOnWindowFocus: true,

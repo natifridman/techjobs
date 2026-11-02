@@ -1,11 +1,13 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
+import AddCompanyModal from '@/components/AddCompanyModal';
 import { Link } from 'react-router-dom';
 import LayoutHeader from '@/components/LayoutHeader';
 import { BannerAd } from '@/components/GoogleAd';
 
-interface LayoutProps { children: ReactNode; currentPageName: string }
+interface LayoutProps { children: ReactNode; currentPageName?: string }
 
 export default function Layout({ children }: LayoutProps) {
+  const [suggesting, setSuggesting] = useState(false);
   return (
     <div className="flex min-h-screen flex-col bg-page">
       <a href="#main-content" className="skip-to-content">Skip to main content</a>
@@ -16,12 +18,14 @@ export default function Layout({ children }: LayoutProps) {
         <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-6 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-muted">© {new Date().getFullYear()} TechJobsIL · Opportunities in Israeli tech</p>
           <nav className="flex flex-wrap gap-x-5" aria-label="Legal">
+            <button type="button" onClick={() => setSuggesting(true)} className="inline-flex min-h-11 items-center text-sm text-muted hover:text-primary">Suggest a company</button>
             <Link to="/privacy" className="inline-flex min-h-11 items-center text-sm text-muted hover:text-primary">Privacy</Link>
             <Link to="/terms" className="inline-flex min-h-11 items-center text-sm text-muted hover:text-primary">Terms</Link>
             <Link to="/accessibility" className="inline-flex min-h-11 items-center text-sm text-muted hover:text-primary">Accessibility</Link>
           </nav>
         </div>
       </footer>
+      <AddCompanyModal open={suggesting} onOpenChange={setSuggesting} />
     </div>
   );
 }

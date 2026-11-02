@@ -120,7 +120,7 @@ describe('guest browsing', () => {
   const manyJobs = Array.from({ length: 24 }, (_, index) => ({ ...JOBS[0], title: `Engineer ${index + 1}`, url: `https://x/${index}` }));
   it('renders ten jobs followed by the inline gate with no pagination', async () => {
     mockApi(manyJobs); renderJobs('/jobs'); await screen.findByText('Engineer 10'); expect(screen.getAllByRole('article')).toHaveLength(10); expect(screen.queryByText('Engineer 11')).toBeNull();
-    expect(screen.getByRole('heading', { name: 'Keep exploring Israeli tech jobs' })).toBeInTheDocument(); expect(screen.getByText('Showing 10 of 24 matching jobs')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Keep exploring Israeli tech jobs' })).toBeInTheDocument(); expect(screen.getByText('Showing the first 10 matching jobs.')).toBeInTheDocument();
     expect(screen.queryByRole('navigation', { name: 'Job results pages' })).toBeNull(); fireEvent.click(screen.getByRole('button', { name: 'Continue with Google' }));
     expect(LOGIN).toHaveBeenCalledWith(expect.stringContaining('#continue-jobs'));
   });
@@ -142,7 +142,7 @@ describe('guest browsing', () => {
   });
   it('uses the same company preview gate and honestly labels the website search', async () => {
     mockApi(manyJobs); renderJobs('/companyprofile?name=A', true); await screen.findByText('Engineer 10'); expect(screen.getAllByRole('article')).toHaveLength(10);
-    expect(screen.getByText('Keep exploring Israeli tech jobs')).toBeInTheDocument(); expect(screen.getByRole('link', { name: 'Find company website' })).toHaveAttribute('href', expect.stringContaining('google.com/search'));
+    expect(screen.getByText('Keep exploring Israeli tech jobs')).toBeInTheDocument(); expect(screen.getByRole('link', { name: 'Search for company website (Google)' })).toHaveAttribute('href', expect.stringContaining('google.com/search'));
     expect(screen.getAllByText('Software').length).toBeGreaterThan(0);
   });
 });

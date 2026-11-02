@@ -1,3 +1,4 @@
+import { locationLabel } from '@/lib/locations';
 // Renderer-facing fields from the techjob_map 21-field schema (ops/provenance fields stay in the dataset) plus site-specific derived fields.
 export interface Job {
   company: string;
@@ -50,7 +51,8 @@ export function isNewToday(job: Job): boolean {
 
 /** Best human-readable city label: Hebrew when known, else English, else raw location. */
 export function displayCity(job: Job): string {
-  return job.cityHe || job.city || job.location || '';
+  const primary = job.city || job.cities[0];
+  return primary ? locationLabel(primary, primary === job.city ? job.cityHe || '' : '') : job.cityHe || job.location || '';
 }
 
 export const REGION_LABELS: Record<string, string> = {

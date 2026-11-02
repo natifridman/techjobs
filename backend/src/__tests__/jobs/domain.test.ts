@@ -57,13 +57,31 @@ describe('jobs filtering and order', () => {
     expect(matching({ company: 'acme' })).toEqual([]);
   });
 
-  it('sorts English first, newest within language, invalid/undated last, and URL ties deterministically', () => {
+  it('sorts both languages by recency, invalid/undated last, and URL ties deterministically', () => {
     const jobs = [job({ title: 'מהנדס', updated: '2026-10-25', url: 'https://j/he' }), job({ updated: null, url: 'https://j/no' }),
       job({ updated: '2026-10-24', url: 'https://j/z' }), job({ updated: '2026-10-25', url: 'https://j/new' }),
       job({ updated: '2026-10-24', url: 'https://j/a' }), job({ updated: 'bad', url: 'https://j/invalid' })];
     const original = [...jobs];
-    expect(sortJobs(jobs).map(item => item.url)).toEqual(['https://j/new', 'https://j/a', 'https://j/z', 'https://j/invalid', 'https://j/no', 'https://j/he']);
+    expect(sortJobs(jobs).map(item => item.url)).toEqual(['https://j/he', 'https://j/new', 'https://j/a', 'https://j/z', 'https://j/invalid', 'https://j/no']);
     expect(jobs).toEqual(original);
+  });
+
+  it('round-robins employers before pagination and preserves recency within each employer', () => {
+    const records = [
+      job({ company: 'A', updated: '2026-11-02', url: 'https://j/a1' }),
+      job({ company: 'A', updated: '2026-11-01', url: 'https://j/a2' }),
+      job({ company: 'B', title: 'מהנדס תוכנה', updated: '2026-10-31', url: 'https://j/b1' }),
+      job({ company: 'C', updated: '2026-10-30', url: 'https://j/c1' }),
+      job({ company: 'B', updated: '2026-10-29', url: 'https://j/b2' }),
+    ];
+    expect(sortJobs(records).map(row => row.url)).toEqual(['https://j/a1', 'https://j/b1', 'https://j/c1', 'https://j/a2', 'https://j/b2']);
+    expect(sortJobs(records, 'recent').map(row => row.url)).toEqual(['https://j/a1', 'https://j/a2', 'https://j/b1', 'https://j/c1', 'https://j/b2']);
+    expect(sortJobs([...records].reverse())).toEqual(sortJobs(records));
+    expect(filterJobs(payload(records), parseJobsQuery({ company: 'A' }).filters)).toHaveLength(2);
+  });
+
+  it.each(['newest', ['balanced', 'recent'], {}])('rejects malformed sort %j', sort => {
+    expect(() => parseJobsQuery({ sort })).toThrow('sort');
   });
 
   it.each(['0', '-1', '1.5', '1e2', 'Infinity', '', '9007199254740992', ['1', '2'], {}])('rejects invalid page %j', page => {
@@ -83,6 +101,7 @@ describe('public catalog', () => {
       job({ company: 'ClosedOnly', refreshState: 'closed', cities: ['Jerusalem'] }),
     ]), true);
     expect(result.stats).toEqual({ jobs: 2, companies: 2, cities: 2 });
+    expect(result.categoryCounts).toEqual({ software: 1, 'data-ai': 1 });
     expect(result.facets.cities).toEqual(expect.arrayContaining(['Haifa', 'Tel Aviv', 'Jerusalem']));
     expect(result.stale).toBe(true);
     expect(result.companies).toHaveLength(2);
@@ -96,6 +115,7 @@ describe('public catalog', () => {
     expect(buildCatalog(payload([]), false).stats).toEqual({ jobs: 0, companies: 0, cities: 0 });
     const result = buildCatalog(payload([job({ refreshState: 'closed' })]), false);
     expect(result.stats).toEqual({ jobs: 0, companies: 0, cities: 0 });
+    expect(result.categoryCounts).toEqual({});
     expect(result.companies).toEqual([]);
     expect(result.cities).toEqual([]);
     expect(result.facets.cities).toEqual(['Tel Aviv']);

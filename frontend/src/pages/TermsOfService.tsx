@@ -14,7 +14,7 @@ export default function TermsOfService() {
           </Link>
         </Button>
 
-        <article className="bg-surface rounded-xl shadow-sm border border-warm-200 p-5 sm:p-8 md:p-10">
+        <article className="legal-document bg-surface rounded-xl shadow-sm border border-warm-200 p-5 sm:p-8 md:p-10">
           <h1 className="text-3xl sm:text-4xl font-bold text-warm-900 mb-2">Terms of Service</h1>
           <p className="text-warm-500 mb-8">Last updated: January 2026</p>
 

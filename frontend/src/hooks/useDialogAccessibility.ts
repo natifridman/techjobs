@@ -28,7 +28,7 @@ export function useFocusTrap(
     if (!isActive || !containerRef.current) return;
 
     const handleTabKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Tab') return;
+      if (e.key !== 'Tab' || e.defaultPrevented) return;
 
       const container = containerRef.current;
       if (!container) return;
@@ -71,7 +71,8 @@ export function useFocusTrap(
 export function useEscapeKey(
   isActive: boolean,
   onClose: () => void,
-  returnFocusRef?: RefObject<HTMLElement | null>
+  returnFocusRef?: RefObject<HTMLElement | null>,
+  containerRef?: RefObject<HTMLElement | null>
 ) {
   // Use ref to avoid stale closure issues with onClose
   const onCloseRef = useRef(onClose);
@@ -85,7 +86,8 @@ export function useEscapeKey(
     if (!isActive) return;
 
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === 'Escape' && !e.defaultPrevented) {
+        if (containerRef?.current?.querySelector('[role="dialog"][aria-modal="true"]')) return;
         onCloseRef.current();
         returnFocusRef?.current?.focus();
       }
@@ -93,7 +95,7 @@ export function useEscapeKey(
 
     document.addEventListener('keydown', handleEscape);
     return () => document.removeEventListener('keydown', handleEscape);
-  }, [isActive, returnFocusRef]);
+  }, [isActive, returnFocusRef, containerRef]);
 }
 
 /**
@@ -193,7 +195,7 @@ export function useDialogAccessibility({
   useFocusTrap(dialogRef, isOpen);
 
   // Escape key handling
-  useEscapeKey(isOpen, onClose, triggerRef);
+  useEscapeKey(isOpen, onClose, triggerRef, dialogRef);
 
   // Auto-focus dialog
   useAutoFocus(dialogRef, isOpen, focusDelay);
@@ -252,7 +254,8 @@ export function useMobileDialogAccessibility({
     if (!isOpen || !isMobile) return;
 
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === 'Escape' && !e.defaultPrevented) {
+        if (dialogRef.current?.querySelector('[role="dialog"][aria-modal="true"]')) return;
         onCloseRef.current();
         (previousActiveElement.current as HTMLElement)?.focus?.();
       }

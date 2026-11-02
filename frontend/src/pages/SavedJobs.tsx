@@ -1,427 +1,454 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Link } from "react-router-dom";
-import { createPageUrl } from "@/utils";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Link } from 'react-router-dom';
 import {
-  ArrowLeft,
-  LogIn,
   Bookmark,
   BookmarkX,
-  MapPin,
-  Building2,
-  ExternalLink,
-  Briefcase,
   CheckCircle2,
   Circle,
+  ExternalLink,
+  MapPin,
   MessageSquare,
   Pencil,
   RefreshCw,
-  X
-} from "lucide-react";
-import { toast } from "sonner";
-import { Textarea } from "@/components/ui/textarea";
-import { format } from "date-fns";
-import { reconcileGuestSavedJobs, savedJobsApi, type SavedJob } from "@/api/storage";
-import { useAuth } from "@/hooks/useAuth";
+} from 'lucide-react';
+import { toast } from 'sonner';
+import { usePostHog } from 'posthog-js/react';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import CompanyLogo from '@/components/CompanyLogo';
+import { reconcileGuestSavedJobs, savedJobsApi, type SavedJob } from '@/api/storage';
+import { useAuth } from '@/hooks/useAuth';
 import { useSavedJobs } from '@/hooks/useSavedJobs';
+import { CATEGORY_LABELS } from '@/components/jobs/jobsData';
 
-type FilterType = 'all' | 'applied' | 'not-applied';
-
+type Filter = 'all' | 'applied' | 'not-applied';
 export default function SavedJobs() {
-  const queryClient = useQueryClient();
-  const [editingComment, setEditingComment] = useState<string | null>(null);
-  const [commentText, setCommentText] = useState('');
-  const [filter, setFilter] = useState<FilterType>('all');
-
-  const { data: savedJobs = [], isLoading } = useSavedJobs();
-
-  // Pending guest records (failed reconciliation uploads) stay visible in
-  // the list; retry the sync whenever this page is opened signed in.
-  const { isAuthenticated, login } = useAuth();
+  const client = useQueryClient();
+  const posthog = usePostHog();
+  const auth = useAuth();
+  const account = auth.isAuthenticated && auth.user ? auth.user.id : null;
+  const lifetime = useRef({ active: true, account });
+  lifetime.current.account = account;
   useEffect(() => {
-    if (!isAuthenticated) return;
-    reconcileGuestSavedJobs().finally(() => {
-      queryClient.invalidateQueries({ queryKey: ['savedJobs'] });
-    });
-  }, [isAuthenticated, queryClient]);
-
-  const pendingCount = savedJobs.filter(j => j.pending).length;
-  const retrySync = useMutation({
-    mutationFn: () => reconcileGuestSavedJobs(),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['savedJobs'] }),
+    lifetime.current.active = true;
+    return () => {
+      lifetime.current.active = false;
+    };
+  }, []);
+  const saved = useSavedJobs();
+  const jobs = saved.data || [];
+  const [filter, setFilter] = useState<Filter>('all');
+  const [editing, setEditing] = useState<string | null>(null);
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [pending, setPending] = useState(new Set<string>());
+  const locks = useRef(new Set<string>());
+  const generation = useRef(0);
+  // Account changes discard in-memory drafts as well as query-cache records.
+  useEffect(() => {
+    setEditing(null);
+    setDrafts({});
+    setErrors({});
+    setPending(new Set());
+    locks.current.clear();
+    generation.current++;
+  }, [account]);
+  const sync = useMutation({
+    mutationFn: reconcileGuestSavedJobs,
+    onSuccess: () => client.invalidateQueries({ queryKey: ['savedJobs'] }),
+    onError: () => toast.error('Could not sync yet. Your browser saves are still here.'),
   });
-
-  const filteredJobs = savedJobs.filter(job => {
-    if (filter === 'applied') return job.applied;
-    if (filter === 'not-applied') return !job.applied;
-    return true;
-  });
-
-  const appliedCount = savedJobs.filter(j => j.applied).length;
-
-  const deleteMutation = useMutation({
-    mutationFn: ({ id, url }: { id: string; url?: string }) => savedJobsApi.delete(id, url),
-    onSuccess: (removed) => {
-      queryClient.invalidateQueries({ queryKey: ['savedJobs'] });
-      // delete() resolves false when nothing was actually removed or queued
-      // (e.g. the account could not be resolved to scope a retry) - that is
-      // a failure, not a removal.
-      if (removed) {
-        toast.success('Job removed from saved');
-      } else {
-        toast.error('Failed to remove job');
+  useEffect(() => {
+    if (!auth.isAuthenticated) return;
+    let active = true;
+    void reconcileGuestSavedJobs()
+      .catch(() => {})
+      .finally(() => {
+        if (active) void client.invalidateQueries({ queryKey: ['savedJobs'] });
+      });
+    return () => {
+      active = false;
+    };
+  }, [auth.isAuthenticated, account, client]);
+  const refresh = () => client.invalidateQueries({ queryKey: ['savedJobs'] });
+  const perform = async (job: SavedJob, action: () => Promise<void>) => {
+    if (locks.current.has(job.url)) return;
+    const operationGeneration = generation.current;
+    locks.current.add(job.url);
+    setPending(new Set(locks.current));
+    try {
+      await action();
+    } catch {
+      if (lifetime.current.active && lifetime.current.account === account) {
+        setErrors((previous) => ({ ...previous, [job.id]: 'Could not save this change. Please try again.' }));
+        toast.error('Could not save this change. Please try again.');
       }
-    },
-    onError: () => {
-      toast.error('Failed to remove job');
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data, url }: { id: string; data: Partial<SavedJob>; url?: string }) =>
-      savedJobsApi.update(id, data, url),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['savedJobs'] });
-    },
-    onError: () => {
-      toast.error('Failed to update job');
-    },
-  });
-
-  const toggleApplied = (job: SavedJob) => {
-    const newApplied = !job.applied;
-    updateMutation.mutate({
-      id: job.id,
-      data: {
-        applied: newApplied,
-        applied_date: newApplied ? new Date().toISOString().split('T')[0] : undefined
-      },
-      url: job.url
-    }, {
-      onSuccess: () => {
-        toast.success(newApplied ? 'Marked as applied!' : 'Unmarked as applied');
+    } finally {
+      if (generation.current === operationGeneration) {
+        locks.current.delete(job.url);
+        if (lifetime.current.active) setPending(new Set(locks.current));
       }
+    }
+  };
+  const edit = (job: SavedJob) => {
+    setEditing(job.id);
+    setDrafts((previous) => ({ ...previous, [job.id]: previous[job.id] ?? job.comments ?? '' }));
+    setErrors((previous) => ({ ...previous, [job.id]: '' }));
+  };
+  const saveNote = (job: SavedJob) =>
+    perform(job, async () => {
+      const updated = await savedJobsApi.update(job.id, { comments: drafts[job.id] || '' }, job.url);
+      if (!updated) throw new Error('Note not saved');
+      await refresh();
+      if (!lifetime.current.active || lifetime.current.account !== account) return;
+      setEditing((current) => (current === job.id ? null : current));
+      setDrafts((previous) => {
+        const next = { ...previous };
+        delete next[job.id];
+        return next;
+      });
+      setErrors((previous) => ({ ...previous, [job.id]: '' }));
+      toast.success('Note saved');
     });
-  };
-
-  const startEditingComment = (job: SavedJob) => {
-    setEditingComment(job.id);
-    setCommentText(job.comments || '');
-  };
-
-  const saveComment = (job: SavedJob) => {
-    const text = commentText;
-    setEditingComment(null);
-    setCommentText('');
-    updateMutation.mutate({
-      id: job.id,
-      data: { comments: text },
-      url: job.url
-    }, {
-      onSuccess: () => {
-        toast.success('Comment saved');
-      }
+  const toggleApplied = (job: SavedJob) =>
+    perform(job, async () => {
+      const updated = await savedJobsApi.update(
+        job.id,
+        {
+          applied: !job.applied,
+          applied_date: !job.applied
+            ? new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jerusalem' })
+            : undefined,
+        },
+        job.url,
+      );
+      if (!updated) throw new Error('Status not saved');
+      await refresh();
+      setErrors((previous) => ({ ...previous, [job.id]: '' }));
     });
-  };
-
+  const remove = (job: SavedJob) =>
+    perform(job, async () => {
+      if (!(await savedJobsApi.delete(job.id, job.url))) throw new Error('Job not removed');
+      await refresh();
+      if (!lifetime.current.active || lifetime.current.account !== account) return;
+      toast.success('Job removed from saved', {
+        duration: 8000,
+        action: {
+          label: 'Undo',
+          onClick: async () => {
+            if (lifetime.current.active && lifetime.current.account !== account) {
+              toast.error('Return to the original account to restore this job.');
+              return;
+            }
+            try {
+              await savedJobsApi.restore(job, account);
+              await refresh();
+              toast.success('Job restored, including your note and application status');
+            } catch {
+              toast.error('Could not restore this job. Please try saving it again.');
+            }
+          },
+        },
+      });
+    });
+  const applied = jobs.filter((job) => job.applied).length;
+  const pendingCount = jobs.filter((job) => job.pending).length;
+  const filtered = jobs.filter(
+    (job) => filter === 'all' || (filter === 'applied' ? job.applied : !job.applied),
+  );
   return (
-    <div className="min-h-screen bg-page">
-      {/* Header */}
-      <div className="bg-surface border-b border-warm-200">
-        <div className="max-w-4xl mx-auto px-4 py-6">
-          <div className="flex items-center gap-4 mb-4">
-            <Button asChild variant="ghost" size="icon">
-              <Link to={createPageUrl("Jobs")} aria-label="Back to jobs">
-                <ArrowLeft className="w-5 h-5" aria-hidden="true" />
-              </Link>
-            </Button>
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-iris-100 rounded-lg">
-                <Bookmark className="w-6 h-6 text-iris-600" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-warm-900">Saved Jobs</h1>
-                <p className="text-warm-500">{savedJobs.length} jobs saved • {appliedCount} applied</p>
-              </div>
-            </div>
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10">
+      <div className="section-heading">
+        <div>
+          <p className="eyebrow mb-2">Your next move, organized</p>
+          <h1 className="text-3xl font-bold tracking-tight text-ink">Saved Jobs</h1>
+          <p className="mt-2 text-sm text-muted">
+            {saved.isLoading
+              ? 'Loading your shortlist…'
+              : `${jobs.length} ${jobs.length === 1 ? 'job' : 'jobs'} saved · ${applied} applied`}
+          </p>
+        </div>
+        <Button asChild variant="outline">
+          <Link to="/jobs">Browse jobs</Link>
+        </Button>
+      </div>
+      {!auth.isAuthenticated && (
+        <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-iris-200 bg-iris-50 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="font-semibold text-ink">Saved on this browser</h2>
+            <p className="mt-1 max-w-2xl text-sm leading-6 text-muted">
+              Your shortlist, notes and application status stay on this device. Sign in to keep them with you
+              across devices.
+            </p>
           </div>
-
-          {!isAuthenticated && (
-            <div className="mt-5 flex flex-col gap-4 rounded-xl border border-iris-100 bg-iris-50 p-4 sm:flex-row sm:items-center sm:justify-between">
-              <div><h2 className="text-sm font-semibold text-ink">Saved on this browser</h2><p className="mt-1 text-sm text-muted">Guest bookmarks and notes stay on this device. Sign in to sync them to your account and access them elsewhere.</p></div>
-              <Button onClick={() => login(window.location.href)} className="shrink-0"><LogIn className="mr-2 h-4 w-4" aria-hidden="true" />Sign in to sync</Button>
-            </div>
-          )}
-
-          {isAuthenticated && pendingCount > 0 && (
-            <div className="mt-4 flex items-center justify-between gap-3 rounded-lg border border-warning-border bg-warning-bg px-4 py-3" role="status">
-              <p className="text-sm text-warning">
-                {pendingCount} saved {pendingCount === 1 ? 'job has' : 'jobs have'} not synced to your account yet.
-              </p>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => retrySync.mutate()}
-                disabled={retrySync.isPending}
-                className="gap-1.5"
-              >
-                <RefreshCw className={`w-4 h-4 ${retrySync.isPending ? 'animate-spin' : ''}`} />
-                Retry sync
-              </Button>
-            </div>
-          )}
-
-          {/* Filter Tabs */}
-          {savedJobs.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-4" role="group" aria-label="Filter saved jobs">
-              <Button
-                variant={filter === 'all' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setFilter('all')}
-                className={filter === 'all' ? 'bg-action hover:bg-action-hover text-action-foreground' : ''}
-                aria-pressed={filter === 'all'}
-              >
-                All ({savedJobs.length})
-              </Button>
-              <Button
-                variant={filter === 'applied' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setFilter('applied')}
-                className={filter === 'applied' ? 'bg-action hover:bg-action-hover text-action-foreground' : ''}
-                aria-pressed={filter === 'applied'}
-              >
-                <CheckCircle2 className="w-4 h-4 mr-1.5" />
-                Applied ({appliedCount})
-              </Button>
-              <Button
-                variant={filter === 'not-applied' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setFilter('not-applied')}
-                className={filter === 'not-applied' ? 'bg-action hover:bg-action-hover text-action-foreground' : ''}
-                aria-pressed={filter === 'not-applied'}
-              >
-                <Circle className="w-4 h-4 mr-1.5" />
-                Not Applied ({savedJobs.length - appliedCount})
-              </Button>
-            </div>
+          <Button onClick={() => auth.login(window.location.href)} className="shrink-0">
+            Sign in to sync
+          </Button>
+        </div>
+      )}
+      {auth.isAuthenticated && pendingCount > 0 && (
+        <div
+          role="status"
+          className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-warning-border bg-warning-bg p-4"
+        >
+          <p className="text-sm text-warning">
+            {pendingCount} saved {pendingCount === 1 ? 'job has' : 'jobs have'} not synced to your account
+            yet.
+          </p>
+          <Button variant="outline" onClick={() => sync.mutate()} disabled={sync.isPending}>
+            <RefreshCw
+              className={`mr-2 h-4 w-4 ${sync.isPending ? 'animate-spin' : ''}`}
+              aria-hidden="true"
+            />
+            Retry sync
+          </Button>
+        </div>
+      )}
+      {saved.isError && jobs.length > 0 && (
+        <div
+          role="status"
+          className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-warning-border bg-warning-bg p-4 text-sm text-warning"
+        >
+          Could not refresh your shortlist. Showing the last loaded jobs.
+          <Button variant="outline" onClick={() => saved.refetch()}>
+            Retry
+          </Button>
+        </div>
+      )}
+      {jobs.length > 0 && (
+        <div className="my-6 flex flex-wrap gap-2" role="group" aria-label="Filter saved jobs">
+          {[
+            { value: 'all' as const, label: `All (${jobs.length})` },
+            { value: 'applied' as const, label: `Applied (${applied})` },
+            { value: 'not-applied' as const, label: `Not applied (${jobs.length - applied})` },
+          ].map((item) => (
+            <Button
+              key={item.value}
+              size="sm"
+              variant={filter === item.value ? 'default' : 'outline'}
+              aria-pressed={filter === item.value}
+              onClick={() => setFilter(item.value)}
+            >
+              {item.label}
+            </Button>
+          ))}
+        </div>
+      )}
+      {saved.isLoading ? (
+        <div role="status" aria-label="Loading saved jobs" className="mt-6 grid gap-4 lg:grid-cols-2">
+          {[0, 1].map((index) => (
+            <div key={index} className="h-56 animate-pulse rounded-2xl border border-border bg-warm-100" />
+          ))}
+        </div>
+      ) : saved.isError && jobs.length === 0 ? (
+        <div role="alert" className="mt-6 rounded-2xl border border-border bg-surface p-10 text-center">
+          <h2 className="text-lg font-semibold text-ink">Saved jobs could not be loaded</h2>
+          <p className="mt-2 text-sm text-muted">
+            Your shortlist may still be available. Check your connection and try again.
+          </p>
+          <Button className="mt-5" onClick={() => saved.refetch()}>
+            Retry saved jobs
+          </Button>
+        </div>
+      ) : !filtered.length ? (
+        <div className="mt-6 rounded-2xl border border-dashed border-border bg-surface p-10 text-center sm:p-14">
+          <Bookmark className="mx-auto h-10 w-10 text-primary" aria-hidden="true" />
+          <h2 className="mt-4 text-xl font-semibold text-ink">
+            {jobs.length === 0
+              ? 'Start your next chapter with a shortlist'
+              : filter === 'applied'
+                ? 'No applied jobs yet'
+                : 'You’ve applied to every saved role'}
+          </h2>
+          <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-muted">
+            {jobs.length === 0
+              ? 'Save a role while browsing. Your notes and application status will live here.'
+              : 'Switch filters to see the rest of your shortlist.'}
+          </p>
+          {jobs.length === 0 ? (
+            <Button asChild className="mt-5">
+              <Link to="/jobs">Find roles to save</Link>
+            </Button>
+          ) : (
+            <Button variant="outline" className="mt-5" onClick={() => setFilter('all')}>
+              View all saved jobs
+            </Button>
           )}
         </div>
-      </div>
-
-      {/* Content */}
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        {isLoading ? (
-          <div className="space-y-4">
-            {[...Array(3)].map((_, i) => (
-              <Card key={i} className="animate-pulse">
-                <CardContent className="p-6">
-                  <div className="h-6 bg-warm-200 rounded w-3/4 mb-3" />
-                  <div className="h-4 bg-warm-200 rounded w-1/2" />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : filteredJobs.length === 0 && savedJobs.length === 0 ? (
-          <div className="text-center py-16">
-            <Briefcase className="w-16 h-16 text-warm-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-warm-700 mb-2">No saved jobs yet</h3>
-            <p className="text-warm-500 mb-6">
-              Browse jobs and click the bookmark icon to save them here
-            </p>
-            <Button asChild className="bg-action hover:bg-action-hover text-action-foreground">
-              <Link to={createPageUrl("Jobs")}>
-                Browse Jobs
-              </Link>
-            </Button>
-          </div>
-        ) : filteredJobs.length === 0 ? (
-          <div className="text-center py-16">
-            <CheckCircle2 className="w-16 h-16 text-warm-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-warm-700 mb-2">
-              {filter === 'applied' ? 'No applied jobs yet' : 'All jobs have been applied to!'}
-            </h3>
-            <p className="text-warm-500 mb-6">
-              {filter === 'applied'
-                ? 'Mark jobs as applied when you submit your application'
-                : 'Great job! You\'ve applied to all your saved positions'}
-            </p>
-            <Button onClick={() => setFilter('all')} variant="outline">
-              View All Jobs
-            </Button>
-          </div>
-        ) : (
-          <>
-            <div className="space-y-4">
-              {filteredJobs.map((job) => (
-                <div
-                  key={job.id}
-                >
-                  <Card className="bg-surface hover:shadow-lg transition-shadow">
-                    <CardContent className="p-6">
-                      <div className="flex justify-between items-start gap-4">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-2 flex-wrap">
-                            {job.pending && (
-                              <Badge variant="outline" className="bg-warning-bg text-warning border-warning-border text-xs">
-                                Not synced yet
-                              </Badge>
-                            )}
-                            {job.level && (
-                              <Badge
-                                variant="outline"
-                                className="bg-warm-50 text-warm-700 border-warm-200 text-xs capitalize"
-                              >
-                                {job.level}
-                              </Badge>
-                            )}
-                            {job.job_category && (
-                              <Badge variant="outline" className="bg-iris-50 text-iris-700 border-iris-200 text-xs capitalize">
-                                {job.job_category.replace(/-/g, ' ')}
-                              </Badge>
-                            )}
-                            {job.applied && (
-                              <Badge className="bg-success-bg text-success border-success-border hover:bg-success-bg gap-1">
-                                <CheckCircle2 className="w-3 h-3" />
-                                Applied {job.applied_date && `• ${format(new Date(job.applied_date), 'MMM d')}`}
-                              </Badge>
-                            )}
-                          </div>
-
-                          <h3 className="font-semibold text-lg text-warm-900 mb-2 break-words" dir="auto">
-                            {job.job_title}
-                          </h3>
-
-                          <div className="flex items-center gap-2 text-warm-600 mb-2">
-                            <Building2 className="w-4 h-4 text-warm-400" />
-                            <span className="font-medium">{job.company}</span>
-                            {job.category && (
-                              <>
-                                <span className="text-warm-300">•</span>
-                                <span className="text-sm text-warm-500">{job.category}</span>
-                              </>
-                            )}
-                          </div>
-
-                          {job.city && (
-                            <div className="flex items-center gap-1.5 text-sm text-warm-500">
-                              <MapPin className="w-4 h-4 text-warm-400" />
-                              <span>{job.city}</span>
-                            </div>
-                          )}
-                        </div>
-
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => deleteMutation.mutate({ id: job.id, url: job.url })}
-                          disabled={deleteMutation.isPending}
-                          className="text-muted hover:text-danger hover:bg-danger-bg disabled:opacity-50"
-                          aria-label={`Remove ${job.job_title} from saved jobs`}
-                        >
-                          <BookmarkX className="w-5 h-5" />
-                        </Button>
-                      </div>
-
-                      {/* Comments Section */}
-                      {editingComment === job.id ? (
-                        <div className="mt-4 space-y-2">
-                          <Textarea
-                            placeholder="Add notes about this application..."
-                            aria-label={`Note for ${job.job_title}`}
-                            value={commentText}
-                            onChange={(e) => setCommentText(e.target.value)}
-                            className="min-h-20"
-                          />
-                          <div className="flex gap-2 justify-end">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setEditingComment(null);
-                                setCommentText('');
-                              }}
-                            >
-                              <X className="w-4 h-4 mr-1" />
-                              Cancel
-                            </Button>
-                            <Button
-                              size="sm"
-                              onClick={() => saveComment(job)}
-                              disabled={updateMutation.isPending}
-                              className="bg-action hover:bg-action-hover text-action-foreground disabled:opacity-50"
-                            >
-                              {updateMutation.isPending ? 'Saving...' : 'Save'}
-                            </Button>
-                          </div>
-                        </div>
-                      ) : job.comments ? (
-                        <div className="mt-4 p-3 bg-warm-50 rounded-lg">
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex items-start gap-2 text-sm text-warm-600">
-                              <MessageSquare className="w-4 h-4 text-warm-400 mt-0.5 shrink-0" />
-                              <p className="whitespace-pre-wrap">{job.comments}</p>
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="text-muted hover:text-ink"
-                              aria-label={`Edit note for ${job.job_title}`}
-                              onClick={() => startEditingComment(job)}
-                            >
-                              <Pencil className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        </div>
-                      ) : null}
-
-                      <div className="mt-4 pt-4 border-t border-warm-100 flex flex-wrap gap-3 justify-between items-center">
-                        <div className="flex flex-wrap gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => toggleApplied(job)}
-                            disabled={updateMutation.isPending}
-                            className={`${job.applied ? 'text-success border-success-border hover:bg-success-bg hover:text-success' : ''} disabled:opacity-50`}
-                          >
-                            {job.applied ? (
-                              <CheckCircle2 className="w-4 h-4 mr-1.5" />
-                            ) : (
-                              <Circle className="w-4 h-4 mr-1.5" />
-                            )}
-                            {job.applied ? 'Applied' : 'Mark Applied'}
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => startEditingComment(job)}
-                            className="gap-1.5"
-                          >
-                            <MessageSquare className="w-4 h-4" />
-                            {job.comments ? 'Edit Note' : 'Add Note'}
-                          </Button>
-                        </div>
-                        <Button
-                          asChild
-                          size="sm"
-                          className="bg-action hover:bg-action-hover text-action-foreground gap-2"
-                        >
-                          <a href={job.url} target="_blank" rel="noopener noreferrer">
-                            Apply Now
-                            <ExternalLink className="w-4 h-4" />
-                          </a>
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
+      ) : (
+        <div className="grid items-start gap-4 lg:grid-cols-2">
+          {filtered.map((job) => (
+            <article
+              key={job.id}
+              aria-label={`${job.job_title} at ${job.company}`}
+              className="min-w-0 rounded-2xl border border-border bg-surface p-5 shadow-sm"
+            >
+              <div className="flex items-start gap-3">
+                <CompanyLogo name={job.company} className="h-10 w-10" />
+                <div className="min-w-0 flex-1">
+                  <h2 className="break-words text-lg font-semibold leading-6 text-ink" dir="auto">
+                    {job.job_title}
+                  </h2>
+                  <Link
+                    to={`/company?name=${encodeURIComponent(job.company)}`}
+                    className="mt-1 inline-block text-sm font-medium text-muted hover:text-primary hover:underline"
+                  >
+                    <bdi>{job.company}</bdi>
+                  </Link>
                 </div>
-              ))}
-            </div>
-          </>
-        )}
-      </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  disabled={pending.has(job.url)}
+                  aria-label={`Remove ${job.job_title} from saved jobs`}
+                  onClick={() => remove(job)}
+                >
+                  <BookmarkX className="h-4 w-4 text-muted" aria-hidden="true" />
+                </Button>
+              </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {job.job_category && (
+                  <Badge variant="secondary">
+                    {CATEGORY_LABELS[job.job_category] || job.job_category.replace(/-/g, ' ')}
+                  </Badge>
+                )}
+                {job.level && (
+                  <Badge variant="outline" className="capitalize">
+                    {job.level}
+                  </Badge>
+                )}
+                {job.pending && (
+                  <Badge variant="outline" className="border-warning-border bg-warning-bg text-warning">
+                    Not synced yet
+                  </Badge>
+                )}
+                {job.applied && (
+                  <Badge className="border-success-border bg-success-bg text-success">
+                    Applied
+                    {job.applied_date && Number.isFinite(Date.parse(job.applied_date))
+                      ? ` · ${new Date(`${job.applied_date.slice(0, 10)}T12:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`
+                      : ''}
+                  </Badge>
+                )}
+              </div>
+              {job.city && (
+                <p className="mt-3 flex items-start gap-1.5 text-sm text-muted">
+                  <MapPin className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                  <bdi>{job.city}</bdi>
+                </p>
+              )}
+              {editing === job.id ? (
+                <div className="mt-4">
+                  <label htmlFor={`note-${job.id}`} className="mb-2 block text-sm font-medium text-ink">
+                    Your note
+                  </label>
+                  <Textarea
+                    id={`note-${job.id}`}
+                    aria-label={`Note for ${job.job_title}`}
+                    aria-describedby={errors[job.id] ? `error-${job.id}` : undefined}
+                    disabled={pending.has(job.url)}
+                    value={drafts[job.id] ?? ''}
+                    onChange={(event) =>
+                      setDrafts((previous) => ({ ...previous, [job.id]: event.target.value }))
+                    }
+                    placeholder="What would you like to remember about this role?"
+                    className="min-h-28"
+                  />
+                  <div className="mt-2 flex justify-end gap-2">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={pending.has(job.url)}
+                      onClick={() => {
+                        setEditing(null);
+                        setDrafts((previous) => {
+                          const next = { ...previous };
+                          delete next[job.id];
+                          return next;
+                        });
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button size="sm" disabled={pending.has(job.url)} onClick={() => saveNote(job)}>
+                      {pending.has(job.url) ? 'Saving…' : 'Save note'}
+                    </Button>
+                  </div>
+                </div>
+              ) : job.comments ? (
+                <div className="mt-4 flex items-start justify-between gap-2 rounded-xl bg-page p-3">
+                  <p className="min-w-0 whitespace-pre-wrap break-words text-sm leading-6 text-muted">
+                    {job.comments}
+                  </p>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    disabled={pending.has(job.url)}
+                    aria-label={`Edit note for ${job.job_title}`}
+                    onClick={() => edit(job)}
+                  >
+                    <Pencil className="h-4 w-4" aria-hidden="true" />
+                  </Button>
+                </div>
+              ) : null}
+              {errors[job.id] && (
+                <p id={`error-${job.id}`} role="alert" className="mt-3 text-sm text-danger">
+                  {errors[job.id]}
+                </p>
+              )}
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
+                <div className="flex flex-wrap gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    aria-pressed={!!job.applied}
+                    disabled={pending.has(job.url)}
+                    onClick={() => toggleApplied(job)}
+                    className={`gap-1.5 px-2 ${job.applied ? 'text-success' : ''}`}
+                  >
+                    {job.applied ? (
+                      <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+                    ) : (
+                      <Circle className="h-4 w-4" aria-hidden="true" />
+                    )}
+                    {job.applied ? 'Applied' : 'Mark applied'}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={pending.has(job.url)}
+                    onClick={() => edit(job)}
+                    className="gap-1.5 px-2"
+                  >
+                    <MessageSquare className="h-4 w-4" aria-hidden="true" />
+                    {job.comments ? 'Edit note' : 'Add note'}
+                  </Button>
+                </div>
+                <Button asChild size="sm">
+                  <a
+                    href={job.url}
+                    onClick={() =>
+                      posthog.capture('job_apply_clicked', {
+                        company: job.company,
+                        job_title: job.job_title,
+                        source_page: '/saved',
+                      })
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`Apply to ${job.job_title} at ${job.company} (opens in new window)`}
+                  >
+                    Apply
+                    <ExternalLink className="ml-2 h-3.5 w-3.5" aria-hidden="true" />
+                  </a>
+                </Button>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

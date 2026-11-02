@@ -75,3 +75,16 @@ describe('jobs search history', () => {
     expect(result.current.location.search).toBe('?search=Engineer');
   });
 });
+
+describe('job sort URL state', () => {
+  it('restores sort through history and resets pagination when sort changes', () => {
+    const { result } = renderFilters('/jobs?search=Engineer&page=3');
+    act(() => result.current.setFilters(previous => ({ ...previous, sort: 'recent' })));
+    expect(result.current.location.search).toBe('?search=Engineer&sort=recent');
+    expect(result.current.query.sort).toBe('recent');
+    expect(result.current.page).toBe(1);
+    act(() => result.current.navigate(-1));
+    expect(result.current.query.sort).toBe('balanced');
+    expect(result.current.page).toBe(3);
+  });
+});

@@ -1,8 +1,8 @@
+import { useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search, SlidersHorizontal, Bookmark, Download, MoreHorizontal } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { createPageUrl } from '@/utils';
 
 interface SearchHeaderProps {
   searchQuery: string;
@@ -15,36 +15,158 @@ interface SearchHeaderProps {
   isGuest?: boolean;
   onExportCsv?: () => void;
   isExporting?: boolean;
+  sort?: 'balanced' | 'recent';
+  onSortChange?: (sort: 'balanced' | 'recent') => void;
+  onSignIn?: () => void;
 }
-
-export default function SearchHeader({ searchQuery, setSearchQuery, onFilterClick, totalJobs, visibleJobs,
-  activeFiltersCount, isLoading, isGuest, onExportCsv, isExporting }: SearchHeaderProps) {
+export default function SearchHeader({
+  searchQuery,
+  setSearchQuery,
+  onFilterClick,
+  totalJobs,
+  visibleJobs,
+  activeFiltersCount,
+  isLoading,
+  isGuest,
+  onExportCsv,
+  isExporting,
+  sort = 'balanced',
+  onSortChange,
+  onSignIn,
+}: SearchHeaderProps) {
+  const menuRef = useRef<HTMLDetailsElement>(null);
+  useEffect(() => {
+    const close = (event: PointerEvent | KeyboardEvent) => {
+      if (!menuRef.current?.open) return;
+      if (event instanceof KeyboardEvent && event.key === 'Escape') {
+        menuRef.current.open = false;
+        menuRef.current.querySelector('summary')?.focus();
+      } else if (event.type === 'pointerdown' && !menuRef.current.contains(event.target as Node))
+        menuRef.current.open = false;
+    };
+    document.addEventListener('keydown', close);
+    document.addEventListener('pointerdown', close);
+    return () => {
+      document.removeEventListener('keydown', close);
+      document.removeEventListener('pointerdown', close);
+    };
+  }, []);
   return (
-    <div className="sticky top-16 z-20 border-b border-warm-200 bg-surface/95 backdrop-blur-md" role="search">
+    <div
+      className="sticky z-20 border-b border-border bg-surface/95 backdrop-blur-md"
+      style={{ top: 'var(--header-height)' }}
+      role="search"
+    >
       <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative min-w-0 flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-warm-400" aria-hidden="true" />
-            <Input type="search" placeholder="Job title, company, or keyword" value={searchQuery}
-              onChange={event => setSearchQuery(event.target.value)} className="h-11 bg-warm-50 pl-9 border-warm-200"
-              aria-label="Search jobs, companies, or keywords" autoComplete="off" />
+            <label htmlFor="jobs-search" className="sr-only">
+              Search jobs, companies, or keywords
+            </label>
+            <Search
+              className="pointer-events-none absolute left-3 top-3.5 h-4 w-4 text-muted"
+              aria-hidden="true"
+            />
+            <Input
+              id="jobs-search"
+              type="search"
+              placeholder="Job title, company, or keyword"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              className="h-11 bg-page pl-9"
+              autoComplete="off"
+            />
           </div>
-          <Button data-job-filter-trigger variant="outline" onClick={onFilterClick} className="lg:hidden gap-2"
-            aria-label={`Open filters${activeFiltersCount ? ` (${activeFiltersCount} active)` : ''}`}>
-            <SlidersHorizontal className="h-4 w-4" aria-hidden="true" /><span className="hidden sm:inline">Filters</span>
-            {!!activeFiltersCount && <span className="rounded-full bg-action px-1.5 py-0.5 text-xs text-action-foreground">{activeFiltersCount}</span>}
-          </Button>
-          <Button asChild variant="outline" className="gap-2"><Link to={createPageUrl('SavedJobs')} aria-label="View saved jobs"><Bookmark className="h-4 w-4" aria-hidden="true" /><span className="hidden sm:inline">Saved jobs</span></Link></Button>
-          {onExportCsv && <details className="relative shrink-0">
-            <summary className="flex h-11 w-11 cursor-pointer list-none items-center justify-center rounded-lg border border-warm-200 bg-surface text-warm-600 hover:bg-warm-50 focus-visible:outline-2 focus-visible:outline-iris-600" aria-label="More job actions"><MoreHorizontal className="h-5 w-5" aria-hidden="true" /></summary>
-            <div className="absolute right-0 top-full mt-2 w-56 rounded-lg border border-warm-200 bg-surface p-1 shadow-lg">
-              <button type="button" onClick={onExportCsv} disabled={isExporting || (!isGuest && totalJobs === 0)} className="flex min-h-11 w-full items-center gap-2 rounded-md px-3 text-left text-sm text-warm-700 hover:bg-warm-50 disabled:opacity-50"><Download className="h-4 w-4" aria-hidden="true" />{isExporting ? 'Preparing export…' : isGuest ? 'Sign in to export CSV' : 'Export filtered jobs to CSV'}</button>
+          <div className="flex items-center gap-1 sm:gap-2">
+            <Button
+              data-job-filter-trigger
+              variant="outline"
+              onClick={onFilterClick}
+              className="gap-1.5 px-2 text-xs sm:px-3 sm:text-sm lg:hidden"
+              aria-label={`Open filters${activeFiltersCount ? ` (${activeFiltersCount} active)` : ''}`}
+            >
+              <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
+              Filters
+              {!!activeFiltersCount && (
+                <span className="rounded-full bg-action px-1.5 py-0.5 text-xs text-action-foreground">
+                  {activeFiltersCount}
+                </span>
+              )}
+            </Button>
+            <div className="min-w-0 flex-1 sm:flex-none">
+              <label htmlFor="jobs-sort" className="sr-only">
+                Sort jobs
+              </label>
+              <select
+                id="jobs-sort"
+                className="native-select"
+                value={sort}
+                onChange={(event) => onSortChange?.(event.target.value as 'balanced' | 'recent')}
+              >
+                <option value="balanced">Employer variety</option>
+                <option value="recent">Recently updated</option>
+              </select>
             </div>
-          </details>}
+            <Button asChild variant="outline" className="gap-1.5 px-2 text-xs sm:px-3 sm:text-sm">
+              <Link to="/saved" aria-label="View saved jobs">
+                <Bookmark className="h-4 w-4" aria-hidden="true" />
+                <span>Saved</span>
+              </Link>
+            </Button>
+          </div>
         </div>
-        <div className="mt-2 text-xs text-warm-500" role="status" aria-live="polite" aria-atomic="true">
-          {isLoading ? 'Loading jobs…' : `Showing ${visibleJobs.toLocaleString()} of ${totalJobs.toLocaleString()} matching jobs`}
-          {isGuest && !isLoading && <span className="ml-2 text-iris-700">Guest preview</span>}
+        <div className="mt-2 flex items-start justify-between gap-2">
+          <div
+            className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs leading-5 text-muted"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+          >
+            {isLoading ? (
+              'Loading jobs…'
+            ) : isGuest && totalJobs > visibleJobs ? (
+              <>
+                Showing the first {visibleJobs.toLocaleString()} matching jobs.
+                <button
+                  type="button"
+                  onClick={onSignIn}
+                  className="min-h-8 font-medium text-primary underline underline-offset-2"
+                >
+                  Sign in to see all {totalJobs.toLocaleString()} matches
+                </button>
+              </>
+            ) : (
+              `${totalJobs.toLocaleString()} matching ${totalJobs === 1 ? 'job' : 'jobs'}${totalJobs > visibleJobs ? ` · Showing ${visibleJobs.toLocaleString()}` : ''}`
+            )}
+          </div>
+          {onExportCsv && (
+            <details ref={menuRef} className="relative shrink-0">
+              <summary
+                className="flex h-11 w-11 cursor-pointer list-none items-center justify-center rounded-lg border border-border text-muted hover:bg-page focus-visible:outline-2 focus-visible:outline-primary"
+                aria-label="More job actions"
+              >
+                <MoreHorizontal className="h-5 w-5" aria-hidden="true" />
+              </summary>
+              <div className="absolute right-0 top-full z-30 mt-2 w-64 rounded-lg border border-border bg-surface p-1 shadow-lg">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (menuRef.current) menuRef.current.open = false;
+                    onExportCsv();
+                  }}
+                  disabled={isExporting || (!isGuest && totalJobs === 0)}
+                  className="flex min-h-11 w-full items-center gap-2 rounded-md px-3 text-left text-sm text-ink hover:bg-page disabled:opacity-50"
+                >
+                  <Download className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  {isExporting
+                    ? 'Preparing export…'
+                    : isGuest
+                      ? 'Sign in to export CSV'
+                      : 'Export filtered jobs to CSV'}
+                </button>
+              </div>
+            </details>
+          )}
         </div>
       </div>
     </div>

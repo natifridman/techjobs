@@ -7,6 +7,7 @@ import { Toaster } from 'sonner';
 import { useTheme } from '@/hooks/useTheme';
 
 import Layout from '@/components/Layout';
+import RouteNavigation from '@/components/RouteNavigation';
 import Home from '@/pages/Home';
 import Jobs from '@/pages/Jobs';
 
@@ -46,11 +47,10 @@ function PageTitle() {
     // search engines don't collapse every page into "/".
     const canonical = document.querySelector<HTMLLinkElement>('link[rel="canonical"]');
     if (canonical) {
-      const company = pathname.startsWith('/company')
-        ? new URLSearchParams(search).get('name')
-        : null;
+      const company = pathname.startsWith('/company') ? new URLSearchParams(search).get('name') : null;
       canonical.href =
-        'https://techjobsil.com' + (pathname === '/' ? '/' : pathname) +
+        'https://techjobsil.com' +
+        (pathname === '/' ? '/' : pathname) +
         (company ? `?name=${encodeURIComponent(company)}` : '');
     }
   }, [pathname, search]);
@@ -73,92 +73,31 @@ function App() {
       <Router>
         <PageTitle />
         <AuthErrorToast />
-        <ErrorBoundary>
-        <Suspense fallback={<div className="min-h-[60vh] flex items-center justify-center text-warm-500">Loading...</div>}>
-        <Routes>
-          <Route
-            path="/"
-            element={
-              <Layout currentPageName="Home">
-                <Home />
-              </Layout>
-            }
-          />
-          <Route
-            path="/jobs"
-            element={
-              <Layout currentPageName="Jobs">
-                <Jobs />
-              </Layout>
-            }
-          />
-          <Route
-            path="/companies"
-            element={
-              <Layout currentPageName="Companies">
-                <Companies />
-              </Layout>
-            }
-          />
-          <Route
-            path="/company"
-            element={
-              <Layout currentPageName="CompanyProfile">
-                <CompanyProfile />
-              </Layout>
-            }
-          />
-          <Route
-            path="/saved"
-            element={
-              <Layout currentPageName="SavedJobs">
-                <SavedJobs />
-              </Layout>
-            }
-          />
-          <Route
-            path="/map"
-            element={
-              <Layout currentPageName="Map">
-                <Map />
-              </Layout>
-            }
-          />
-          <Route
-            path="/privacy"
-            element={
-              <Layout currentPageName="PrivacyPolicy">
-                <PrivacyPolicy />
-              </Layout>
-            }
-          />
-          <Route
-            path="/terms"
-            element={
-              <Layout currentPageName="TermsOfService">
-                <TermsOfService />
-              </Layout>
-            }
-          />
-          <Route
-            path="/accessibility"
-            element={
-              <Layout currentPageName="AccessibilityStatement">
-                <AccessibilityStatement />
-              </Layout>
-            }
-          />
-          <Route
-            path="*"
-            element={
-              <Layout currentPageName="NotFound">
-                <NotFound />
-              </Layout>
-            }
-          />
-        </Routes>
-        </Suspense>
-        </ErrorBoundary>
+        <RouteNavigation />
+        <Layout>
+          <ErrorBoundary>
+            <Suspense
+              fallback={
+                <div className="min-h-[60vh] flex items-center justify-center text-warm-500">
+                  <span role="status">Loading page…</span>
+                </div>
+              }
+            >
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/jobs" element={<Jobs />} />
+                <Route path="/companies" element={<Companies />} />
+                <Route path="/company" element={<CompanyProfile />} />
+                <Route path="/saved" element={<SavedJobs />} />
+                <Route path="/map" element={<Map />} />
+                <Route path="/privacy" element={<PrivacyPolicy />} />
+                <Route path="/terms" element={<TermsOfService />} />
+                <Route path="/accessibility" element={<AccessibilityStatement />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
+          </ErrorBoundary>
+        </Layout>
       </Router>
       <Toaster position="top-right" theme={resolvedTheme} richColors />
     </QueryClientProvider>

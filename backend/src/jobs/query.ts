@@ -2,6 +2,7 @@ import type { Job, JobsPayload } from './domain';
 import { isClosed } from './domain';
 
 export interface JobsFilters {
+  sort?: 'balanced' | 'recent';
   search: string;
   company: string[];
   category: string[];
@@ -41,9 +42,12 @@ export function parseJobsQuery(query: Record<string, unknown>): { filters: JobsF
   if (showClosed !== 'true' && showClosed !== 'false') {
     throw new InvalidJobsQuery('showClosed must be true or false');
   }
+  const sort = single('sort', 'balanced');
+  if (sort !== 'balanced' && sort !== 'recent') throw new InvalidJobsQuery('sort must be balanced or recent');
   return {
     page: Number(rawPage),
     filters: {
+      sort,
       search: single('search'), company: multiple('company'), category: multiple('category'),
       city: multiple('city'), region: multiple('region'), workModel: multiple('workModel'),
       employmentType: multiple('employmentType'), seniority: multiple('seniority'),
@@ -55,12 +59,22 @@ export function parseJobsQuery(query: Record<string, unknown>): { filters: JobsF
 const time = (value: string | null): number => value && Number.isFinite(Date.parse(value)) ? Date.parse(value) : 0;
 const compareText = (a: string, b: string): number => a < b ? -1 : a > b ? 1 : 0;
 
-export function sortJobs(jobs: Job[]): Job[] {
-  const language = (title: string): number => {
-    const first = title.match(/[A-Za-zא-ת]/);
-    return first && /[א-ת]/.test(first[0]) ? 1 : 0;
-  };
-  return [...jobs].sort((a, b) => language(a.title) - language(b.title) || time(b.updated) - time(a.updated) || compareText(a.url, b.url));
+export function sortJobs(jobs: Job[], sort: 'balanced' | 'recent' = 'balanced'): Job[] {
+  const recent = [...jobs].sort((a, b) => time(b.updated) - time(a.updated) || compareText(a.company, b.company) || compareText(a.url, b.url));
+  if (sort === 'recent') return recent;
+  const groups = new Map<string, Job[]>();
+  for (const job of recent) {
+    const key = job.company.trim().toLowerCase();
+    const group = groups.get(key) || [];
+    group.push(job);
+    groups.set(key, group);
+  }
+  const employers = [...groups.values()];
+  const result: Job[] = [];
+  for (let round = 0; result.length < recent.length; round++) {
+    for (const group of employers) if (group[round]) result.push(group[round]);
+  }
+  return result;
 }
 
 export function filterJobs(payload: JobsPayload, filters: JobsFilters): Job[] {
@@ -80,10 +94,11 @@ export function filterJobs(payload: JobsPayload, filters: JobsFilters): Job[] {
       includes(filters.seniority, job.seniority) &&
       (filters.city.length === 0 || job.cities.some(city => filters.city.includes(city))) &&
       (filters.region.length === 0 || job.regions.some(region => filters.region.includes(region)));
-  }));
+  }), filters.sort);
 }
 
 export interface JobsCatalog {
+  categoryCounts: Record<string, number>;
   updatedAt: string;
   stale: boolean;
   stats: { jobs: number; companies: number; cities: number };
@@ -95,6 +110,8 @@ export interface JobsCatalog {
 
 export function buildCatalog(payload: JobsPayload, stale: boolean): JobsCatalog {
   const open = payload.jobs.filter(job => !isClosed(job));
+  const categoryCounts: Record<string, number> = Object.create(null);
+  for (const job of open) categoryCounts[job.job_category] = (categoryCounts[job.job_category] || 0) + 1;
   const companyMap = new Map<string, JobsCatalog['companies'][number]>();
   const cityMap = new Map<string, JobsCatalog['cities'][number]>();
   const allCities = new Set(payload.jobs.flatMap(job => job.cities));
@@ -128,5 +145,5 @@ export function buildCatalog(payload: JobsPayload, stale: boolean): JobsCatalog 
   const cities = [...cityMap.values()].map(city => ({ ...city, companies: city.companies.sort(compareText) }))
     .sort((a, b) => b.jobCount - a.jobCount || byCity(a.city, b.city));
   return { updatedAt: payload.updatedAt, stale, stats: { jobs: open.length, companies: companyMap.size, cities: cityMap.size },
-    cityLabels: labels, facets: { cities: [...allCities].sort(byCity) }, companies, cities };
+    categoryCounts, cityLabels: labels, facets: { cities: [...allCities].sort(byCity) }, companies, cities };
 }

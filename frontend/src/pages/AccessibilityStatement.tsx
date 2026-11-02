@@ -165,7 +165,7 @@ export default function AccessibilityStatement() {
 
         {/* Content */}
         <div className="max-w-4xl mx-auto px-4 py-12">
-        <div className="bg-surface rounded-xl border border-border shadow-sm p-6 md:p-10 space-y-8">
+        <div className="legal-document bg-surface rounded-xl border border-border shadow-sm p-6 md:p-10 space-y-8">
           
           {/* General Statement */}
           <section aria-labelledby="general-statement">
