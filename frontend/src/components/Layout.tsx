@@ -12,12 +12,21 @@ export default function Layout({ children }: LayoutProps) {
     <div className="flex min-h-screen flex-col bg-page">
       <a href="#main-content" className="skip-to-content">Skip to main content</a>
       <LayoutHeader />
+      <aside aria-label="Support TechJobsIL" className="border-b border-iris-200 bg-iris-50">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-4 gap-y-2 px-4 py-3 text-center">
+          <p className="text-sm font-medium text-ink">Help support TechJobsIL</p>
+          <a href="https://patreon.com/techjobsil?utm_medium=unknown&utm_source=join_link&utm_campaign=creatorshare_creator&utm_content=copyLink" target="_blank" rel="noopener noreferrer" aria-label="Support on Patreon (opens in a new tab)" className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-action px-4 text-sm font-medium text-action-foreground hover:bg-action-hover">Support on Patreon<span aria-hidden="true">↗</span></a>
+        </div>
+      </aside>
       <main id="main-content" tabIndex={-1} className="flex-1">{children}</main>
       <BannerAd />
       <footer className="border-t border-border bg-surface">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-6 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-muted">© {new Date().getFullYear()} TechJobsIL · Opportunities in Israeli tech</p>
-          <nav className="flex flex-wrap gap-x-5" aria-label="Legal">
+          <nav className="flex flex-wrap gap-x-5" aria-label="Footer">
+            <a href="https://patreon.com/techjobsil?utm_medium=unknown&utm_source=join_link&utm_campaign=creatorshare_creator&utm_content=copyLink" target="_blank" rel="noopener noreferrer" aria-label="Support TechJobsIL on Patreon (opens in a new tab)" className="inline-flex min-h-11 items-center gap-1.5 text-sm text-primary hover:underline">
+              Support TechJobsIL on Patreon<span className="sr-only"> (opens in a new tab)</span><span aria-hidden="true">↗</span>
+            </a>
             <button type="button" onClick={() => setSuggesting(true)} className="inline-flex min-h-11 items-center text-sm text-muted hover:text-primary">Suggest a company</button>
             <Link to="/privacy" className="inline-flex min-h-11 items-center text-sm text-muted hover:text-primary">Privacy</Link>
             <Link to="/terms" className="inline-flex min-h-11 items-center text-sm text-muted hover:text-primary">Terms</Link>
