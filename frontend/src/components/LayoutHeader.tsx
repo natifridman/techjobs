@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Bookmark, Briefcase, Building2, LogIn, LogOut, MapPin, Menu, X } from 'lucide-react';
 import { toast } from 'sonner';
@@ -19,6 +19,17 @@ const navLinks = [
 
 export default function LayoutHeader() {
   const { pathname } = useLocation();
+  const headerRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const measure = () => {
+      if (headerRef.current) document.documentElement.style.setProperty('--header-height', `${headerRef.current.getBoundingClientRect().height}px`);
+    };
+    measure();
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
+    if (headerRef.current) observer?.observe(headerRef.current);
+    window.addEventListener('resize', measure);
+    return () => { observer?.disconnect(); window.removeEventListener('resize', measure); };
+  }, []);
   const { resolvedTheme } = useTheme();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -52,11 +63,11 @@ export default function LayoutHeader() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 border-b border-border bg-surface">
+      <header ref={headerRef} className="sticky top-0 z-50 border-b border-border bg-surface">
         <div className="mx-auto flex min-h-16 max-w-7xl flex-wrap items-center justify-between gap-2 px-4 py-2 sm:gap-4">
           <Link to="/" className="flex min-h-11 shrink-0 items-center gap-2.5 rounded-lg" aria-label="TechJobsIL home">
-            <img src={resolvedTheme === 'dark' ? '/brand/techjobsil-symbol-white.svg' : '/brand/techjobsil-symbol.svg'} alt="" width="32" height="32" />
-            <span className="hidden text-xl font-bold tracking-tight text-ink sm:inline">TechJobs<span className="text-primary">IL</span></span>
+            <img src={resolvedTheme === 'dark' ? '/brand/techjobsil-symbol-white.svg' : '/brand/techjobsil-symbol.svg'} alt="" width="28" height="28" />
+            <span className="text-lg font-bold tracking-tight text-ink sm:text-xl">TechJobs<span className="text-primary">IL</span></span>
           </Link>
           <nav className="hidden items-center gap-1 md:flex" aria-label="Main navigation">
             {navLinks.map(({ page, href, label, icon: Icon }) => (
@@ -69,7 +80,7 @@ export default function LayoutHeader() {
           </nav>
           <div className="flex items-center gap-1 sm:gap-2" aria-label="Account, appearance and accessibility">
             <div className="hidden md:block"><ThemeSwitcher compact /></div>
-            <AccessibilityWidget />
+            <div className="hidden md:block"><AccessibilityWidget /></div>
             {isLoading ? (
               <span className="h-11 w-20 animate-pulse rounded-lg bg-warm-100" role="status" aria-label="Loading account" />
             ) : isAuthenticated ? (
@@ -97,6 +108,7 @@ export default function LayoutHeader() {
               <Button variant="ghost" size="icon" onClick={closeAndReturnFocus} aria-label="Close navigation menu"><X className="h-5 w-5" aria-hidden="true" /></Button>
             </div>
             <ThemeSwitcher />
+            <div className="flex items-center justify-between px-4 py-2 text-sm text-muted"><span>Accessibility settings</span><AccessibilityWidget /></div>
             <nav className="space-y-2 p-4" aria-label="Mobile navigation">
               {navLinks.map(({ page, href, label, icon: Icon }) => (
                 <Link key={page} to={createPageUrl(page)} onClick={closeAndReturnFocus} aria-current={isActive(href) ? 'page' : undefined} className={`flex min-h-12 items-center gap-3 rounded-lg px-4 font-medium ${isActive(href) ? 'bg-iris-50 text-primary' : 'text-muted hover:bg-warm-100'}`}><Icon className="h-5 w-5" aria-hidden="true" />{label}</Link>
@@ -105,7 +117,7 @@ export default function LayoutHeader() {
             <div className="mt-auto space-y-3 border-t border-border p-4 text-sm text-muted">
               {isAuthenticated && <p className="break-words">Signed in as {user?.email || user?.name}</p>}
               <Link to="/accessibility" onClick={closeAndReturnFocus} className="flex min-h-11 items-center rounded-lg px-4 hover:bg-warm-100">Accessibility statement</Link>
-              <p className="px-4 text-xs">Text size, contrast and cursor controls are available in the header.</p>
+              <p className="px-4 text-xs">Adjust text size, contrast and cursor controls in Accessibility settings above.</p>
             </div>
           </div>
         </div>

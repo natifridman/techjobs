@@ -2,6 +2,7 @@ import { CATEGORY_LABELS, REGION_LABELS } from './jobsData';
 import type { JobsQuery } from '@/api/jobs';
 
 export interface Filters {
+  sort?: 'balanced' | 'recent';
   search: string;
   jobCategories: string[];
   workModels: string[];
@@ -20,7 +21,7 @@ export const EMPTY_FILTERS: Filters = {
 export const WORK_MODELS = ['remote', 'hybrid', 'on-site'];
 export const EMPLOYMENT_TYPES = ['full-time', 'part-time', 'student', 'intern', 'temp', 'contract'];
 export const SENIORITIES = ['intern', 'junior', 'senior', 'staff', 'principal', 'lead', 'manager'];
-export type ListFilter = keyof Omit<Filters, 'search' | 'showClosed'>;
+export type ListFilter = keyof Omit<Filters, 'search' | 'showClosed' | 'sort'>;
 
 export function readJobsFilters(params: URLSearchParams, cities?: string[]) {
   const values = (key: string, allowed?: string[]) => [...new Set(params.getAll(key))]
@@ -29,6 +30,7 @@ export function readJobsFilters(params: URLSearchParams, cities?: string[]) {
   const page = /^\d+$/.test(pageValue) && Number.isSafeInteger(Number(pageValue)) && Number(pageValue) > 0
     ? Number(pageValue) : 1;
   const filters: Filters = {
+    sort: params.get('sort') === 'recent' ? 'recent' : 'balanced',
     search: params.get('search') || '',
     jobCategories: values('category', Object.keys(CATEGORY_LABELS)),
     cities: values('city', cities),
@@ -43,6 +45,7 @@ export function readJobsFilters(params: URLSearchParams, cities?: string[]) {
 
 export function filtersToQuery(filters: Filters, page = 1, company = ''): JobsQuery {
   return {
+    sort: filters.sort,
     search: filters.search, category: filters.jobCategories, city: filters.cities,
     region: filters.regions, workModel: filters.workModels, employmentType: filters.employmentTypes,
     seniority: filters.seniorities, showClosed: filters.showClosed, page, company,

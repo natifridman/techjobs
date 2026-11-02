@@ -14,7 +14,7 @@ export default function PrivacyPolicy() {
           </Link>
         </Button>
 
-        <article className="bg-surface rounded-xl shadow-sm border border-warm-200 p-5 sm:p-8 md:p-10">
+        <article className="legal-document bg-surface rounded-xl shadow-sm border border-warm-200 p-5 sm:p-8 md:p-10">
           <div className="flex items-center gap-3 mb-2">
             <Shield className="w-10 h-10 text-iris-600" />
             <h1 className="text-3xl sm:text-4xl font-bold text-warm-900">Privacy Policy</h1>

@@ -121,7 +121,7 @@ function createAccountScopedSave(job: Omit<SavedJob, 'id' | 'created_date'>, acc
 
 // SavedJob operations
 export const savedJobsApi = {
-  list: async (sortBy?: string): Promise<SavedJob[]> => {
+  list: async (sortBy?: string, options?: { requireAccount?: boolean }): Promise<SavedJob[]> => {
       try {
         // Resolve the account BEFORE the jobs request and bind the read to
         // it: the two requests must observe the same session, or the overlay
@@ -196,6 +196,7 @@ export const savedJobsApi = {
     const jobs = getLocalJobs().filter(
       (j) => !j.syncedTo || (accountId !== null && j.syncedTo === accountId),
     );
+    if (options?.requireAccount && jobs.length === 0) throw new Error('Saved jobs could not be loaded', { cause: error });
     if (sortBy === '-created_date') {
       return jobs.sort((a, b) => 
         new Date(b.created_date).getTime() - new Date(a.created_date).getTime()
@@ -205,11 +206,13 @@ export const savedJobsApi = {
     }
   },
 
-  create: async (job: Omit<SavedJob, 'id' | 'created_date'>): Promise<SavedJob> => {
+  create: async (job: Omit<SavedJob, 'id' | 'created_date'>, expectedAccountId?: string | null): Promise<SavedJob> => {
       // Resolve the account BEFORE the request and bind the save to it: with
       // a shared session cookie, another tab signing into a different
       // account must not receive this account's save.
       const accountId = await getAuthenticatedAccountId();
+      if (expectedAccountId !== undefined && expectedAccountId !== accountId) throw new Error('Account changed before restoring the job');
+      if (expectedAccountId === null) return createLocalGuestSave(job);
       try {
         const response = await fetch(`${API_BASE_URL}/saved-jobs`, {
           method: 'POST',
@@ -393,6 +396,25 @@ export const savedJobsApi = {
     rememberPendingDelete(accountId, id);
     return true;
     }
+  },
+
+  restore: async (job: SavedJob, expectedAccountId: string | null): Promise<SavedJob> => {
+    const accountId = await getAuthenticatedAccountId();
+    if (accountId !== expectedAccountId) throw new Error('Account changed before restoring the job');
+    // An offline removal may only be queued. Cancel that removal before
+    // restoring so reconciliation cannot delete the restored record later.
+    if (accountId) {
+      const { map } = getPendingDeleteMap();
+      if (map[accountId]) {
+        map[accountId] = map[accountId].filter(id => id !== job.id);
+        setPendingDeleteMap(map);
+      }
+    }
+    return savedJobsApi.create({ job_title: job.job_title, company: job.company,
+      category: job.category, city: job.city, url: job.url, level: job.level,
+      size: job.size, job_category: job.job_category, comments: job.comments,
+      applied: job.applied, applied_date: job.applied_date,
+    }, expectedAccountId);
   },
 
   findByUrl: async (url: string): Promise<SavedJob | undefined> => {

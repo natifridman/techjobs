@@ -85,6 +85,7 @@ function loadAdsenseScript(): Promise<void> {
     script.onerror = () => {
       // Reset promise so we can retry later
       adsenseReadyPromise = null;
+      script.remove();
       reject(new Error('AD_BLOCKED'));
     };
     
@@ -188,7 +189,7 @@ export function GoogleAd({
   // Graceful degradation for users with ad blockers
   if (isBlocked) {
     // Return empty container to maintain layout (CLS prevention)
-    return <div className={className} style={style} />;
+    return <div data-ad-empty="true" className={className} />;
   }
 
   return (
@@ -215,7 +216,7 @@ export function BannerAd({ className = '' }: { className?: string }) {
   }
 
   return (
-    <div className={`w-full max-w-7xl mx-auto px-4 py-2 ${className}`} role="complementary" aria-label="Advertisements">
+    <div className={`google-ad-shell w-full max-w-7xl mx-auto px-4 py-2 ${className}`} role="complementary" aria-label="Advertisements">
       <GoogleAd
         adSlot={AD_SLOTS.BANNER}
         adFormat="horizontal"
@@ -232,7 +233,7 @@ export function SidebarAd({ className = '' }: { className?: string }) {
   }
 
   return (
-    <aside className={className} role="complementary" aria-label="Advertisements">
+    <aside className={`google-ad-shell ${className}`} role="complementary" aria-label="Advertisements">
       <GoogleAd
         adSlot={AD_SLOTS.SIDEBAR}
         adFormat="rectangle"
@@ -249,7 +250,7 @@ export function InFeedAd({ className = '' }: { className?: string }) {
   }
 
   return (
-    <div className={className} role="complementary" aria-label="Sponsored content">
+    <div className={`google-ad-shell ${className}`} role="complementary" aria-label="Sponsored content">
       <GoogleAd
         adSlot={AD_SLOTS.IN_FEED}
         adFormat="auto"

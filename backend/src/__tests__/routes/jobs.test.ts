@@ -139,3 +139,36 @@ describe('jobs CSV export', () => {
     expect(filtered.text).not.toContain('Engineer');
   });
 });
+
+describe('job discovery ordering', () => {
+  const diverse = Array.from({ length: 12 }, (_, employer) => Array.from({ length: 3 }, (_, role) => job({
+    company: `Employer ${String(employer).padStart(2, '0')}`, title: `Role ${employer}-${role}`,
+    url: `https://jobs.example.com/${employer}/${role}`, updated: `2026-11-${String(28 - employer - role).padStart(2, '0')}`,
+  }))).flat();
+  beforeEach(() => { jest.spyOn(jobsService, 'getSnapshot').mockResolvedValue({ payload: payload(diverse), stale: false }); });
+  it('keeps ten distinct employers in the guest preview without expanding access', async () => {
+    const preview = await createUnauthenticatedRequest().get('/api/jobs?sort=balanced').expect(200);
+    expect(preview.body.jobs).toHaveLength(10);
+    expect(new Set(preview.body.jobs.map((row: { company: string }) => row.company)).size).toBe(10);
+    expect(preview.body.total).toBe(36);
+    await createUnauthenticatedRequest().get('/api/jobs?sort=recent&page=2').expect(401);
+    const recent = await createUnauthenticatedRequest().get('/api/jobs?sort=recent').expect(200);
+    expect(recent.body.jobs).toHaveLength(10);
+    expect(recent.body.jobs.slice(0, 3).map((row: { company: string }) => row.company)).toEqual(['Employer 00', 'Employer 00', 'Employer 01']);
+  });
+  it('paginates a single stable order with no duplicated or missing jobs', async () => {
+    const first = await createAuthenticatedRequest(user).get('/api/jobs?sort=balanced').expect(200);
+    const second = await createAuthenticatedRequest(user).get('/api/jobs?sort=balanced&page=2').expect(200);
+    const urls = [...first.body.jobs, ...second.body.jobs].map((row: { url: string }) => row.url);
+    expect(urls).toHaveLength(36);
+    expect(new Set(urls).size).toBe(36);
+  });
+  it('rejects invalid sort values and exports in the selected order', async () => {
+    await createUnauthenticatedRequest().get('/api/jobs?sort=unknown').expect(400);
+    const recent = await createAuthenticatedRequest(user).get('/api/jobs?sort=recent').expect(200);
+    const csv = await createAuthenticatedRequest(user).get('/api/jobs/export?sort=recent').expect(200);
+    const firstIndex = csv.text.indexOf(recent.body.jobs[0].url);
+    const secondIndex = csv.text.indexOf(recent.body.jobs[1].url);
+    expect(firstIndex).toBeGreaterThan(0); expect(secondIndex).toBeGreaterThan(firstIndex);
+  });
+});

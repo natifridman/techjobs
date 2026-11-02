@@ -86,7 +86,9 @@ The old `VITE_JOBS_DATA_URL` integration has been removed. Do not retain public 
 | PUT/DELETE | `/api/saved-jobs/:id` | Update/remove an account save; requires sign-in |
 | GET | `/api/companies` | Existing company metadata API |
 
-Job queries accept `search`, `company`, `page`, and `showClosed`. Repeat `category`, `city`, `region`, `workModel`, `employmentType`, and `seniority` for multiple selections. Existing `search`, `category`, and `city` links continue to work. Closed listings are hidden by default.
+Job queries accept `search`, `company`, `page`, `showClosed`, and `sort=balanced|recent`. Balanced ordering is the default: results rotate through employers before pagination while keeping each employer’s jobs in update order. Recently updated orders all matches by their update date. Neither order prioritizes the language of the title. CSV exports use the selected order. Repeat `category`, `city`, `region`, `workModel`, `employmentType`, and `seniority` for multiple selections. Existing `search`, `category`, and `city` links continue to work. Closed listings are hidden by default.
+
+The public catalog also includes open-only `categoryCounts` for role discovery; it never includes individual job records. Deploy these additive backend changes before the updated frontend.
 
 Responses include `jobs`, `total`, `page`, `pageSize`, `access`, `previewLimit`, `requiresAuth`, `updatedAt`, and `stale`. Guests requesting later pages receive `401 AUTH_REQUIRED`. Client-supplied limits or access flags cannot expand the preview. Job and auth responses use private/no-store caching; browser query caches are isolated by access scope and cleared on sign-out.
 
@@ -118,6 +120,18 @@ Release order:
 5. Monitor feed read errors, 503 responses, OAuth failures, preview views, and preview sign-in conversions using existing logging/analytics.
 
 A rollback must retain the private feed and server-enforced limits. Do not restore the former frontend that fetches the complete public dataset.
+
+## Browsing experience
+
+The homepage combines keyword/location search, live catalog totals, hiring employers, role counts, and three job previews from the same access-aware jobs API. An unavailable catalog does not block keyword search. Company artwork uses the existing private build-time logo pipeline; local builds without its deploy key show letter avatars.
+
+The company directory supports `search`, `category`, `city`, `sort=jobs|name`, and `page` in its URL, with 24 employers per page. Profile links retain the directory destination. Navigating between pages resets scroll and focus; browser Back restores the prior position without interrupting filter edits. The shared header remains mounted while secondary pages load.
+
+Guest saves, notes and application status remain local until sign-in. Pending writes disable only the affected job. Failed note writes retain the draft, account read failures show a retry state, and removing a saved job offers Undo. Undo is bound to its initiating account and cancels queued offline deletions before restoring notes/status.
+
+The location map uses the canonical OSM tile endpoint with an origin-only image referrer, clustering for nearby locations, and a list-first mobile view. Cluster numbers count locations, while individual markers count job matches; multi-location roles can contribute to several places. A failed tile request offers Retry without removing the location list.
+
+Company suggestions use a labeled form and readable review step before opening the existing public GitHub issue destination. Advertising stays below primary content; blocked/unfilled slots are hidden. UI discovery analytics record selected public facets and whether search fields were used rather than raw keyword text.
 
 ## Identity
 

@@ -4,6 +4,7 @@ const API_ORIGIN = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '').repl
 const API_BASE_URL = `${API_ORIGIN}/api`;
 
 export interface JobsQuery {
+  sort?: 'balanced' | 'recent';
   search?: string;
   company?: string;
   category?: string[];
@@ -38,6 +39,7 @@ export interface CatalogCompany {
 }
 
 export interface JobsCatalog {
+  categoryCounts?: Record<string, number>;
   updatedAt: string;
   stale: boolean;
   stats: { jobs: number; companies: number; cities: number };
@@ -63,6 +65,7 @@ export function jobsQueryParams(query: JobsQuery, includePage = true): URLSearch
   const params = new URLSearchParams();
   if (query.search?.trim()) params.set('search', query.search.trim());
   if (query.company?.trim()) params.set('company', query.company.trim());
+  if (query.sort === 'recent') params.set('sort', 'recent');
   for (const key of ['category', 'city', 'region', 'workModel', 'employmentType', 'seniority'] as const) {
     for (const value of [...new Set(query[key] || [])].filter(Boolean).sort()) params.append(key, value);
   }

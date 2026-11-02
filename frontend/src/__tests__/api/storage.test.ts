@@ -1270,3 +1270,32 @@ describe('reconcileGuestSavedJobs - concurrency', () => {
     expect(localStorage.getItem('techjobs_saved_jobs')).toBeNull();
   });
 });
+
+describe('saved-job read and Undo recovery', () => {
+  beforeEach(() => localStorage.clear());
+  it('does not turn an account read failure into a misleading empty shortlist', async () => {
+    server.use(http.get('/api/saved-jobs', () => HttpResponse.error()));
+    await expect(savedJobsApi.list('-created_date', { requireAccount: true })).rejects.toThrow('Saved jobs could not be loaded');
+    expect(await savedJobsApi.list()).toEqual([]);
+  });
+  it('refuses to restore notes into a different account', async () => {
+    await expect(savedJobsApi.restore({ ...mockSavedJobs[0], comments: 'Private note', applied_date: undefined }, 'another-account')).rejects.toThrow('Account changed');
+    expect(localStorage.getItem('techjobs_saved_jobs')).toBeNull();
+  });
+  it('restores guest notes and application state locally without posting to an account', async () => {
+    let posts = 0;
+    server.use(http.get('/auth/me', () => HttpResponse.json({ authenticated: false, user: null })), http.post('/api/saved-jobs', () => { posts++; return new HttpResponse(null, { status: 401 }); }));
+    const original = { ...mockSavedJobs[0], comments: 'Keep my note', applied: true, applied_date: '2026-11-01' };
+    await savedJobsApi.restore(original, null);
+    expect(posts).toBe(0);
+    expect(JSON.parse(localStorage.getItem('techjobs_saved_jobs') || '[]')[0]).toMatchObject({ comments: 'Keep my note', applied: true, applied_date: '2026-11-01' });
+  });
+  it('cancels a queued offline deletion before restoring the original server record', async () => {
+    server.use(http.delete('/api/saved-jobs/:id', () => HttpResponse.error()), http.post('/api/saved-jobs', () => HttpResponse.json({ error: 'Already saved' }, { status: 409 })));
+    expect(await savedJobsApi.delete(mockSavedJobs[0].id, mockSavedJobs[0].url)).toBe(true);
+    expect(await savedJobsApi.list()).toEqual([]);
+    const restored = await savedJobsApi.restore({ ...mockSavedJobs[0], comments: undefined, applied_date: undefined }, 'user-123');
+    expect(restored.id).toBe(mockSavedJobs[0].id);
+    expect(await savedJobsApi.list()).toHaveLength(1);
+  });
+});
