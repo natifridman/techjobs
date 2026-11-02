@@ -9,6 +9,11 @@ afterEach(cleanup);
 describe('Patreon support link',()=>{
  it('offers an optional external link without replacing footer navigation',()=>{
   render(<MemoryRouter><Layout><h1>Jobs content</h1></Layout></MemoryRouter>);
+  const strip=screen.getByRole('complementary',{name:'Support TechJobsIL'});
+  const primary=within(strip).getByRole('link',{name:'Support on Patreon (opens in a new tab)'});
+  expect(primary).toHaveAttribute('href','https://patreon.com/techjobsil?utm_medium=unknown&utm_source=join_link&utm_campaign=creatorshare_creator&utm_content=copyLink');
+  expect(primary).toHaveAttribute('target','_blank');expect(primary).toHaveAttribute('rel','noopener noreferrer');
+  expect(strip.compareDocumentPosition(screen.getByRole('main')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   const footer=screen.getByRole('contentinfo');const a=within(footer).getByRole('link',{name:'Support TechJobsIL on Patreon (opens in a new tab)'});
   expect(a).toHaveAttribute('href','https://patreon.com/techjobsil?utm_medium=unknown&utm_source=join_link&utm_campaign=creatorshare_creator&utm_content=copyLink');
   expect(a).toHaveAttribute('target','_blank');expect(a).toHaveAttribute('rel','noopener noreferrer');
