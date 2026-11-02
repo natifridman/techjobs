@@ -1,247 +1,83 @@
-import { useEffect, useMemo } from "react";
-import { Link } from "react-router-dom";
-import { createPageUrl } from "@/utils";
-import { Building2, Briefcase, Loader2, AlertCircle } from "lucide-react";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
-import { useQuery } from "@tanstack/react-query";
-import { CITY_COORDS } from "@/components/map/cityCoords";
-import { fetchJobsPayload, isClosed, JOBS_PAYLOAD_QUERY_KEY, selectSortedJobs } from "@/components/jobs/jobsData";
+import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { ArrowRight, MapPin, Search } from 'lucide-react';
+import { MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import '@/components/map/map-theme.css';
+import { CITY_COORDS } from '@/components/map/cityCoords';
+import { useJobsCatalog } from '@/hooks/useJobs';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import CatalogFreshness from '@/components/CatalogFreshness';
 
-
-// Custom marker icon - Using iris color theme
 const createCustomIcon = (count: number) => {
-  const size = Math.min(50, Math.max(30, 20 + Math.log(count) * 8));
+  const size = Math.min(52, Math.max(44, 24 + Math.log(Math.max(count, 1)) * 4));
   return L.divIcon({
-    className: "custom-marker",
-    html: `
-      <div style="
-        background: linear-gradient(135deg, #4A489A 0%, #3D3B8E 100%);
-        width: ${size}px;
-        height: ${size}px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-weight: bold;
-        font-size: ${size > 35 ? '14px' : '12px'};
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-        border: 2px solid white;
-      ">${count}</div>
-    `,
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size / 2],
+    className: 'custom-marker',
+    html: `<div class="job-count-marker" style="width:${size}px;height:${size}px">${count}</div>`,
+    iconSize: [size, size], iconAnchor: [size / 2, size / 2],
   });
 };
 
-// Exact (case-insensitive) match first; the substring fallback picks the
-// longest matching key so "Or Yehuda" never resolves to "Yehud".
+// Prefer exact canonical names. The longest fallback keeps Or Yehuda distinct from Yehud.
 function findCityCoords(city: string): [number, number] | null {
   const needle = city.toLowerCase();
-  for (const [name, c] of Object.entries(CITY_COORDS)) {
-    if (name.toLowerCase() === needle) return c;
-  }
-  let best: [number, number] | null = null;
-  let bestLen = -1;
-  for (const [name, c] of Object.entries(CITY_COORDS)) {
-    const key = name.toLowerCase();
-    if ((needle.includes(key) || key.includes(needle)) && key.length > bestLen) {
-      best = c;
-      bestLen = key.length;
-    }
-  }
-  return best;
+  const entries = Object.entries(CITY_COORDS);
+  const exact = entries.find(([name]) => name.toLowerCase() === needle);
+  if (exact) return exact[1];
+  const matches = entries.filter(([name]) => needle.includes(name.toLowerCase()) || name.toLowerCase().includes(needle));
+  matches.sort((a, b) => b[0].length - a[0].length);
+  return matches[0]?.[1] || null;
 }
 
-interface CityData {
-  city: string;
-  coords: [number, number];
-  companies: string[];
-  jobCount: number;
-}
-
-interface CityMapEntry {
-  companies: Set<string>;
-  jobCount: number;
-}
-
-// Component to fit bounds
-function FitBounds({ cities }: { cities: CityData[] }) {
+function FitBounds({ cities }: { cities: { coords: [number, number] }[] }) {
   const map = useMap();
-
   useEffect(() => {
-    if (cities.length > 0) {
-      const bounds = L.latLngBounds(cities.map(c => c.coords));
-      map.fitBounds(bounds, { padding: [50, 50] });
-    }
+    if (cities.length) map.fitBounds(L.latLngBounds(cities.map(city => city.coords)), { padding: [40, 40], maxZoom: 11 });
   }, [cities, map]);
-
   return null;
 }
 
 export default function Map() {
-  const { data: jobs = [], isLoading: loading, isError } = useQuery({
-    queryKey: JOBS_PAYLOAD_QUERY_KEY,
-    queryFn: fetchJobsPayload,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    select: (payload) => selectSortedJobs(payload).filter(j => !isClosed(j)),
-  });
-  // Keep the map on a failed background refresh when a payload is cached.
-  const error = isError && jobs.length === 0 ? 'Failed to load job data. Please try again later.' : null;
-
-  // Aggregate jobs by city
-  const cityData = useMemo(() => {
-    const cityMap: Record<string, CityMapEntry> = {};
-
-    jobs.forEach((job) => {
-      // Count the job once per canonical city, matching filter semantics.
-      const jobCities = (job.cities?.length ? job.cities : [job.city]).filter((c): c is string => Boolean(c));
-      const seen = new Set<string>();
-      for (const rawCity of jobCities) {
-      const city = rawCity.trim();
-      if (!city || seen.has(city)) continue;
-      seen.add(city);
-
-      // Find matching city coords
-      const coords = findCityCoords(city);
-
-      if (!coords) continue; // Skip unknown cities
-
-      if (!cityMap[city]) {
-        cityMap[city] = { companies: new Set<string>(), jobCount: 0 };
-      }
-      cityMap[city].companies.add(job.company);
-      cityMap[city].jobCount++;
-      }
-    });
-
-    // Convert to array and merge similar cities
-    const processedCoords: Record<string, CityData> = {};
-
-    Object.entries(cityMap).forEach(([city, data]: [string, CityMapEntry]) => {
-      const coords = findCityCoords(city) ?? CITY_COORDS["Israel"];
-
-      const coordKey = coords.join(",");
-      const existing = processedCoords[coordKey];
-
-      if (existing) {
-        data.companies.forEach((c: string) => existing.companies.push(c));
-        existing.jobCount += data.jobCount;
-        existing.companies = [...new Set(existing.companies)];
-      } else {
-        processedCoords[coordKey] = {
-          city,
-          coords,
-          companies: [...data.companies],
-          jobCount: data.jobCount,
-        };
-      }
-    });
-
-    return Object.values(processedCoords).sort((a, b) => b.jobCount - a.jobCount);
-  }, [jobs]);
+  const { data, isLoading, isError, refetch } = useJobsCatalog();
+  const [search, setSearch] = useState('');
+  const cities = useMemo(() => {
+    const query = search.trim().toLocaleLowerCase();
+    return (data?.cities || []).filter(city => !query || `${city.city} ${data?.cityLabels[city.city] || ''}`.toLocaleLowerCase().includes(query));
+  }, [data, search]);
+  const mappedCities = useMemo(() => cities.flatMap(city => {
+    const coords = findCityCoords(city.city);
+    return coords ? [{ ...city, coords }] : [];
+  }), [cities]);
 
   return (
-    <div className="bg-white" style={{ height: "calc(100vh - 64px)" }}>
-      {/* Stats Bar */}
-      <div className="bg-warm-50 border-b border-warm-200 px-4 py-2">
-        <div className="max-w-7xl mx-auto flex items-center justify-between text-sm text-warm-600">
-          <span className="font-medium">TechJobsIL</span>
-          <div className="flex items-center gap-4">
-            <span className="flex items-center gap-1">
-              <Building2 className="w-4 h-4" />
-              {new Set(jobs.map(j => j.company)).size} Companies
-            </span>
-            <span className="flex items-center gap-1">
-              <Briefcase className="w-4 h-4" />
-              {jobs.length} Jobs
-            </span>
-          </div>
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:py-10">
+      <h1 className="text-3xl font-bold tracking-tight text-ink">Explore jobs by location</h1>
+      <p className="mt-2 text-muted">Choose a city from the list or map to see its open roles.</p>
+      {data && <><p className="mt-4 text-sm text-muted">{data.stats.jobs.toLocaleString()} open jobs · {data.stats.companies.toLocaleString()} companies · {data.stats.cities.toLocaleString()} cities</p><CatalogFreshness updatedAt={data.updatedAt} stale={data.stale || isError} className="mt-2" /></>}
+      {isError && data && <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-warning-border bg-warning-bg p-4 text-sm text-warning" role="status">Could not refresh locations. Showing the last loaded catalog.<Button variant="outline" onClick={() => refetch()}>Retry</Button></div>}
+      {isLoading ? <div className="mt-7 flex h-96 items-center justify-center rounded-xl border border-border bg-surface text-muted" role="status">Loading locations…</div> : isError && !data ? <div className="mt-7 rounded-xl border border-border bg-surface p-10 text-center" role="alert"><h2 className="text-lg font-semibold">Locations could not be loaded</h2><p className="mb-5 mt-2 text-muted">Please check your connection and try again.</p><Button onClick={() => refetch()}>Retry</Button></div> : <>
+        <div className="mt-7 grid gap-5 lg:grid-cols-[21rem_minmax(0,1fr)]">
+          <section className="overflow-hidden rounded-xl border border-border bg-surface" aria-labelledby="city-list-title">
+            <div className="border-b border-border p-4"><h2 id="city-list-title" className="font-semibold text-ink">Browse cities</h2><div className="relative mt-3"><label htmlFor="city-search" className="sr-only">Search cities in English or Hebrew</label><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" aria-hidden="true" /><Input id="city-search" type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search cities" className="pl-9" /></div><p className="mt-3 text-xs text-muted" role="status">{cities.length} {cities.length === 1 ? 'city' : 'cities'}</p></div>
+            <ul className="max-h-80 divide-y divide-border overflow-y-auto lg:max-h-[31rem]" aria-label="Cities with open jobs">
+              {cities.map(city => <li key={city.city}><Link to={`/jobs?city=${encodeURIComponent(city.city)}`} className="group flex min-h-20 items-center gap-3 px-4 py-3 hover:bg-warm-50"><MapPin className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" /><span className="min-w-0 flex-1"><span className="block font-medium text-ink"><bdi dir="auto">{data?.cityLabels[city.city] || city.city}</bdi></span><span className="mt-1 block text-xs text-muted">{city.jobCount.toLocaleString()} jobs · {city.companies.length} companies</span></span><ArrowRight className="h-4 w-4 shrink-0 text-muted group-hover:text-primary" aria-hidden="true" /></Link></li>)}
+            </ul>
+            {cities.length === 0 && <div className="p-6 text-sm text-muted">No matching cities.{search && <Button variant="link" onClick={() => setSearch('')}>Clear search</Button>}</div>}
+          </section>
+          <section aria-label="Map of jobs in Israeli cities" aria-describedby="map-help" className="relative z-0 h-[26rem] overflow-hidden rounded-xl border border-border bg-surface lg:h-[40rem]">
+            <MapContainer center={[31.5, 34.75]} zoom={8} className="jobs-map" style={{ height: '100%', width: '100%' }}>
+              <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+              <FitBounds cities={mappedCities} />
+              {mappedCities.map(city => <Marker key={city.city} position={city.coords} icon={createCustomIcon(city.jobCount)} title={`${city.city}: ${city.jobCount} open jobs`} alt={`${city.city}: ${city.jobCount} open jobs`}>
+                <Popup><div><h2 className="text-base font-semibold text-ink"><bdi dir="auto">{data?.cityLabels[city.city] || city.city}</bdi></h2><p className="text-sm text-muted">{city.jobCount.toLocaleString()} jobs at {city.companies.length} companies</p><Link to={`/jobs?city=${encodeURIComponent(city.city)}`} className="inline-flex min-h-11 items-center font-medium !text-primary">View jobs in {city.city} →</Link></div></Popup>
+              </Marker>)}
+            </MapContainer>
+          </section>
         </div>
-      </div>
-
-      {/* Map */}
-      <div style={{ height: "calc(100% - 40px)", width: "100%" }}>
-        {loading ? (
-          <div className="h-full flex items-center justify-center bg-warm-50">
-            <div className="text-center">
-              <Loader2 className="w-8 h-8 animate-spin text-iris-500 mx-auto mb-3" />
-              <p className="text-warm-500">Loading tech companies...</p>
-            </div>
-          </div>
-        ) : error ? (
-          <div className="h-full flex items-center justify-center bg-warm-50">
-            <div className="text-center">
-              <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-3" />
-              <p className="text-warm-700 font-medium mb-2">Error Loading Map</p>
-              <p className="text-warm-500 text-sm">{error}</p>
-            </div>
-          </div>
-        ) : (
-          <MapContainer
-            center={[31.5, 34.75]}
-            zoom={8}
-            style={{ height: "100%", width: "100%", background: "#FDFBF7" }}
-          >
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            <FitBounds cities={cityData} />
-            {cityData.map((city) => (
-              <Marker
-                key={city.coords.join(",")}
-                position={city.coords}
-                icon={createCustomIcon(city.jobCount)}
-              >
-                <Popup className="custom-popup">
-                  <div className="p-1">
-                    <h3 className="font-bold text-lg text-warm-900 mb-2">{city.city}</h3>
-                    <div className="flex items-center gap-4 text-sm text-warm-600 mb-3">
-                      <span className="flex items-center gap-1">
-                        <Building2 className="w-4 h-4" />
-                        {city.companies.length} companies
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Briefcase className="w-4 h-4" />
-                        {city.jobCount} jobs
-                      </span>
-                    </div>
-                    <div className="max-h-32 overflow-y-auto">
-                      <p className="text-xs text-warm-500 mb-1">Top companies:</p>
-                      <div className="flex flex-wrap gap-1">
-                        {city.companies.slice(0, 10).map((company: string) => (
-                          <Link
-                            key={company}
-                            to={`${createPageUrl("CompanyProfile")}?name=${encodeURIComponent(company)}`}
-                            className="text-xs bg-iris-100 text-iris-700 px-2 py-0.5 rounded hover:bg-iris-200"
-                          >
-                            {company}
-                          </Link>
-                        ))}
-                        {city.companies.length > 10 && (
-                          <span className="text-xs text-warm-400">
-                            +{city.companies.length - 10} more
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <Link
-                      to={`${createPageUrl("Jobs")}?city=${encodeURIComponent(city.city)}`}
-                      className="mt-3 block text-center text-sm text-iris-600 hover:text-iris-700 font-medium"
-                    >
-                      View all jobs in {city.city} →
-                    </Link>
-                  </div>
-                </Popup>
-              </Marker>
-            ))}
-          </MapContainer>
-        )}
-      </div>
-
+        <p id="map-help" className="mt-4 text-xs text-muted">The city list contains the same location summaries as the map and can be used with a keyboard. A role with several locations is counted in each relevant city.</p>
+      </>}
     </div>
   );
 }

@@ -85,3 +85,15 @@ export function downloadJobsCsv(jobs: Job[], date: Date = new Date()): void {
   // cancel the download in Firefox and iOS Safari.
   setTimeout(() => URL.revokeObjectURL(url), 0);
 }
+
+/** Download the authenticated server-generated export without loading the full feed. */
+export function downloadCsvBlob(blob: Blob, date: Date = new Date()): void {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = csvFileName(date);
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+}

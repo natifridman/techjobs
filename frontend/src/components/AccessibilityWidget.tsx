@@ -9,7 +9,6 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Button } from '@/components/ui/button';
 import { Accessibility, X, ZoomIn, ZoomOut, Contrast, MousePointer2, Minus, Link2 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useDialogAccessibility } from '@/hooks/useDialogAccessibility';
 
 /**
@@ -40,13 +39,13 @@ const defaultSettings: AccessibilitySettings = {
 };
 
 /**
- * AccessibilityWidget component that provides a floating accessibility panel
+ * AccessibilityWidget component that provides a header accessibility panel
  * allowing users to adjust text size, toggle high contrast mode,
  * highlight links, and enable a larger cursor.
- * 
+ *
  * Settings are persisted to localStorage and applied to the document root.
- * The widget is positioned at the bottom-right corner of the screen.
- * 
+ * The trigger sits in the main header and the settings open in a dialog.
+ *
  * @returns {JSX.Element} The accessibility widget with toggle button and settings panel
  * @example
  * // Usage in a layout component:
@@ -54,7 +53,7 @@ const defaultSettings: AccessibilitySettings = {
  */
 export default function AccessibilityWidget() {
   const [isOpen, setIsOpen] = useState(false);
-  
+
   const { dialogRef, triggerRef, closeAndReturnFocus } = useDialogAccessibility({
     isOpen,
     onClose: () => setIsOpen(false),
@@ -90,15 +89,15 @@ export default function AccessibilityWidget() {
   // Apply settings to document
   useEffect(() => {
     const root = document.documentElement;
-    
+
     // Font size
     root.style.fontSize = `${settings.fontSize}%`;
-    
+
     // Use classList.toggle for cleaner code
     root.classList.toggle('high-contrast', settings.highContrast);
     root.classList.toggle('highlight-links', settings.highlightLinks);
     root.classList.toggle('big-cursor', settings.bigCursor);
-    
+
     // Save to localStorage
     try {
       localStorage.setItem('accessibility-settings', JSON.stringify(settings));
@@ -170,53 +169,49 @@ export default function AccessibilityWidget() {
       <Button
         ref={triggerRef}
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-4 right-4 z-50 w-14 h-14 rounded-full bg-iris-600 hover:bg-iris-700 text-white shadow-lg"
-        aria-label={isOpen ? 'Close accessibility menu' : 'Open accessibility menu'}
+        variant="ghost"
+        size="icon"
+        className="text-muted"
+        aria-label="Accessibility settings"
+        aria-haspopup="dialog"
         aria-expanded={isOpen}
         aria-controls="accessibility-panel"
       >
-        <Accessibility className="w-6 h-6" aria-hidden="true" />
+        <Accessibility className="w-5 h-5" aria-hidden="true" />
       </Button>
 
       {/* Accessibility Panel */}
-      <AnimatePresence>
+      <>
         {isOpen && (
           <>
             {/* Backdrop for mobile */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/30 z-[100] md:hidden"
+            <div
+              className="fixed inset-0 bg-slate-900/30 z-[100]"
               onClick={closeAndReturnFocus}
               aria-hidden="true"
             />
 
-            <motion.div
+            <div
               ref={dialogRef}
               id="accessibility-panel"
               tabIndex={-1}
-              initial={{ opacity: 0, y: 20, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 20, scale: 0.95 }}
-              transition={{ duration: 0.2 }}
-              className="fixed bottom-20 right-4 z-[101] w-80 max-w-[calc(100vw-2rem)] bg-white rounded-2xl shadow-2xl border border-warm-200"
+              className="fixed top-20 right-4 z-[101] max-h-[calc(100dvh-6rem)] overflow-y-auto w-80 max-w-[calc(100vw-2rem)] bg-surface text-ink rounded-xl shadow-xl border border-border"
               role="dialog"
               aria-modal="true"
               aria-label="Accessibility settings"
             >
               {/* Header */}
-              <div className="flex items-center justify-between p-4 border-b border-warm-200">
+              <div className="flex items-center justify-between p-4 border-b border-border">
                 <div className="flex items-center gap-2">
-                  <Accessibility className="w-5 h-5 text-iris-600" aria-hidden="true" />
-                  <h2 className="font-semibold text-warm-900">Accessibility Settings</h2>
+                  <Accessibility className="w-5 h-5 text-primary" aria-hidden="true" />
+                  <h2 className="font-semibold text-ink">Accessibility Settings</h2>
                 </div>
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={closeAndReturnFocus}
                   aria-label="Close accessibility menu"
-                  className="h-8 w-8"
+
                 >
                   <X className="w-4 h-4" aria-hidden="true" />
                 </Button>
@@ -225,10 +220,10 @@ export default function AccessibilityWidget() {
               {/* Options */}
               <div className="p-4 space-y-4">
                 {/* Font Size */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-warm-700">
+                <div className="space-y-2" role="group" aria-labelledby="accessibility-text-size">
+                  <p id="accessibility-text-size" className="text-sm font-medium text-ink">
                     Text Size (<span role="status" aria-live="polite">{settings.fontSize}%</span>)
-                  </label>
+                  </p>
                   <div className="flex items-center gap-2">
                     <Button
                       variant="outline"
@@ -296,7 +291,7 @@ export default function AccessibilityWidget() {
                   variant="ghost"
                   size="sm"
                   onClick={resetSettings}
-                  className="w-full text-warm-500 hover:text-warm-700"
+                  className="w-full text-muted hover:text-ink"
                   aria-label="Reset all accessibility settings"
                 >
                   <Minus className="w-4 h-4 mr-1" aria-hidden="true" />
@@ -304,10 +299,10 @@ export default function AccessibilityWidget() {
                 </Button>
 
                 {/* Link to full accessibility statement */}
-                <div className="pt-2 border-t border-warm-200">
+                <div className="pt-2 border-t border-border">
                   <Link
                     to={createPageUrl("AccessibilityStatement")}
-                    className="text-sm text-iris-600 hover:text-iris-700 underline flex items-center gap-1"
+                    className="min-h-11 text-sm text-primary underline underline-offset-4 hover:decoration-2 flex items-center gap-1"
                     onClick={closeAndReturnFocus}
                   >
                     <Accessibility className="w-3 h-3" aria-hidden="true" />
@@ -315,10 +310,10 @@ export default function AccessibilityWidget() {
                   </Link>
                 </div>
               </div>
-            </motion.div>
+            </div>
           </>
         )}
-      </AnimatePresence>
+      </>
     </>
   );
 }

@@ -14,14 +14,14 @@ export default function PrivacyPolicy() {
           </Link>
         </Button>
 
-        <article className="bg-white rounded-2xl shadow-sm border border-warm-200 p-8 md:p-12">
+        <article className="bg-surface rounded-xl shadow-sm border border-warm-200 p-5 sm:p-8 md:p-10">
           <div className="flex items-center gap-3 mb-2">
             <Shield className="w-10 h-10 text-iris-600" />
-            <h1 className="text-4xl font-bold text-warm-900">Privacy Policy</h1>
+            <h1 className="text-3xl sm:text-4xl font-bold text-warm-900">Privacy Policy</h1>
           </div>
           <p className="text-warm-500 mb-8">Last updated: January 2026</p>
 
-          <div className="prose prose-warm max-w-none">
+          <div className="prose max-w-none">
             {/* Introduction */}
             <section className="mb-8">
               <h2 className="text-2xl font-semibold text-warm-900 mb-4">1. Introduction</h2>
@@ -81,9 +81,9 @@ export default function PrivacyPolicy() {
             </section>
 
             {/* Data Deletion - IMPORTANT FOR GDPR & GOOGLE */}
-            <section className="mb-8 bg-red-50 border border-red-200 rounded-xl p-6">
+            <section className="mb-8 bg-danger-bg border border-danger-border rounded-xl p-6">
               <div className="flex items-center gap-3 mb-4">
-                <Trash2 className="w-6 h-6 text-red-600" />
+                <Trash2 className="w-6 h-6 text-danger" />
                 <h2 className="text-2xl font-semibold text-warm-900">4. Data Deletion</h2>
               </div>
               <p className="text-warm-700 leading-relaxed">
@@ -93,7 +93,7 @@ export default function PrivacyPolicy() {
               <p className="mt-4">
                 <a
                   href="mailto:techjobsil@googlegroups.com"
-                  className="text-lg font-semibold text-red-600 hover:text-red-700 underline"
+                  className="text-lg font-semibold text-danger hover:text-danger underline"
                 >
                   techjobsil@googlegroups.com
                 </a>

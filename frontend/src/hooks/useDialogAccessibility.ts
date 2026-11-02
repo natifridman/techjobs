@@ -2,6 +2,20 @@ import { useEffect, useRef, useCallback, type RefObject } from 'react';
 
 const FOCUSABLE_SELECTOR = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
+function focusableElements(container: HTMLElement): HTMLElement[] {
+  return Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(element => {
+    if (element.tabIndex < 0 || element.matches(':disabled') || element.getAttribute('aria-disabled') === 'true' || element.closest('[hidden], [inert], [aria-hidden="true"]')) return false;
+    let current: HTMLElement | null = element;
+    while (current && current !== container.parentElement) {
+      const style = window.getComputedStyle(current);
+      if (style.display === 'none' || style.visibility === 'hidden') return false;
+      current = current.parentElement;
+    }
+    return true;
+  });
+}
+
+
 /**
  * Hook to handle focus trapping within a container element.
  * Keeps Tab/Shift+Tab cycling within the container when active.
@@ -19,23 +33,34 @@ export function useFocusTrap(
       const container = containerRef.current;
       if (!container) return;
 
-      const focusableElements = container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
-      if (focusableElements.length === 0) return;
+      const elements = focusableElements(container);
+      if (elements.length === 0) { e.preventDefault(); container.focus(); return; }
 
-      const firstElement = focusableElements[0];
-      const lastElement = focusableElements[focusableElements.length - 1];
+      const firstElement = elements[0];
+      const lastElement = elements[elements.length - 1];
+      const focusIsOutsideControls = !elements.includes(document.activeElement as HTMLElement);
 
-      if (e.shiftKey && document.activeElement === firstElement) {
+      if (e.shiftKey && (document.activeElement === firstElement || focusIsOutsideControls)) {
         e.preventDefault();
         lastElement?.focus();
-      } else if (!e.shiftKey && document.activeElement === lastElement) {
+      } else if (!e.shiftKey && (document.activeElement === lastElement || focusIsOutsideControls)) {
         e.preventDefault();
         firstElement?.focus();
       }
     };
 
+    const handleFocus = (event: FocusEvent) => {
+      const container = containerRef.current;
+      if (container && event.target instanceof Node && !container.contains(event.target)) {
+        (focusableElements(container)[0] || container).focus();
+      }
+    };
     document.addEventListener('keydown', handleTabKey);
-    return () => document.removeEventListener('keydown', handleTabKey);
+    document.addEventListener('focusin', handleFocus);
+    return () => {
+      document.removeEventListener('keydown', handleTabKey);
+      document.removeEventListener('focusin', handleFocus);
+    };
   }, [isActive, containerRef]);
 }
 
@@ -140,6 +165,30 @@ export function useDialogAccessibility({
   const dialogRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
+  // Inert siblings along the dialog's ancestor path, while keeping its backdrop clickable.
+  useEffect(() => {
+    if (!isOpen || !dialogRef.current) return;
+    const changed: Array<{ element: HTMLElement; wasInert: boolean }> = [];
+    let branch: HTMLElement = dialogRef.current;
+    let parent = branch.parentElement;
+    while (parent) {
+      for (const sibling of Array.from(parent.children)) {
+        if (sibling === branch || !(sibling instanceof HTMLElement) || sibling.getAttribute('aria-hidden') === 'true') continue;
+        changed.push({ element: sibling, wasInert: sibling.inert });
+        sibling.inert = true;
+      }
+      if (parent === document.body) break;
+      branch = parent;
+      parent = parent.parentElement;
+    }
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      changed.forEach(({ element, wasInert }) => { element.inert = wasInert; });
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isOpen]);
+
   // Focus trap
   useFocusTrap(dialogRef, isOpen);
 
@@ -152,8 +201,13 @@ export function useDialogAccessibility({
   // Close and return focus helper
   const closeAndReturnFocus = useCallback(() => {
     onClose();
-    triggerRef.current?.focus();
   }, [onClose]);
+
+  const wasOpen = useRef(false);
+  useEffect(() => {
+    if (!isOpen && wasOpen.current && triggerRef.current && window.getComputedStyle(triggerRef.current).display !== 'none') triggerRef.current.focus();
+    wasOpen.current = isOpen;
+  }, [isOpen]);
 
   return {
     dialogRef,

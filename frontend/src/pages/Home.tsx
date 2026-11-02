@@ -1,273 +1,88 @@
-import { useState, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { fetchJobsPayload, isClosed, JOBS_PAYLOAD_QUERY_KEY } from "@/components/jobs/jobsData";
-import { Link, useNavigate } from "react-router-dom";
-import { createPageUrl } from "@/utils";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import {
-  Briefcase,
-  MapPin,
-  Building2,
-  Search,
-  ArrowRight,
-  Code2,
-  Cpu,
-  Shield,
-  Server,
-  Coins,
-  Rocket,
-  Plus,
-} from "lucide-react";
-import { motion } from "framer-motion";
-import AddCompanyModal from "@/components/AddCompanyModal";
+import { useState, type FormEvent } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowRight, Briefcase, Building2, Code2, Coins, Cpu, MapPin, Plus, Rocket, Search, Server, Shield } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { useJobsCatalog } from '@/hooks/useJobs';
+import AddCompanyModal from '@/components/AddCompanyModal';
+import CatalogFreshness from '@/components/CatalogFreshness';
 
-// Role-category cards link to role-category slugs in the jobs taxonomy
-// (CATEGORY_LABELS in jobsData) - labels and destinations are the same
-// concept, so no industry/occupation conflation.
-const categories = [
-  { name: "Software", slug: "software", icon: Code2, color: "from-pink-500 to-rose-600" },
-  { name: "Data & AI", slug: "data-ai", icon: Cpu, color: "from-violet-500 to-purple-600" },
-  { name: "Security", slug: "security", icon: Shield, color: "from-emerald-500 to-teal-600" },
-  { name: "DevOps & Infrastructure", slug: "devops", icon: Server, color: "from-blue-500 to-cyan-600" },
-  { name: "Product", slug: "product", icon: Rocket, color: "from-indigo-500 to-blue-600" },
-  { name: "Finance", slug: "finance", icon: Coins, color: "from-amber-500 to-yellow-600" },
+const roles = [
+  { name: 'Software', slug: 'software', icon: Code2 },
+  { name: 'Data & AI', slug: 'data-ai', icon: Cpu },
+  { name: 'Security', slug: 'security', icon: Shield },
+  { name: 'DevOps & Infrastructure', slug: 'devops', icon: Server },
+  { name: 'Product', slug: 'product', icon: Rocket },
+  { name: 'Finance', slug: 'finance', icon: Coins },
 ];
 
-const FALLBACK_STATS = { jobs: "7,000+", companies: "600+", cities: "45+" };
-
 export default function Home() {
-  const { data: payload } = useQuery({
-    queryKey: JOBS_PAYLOAD_QUERY_KEY,
-    queryFn: fetchJobsPayload,
-    staleTime: 1000 * 60 * 5,
-  });
-  // Branch on payload availability, not on the numeric counts: after a
-  // successful load the real values render (including zero); the marketing
-  // fallback shows only while loading or after an error.
-  const stats = useMemo(() => {
-    if (!payload) {
-      return [
-        { label: "Active Jobs", value: FALLBACK_STATS.jobs, icon: Briefcase },
-        { label: "Tech Companies", value: FALLBACK_STATS.companies, icon: Building2 },
-        { label: "Cities Covered", value: FALLBACK_STATS.cities, icon: MapPin },
-      ];
-    }
-    // Closed tombstones stay in the payload for the jobs-page toggle; the
-    // marketing stats count open jobs only.
-    const jobs = (payload.jobs || []).filter(j => !isClosed(j));
-    const companies = new Set(jobs.map(j => j.company)).size;
-    const cities = new Set(jobs.flatMap(j => j.cities || [])).size;
-    return [
-      { label: "Active Jobs", value: jobs.length.toLocaleString(), icon: Briefcase },
-      { label: "Tech Companies", value: companies.toLocaleString(), icon: Building2 },
-      { label: "Cities Covered", value: String(cities), icon: MapPin },
-    ];
-  }, [payload]);
   const navigate = useNavigate();
+  const [search, setSearch] = useState('');
   const [showAddCompany, setShowAddCompany] = useState(false);
-
-  const handleCategoryClick = (categorySlug: string) => {
-    navigate(`${createPageUrl("Jobs")}?category=${encodeURIComponent(categorySlug)}`);
+  const { data, isLoading, isError, refetch } = useJobsCatalog();
+  const submitSearch = (event: FormEvent) => {
+    event.preventDefault();
+    const params = new URLSearchParams();
+    if (search.trim()) params.set('search', search.trim());
+    navigate(`/jobs${params.size ? `?${params}` : ''}`);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-warm-50 via-white to-iris-50/30">
-      {/* Hero Section - with padding-top for the absolute header */}
-      <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-iris-700 via-iris-800 to-iris-900" />
-        <div className="absolute inset-0">
-          <div className="absolute top-20 left-10 w-72 h-72 bg-white/5 rounded-full blur-3xl" />
-          <div className="absolute bottom-10 right-10 w-96 h-96 bg-iris-400/10 rounded-full blur-3xl" />
+    <div className="mx-auto max-w-7xl px-4 pb-12 pt-10 sm:pt-14">
+      <section className="max-w-3xl" aria-labelledby="home-title">
+        <p className="mb-3 text-sm font-semibold text-primary">Your next opportunity, closer.</p>
+        <h1 id="home-title" className="text-4xl font-bold leading-tight tracking-tight text-ink sm:text-5xl">Find your place in Israeli tech.</h1>
+        <p className="mt-4 max-w-2xl text-lg text-muted">Explore roles at startups and established tech companies across Israel. Search by title, skill or company.</p>
+        <form onSubmit={submitSearch} role="search" aria-label="Search jobs" className="mt-7 flex flex-col gap-3 sm:flex-row">
+          <div className="relative flex-1">
+            <label htmlFor="home-search" className="sr-only">Job title, skill or company</label>
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted" aria-hidden="true" />
+            <Input id="home-search" type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Job title, skill or company" className="h-12 pl-12 text-base" />
+          </div>
+          <Button type="submit" size="lg">Search jobs<ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" /></Button>
+        </form>
+        <div className="mt-3 flex flex-wrap gap-x-6">
+          <Link to="/jobs" className="inline-flex min-h-11 items-center text-sm font-medium text-primary hover:underline">Browse all jobs</Link>
+          <Link to="/map" className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-muted hover:text-primary"><MapPin className="h-4 w-4" aria-hidden="true" />Explore by location</Link>
         </div>
+      </section>
 
-        {/* Spacer for the absolute positioned header */}
-        <div className="h-16" />
+      <section className="my-9 rounded-xl border border-border bg-surface px-5 py-5 sm:px-7" aria-label="Current catalog">
+        {isError && !data ? (
+          <div className="flex flex-wrap items-center justify-between gap-3" role="status"><p className="text-sm text-muted">Catalog counts are temporarily unavailable. You can still open job search.</p><Button variant="outline" onClick={() => refetch()}>Retry</Button></div>
+        ) : (
+          <>
+            <dl className="grid grid-cols-3 gap-3 sm:gap-8">
+              {[{ key: 'jobs' as const, label: 'Open jobs', icon: Briefcase }, { key: 'companies' as const, label: 'Hiring companies', icon: Building2 }, { key: 'cities' as const, label: 'Cities', icon: MapPin }].map(({ key, label, icon: Icon }) => (
+                <div key={key} className="flex items-center gap-3">
+                  <Icon className="hidden h-5 w-5 text-primary sm:block" aria-hidden="true" />
+                  <div><dt className="text-xs text-muted sm:text-sm">{label}</dt><dd className="mt-1 text-2xl font-semibold tracking-tight text-ink sm:text-3xl">{data ? data.stats[key].toLocaleString() : <span aria-label="Loading count">—</span>}</dd></div>
+                </div>
+              ))}
+            </dl>
+            {!isLoading && <CatalogFreshness updatedAt={data?.updatedAt} stale={data?.stale || isError} className="mt-4 border-t border-border pt-3" />}
+          </>
+        )}
+      </section>
 
-        <div className="relative max-w-7xl mx-auto px-4 py-16 md:py-28">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="text-center"
-          >
-            <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full text-white/90 text-sm mb-8">
-              <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-              Updated daily with new opportunities
-            </div>
-
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight tracking-tight">
-              Find Your Dream Job in
-              <br />
-              <span className="bg-gradient-to-r from-copper-400 to-copper-500 bg-clip-text text-transparent">
-                Israeli Tech
-              </span>
-            </h1>
-
-            <p className="text-xl md:text-2xl text-iris-100 max-w-2xl mx-auto mb-10">
-              Discover opportunities at Israel's leading startups and tech giants.
-              All in one place, updated in real-time.
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button
-                asChild
-                size="lg"
-                className="bg-copper-700 text-white hover:bg-copper-800 text-lg px-8 py-6 rounded-xl shadow-xl shadow-black/20"
-              >
-                <Link to={createPageUrl("Jobs")}>
-                  <Search className="w-5 h-5 mr-2" />
-                  Explore Jobs
-                </Link>
-              </Button>
-              <Button
-                asChild
-                size="lg"
-                className="bg-white/10 border-2 border-white/30 text-white hover:bg-white/20 text-lg px-8 py-6 rounded-xl backdrop-blur-sm"
-              >
-                <Link to={createPageUrl("Map")}>
-                  <MapPin className="w-5 h-5 mr-2" />
-                  View Map
-                </Link>
-              </Button>
-            </div>
-          </motion.div>
-        </div>
-      </div>
-
-      {/* Stats Section */}
-      <div className="max-w-7xl mx-auto px-4 -mt-12 relative z-10">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {stats.map((stat, index) => (
-            <motion.div
-              key={stat.label}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: index * 0.1 }}
-            >
-              <Card className="bg-white shadow-xl border-0 rounded-2xl">
-                <CardContent className="p-6 flex items-center gap-4">
-                  <div className="p-3 bg-iris-100 rounded-xl">
-                    <stat.icon className="w-6 h-6 text-iris-600" />
-                  </div>
-                  <div>
-                    <p className="text-3xl font-bold text-warm-900">{stat.value}</p>
-                    <p className="text-warm-500">{stat.label}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+      <section aria-labelledby="role-title">
+        <h2 id="role-title" className="text-2xl font-semibold tracking-tight text-ink">Browse by role</h2>
+        <p className="mt-2 text-muted">Start with the work you want to do.</p>
+        <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {roles.map(({ name, slug, icon: Icon }) => (
+            <Link key={slug} to={`/jobs?category=${slug}`} className="group flex min-h-24 items-center gap-4 rounded-xl border border-border bg-surface p-5 shadow-sm transition-colors hover:border-iris-300">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-iris-50 text-primary"><Icon className="h-5 w-5" aria-hidden="true" /></span>
+              <span className="flex-1 font-medium text-ink">{name}</span><ArrowRight className="h-4 w-4 text-muted group-hover:text-primary" aria-hidden="true" />
+            </Link>
           ))}
         </div>
-      </div>
+      </section>
 
-      {/* Categories Section */}
-      <div className="max-w-7xl mx-auto px-4 py-20">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold text-warm-900 mb-4">
-            Browse by Role
-          </h2>
-          <p className="text-lg text-warm-600 max-w-2xl mx-auto">
-            From software engineering to data science, find your role
-          </p>
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {categories.map((category, index) => (
-            <motion.div
-              key={category.name}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.3, delay: index * 0.05 }}
-            >
-              <Card
-                className="group cursor-pointer hover:shadow-xl transition-all duration-300 overflow-hidden border-0 bg-white rounded-2xl card-hover"
-                onClick={() => handleCategoryClick(category.slug)}
-              >
-                <CardContent className="p-6 text-center">
-                  <div className={`w-14 h-14 mx-auto mb-4 rounded-2xl bg-gradient-to-br ${category.color} flex items-center justify-center transform group-hover:scale-110 transition-transform`}>
-                    <category.icon className="w-7 h-7 text-white" />
-                  </div>
-                  <h3 className="font-semibold text-warm-900 group-hover:text-iris-600 transition-colors">
-                    {category.name}
-                  </h3>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
-
-        <div className="text-center mt-8">
-          <Button asChild variant="outline" size="lg" className="gap-2 rounded-xl">
-            <Link to={createPageUrl("Jobs")}>
-              View All Categories
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </Button>
-        </div>
-      </div>
-
-      {/* CTA Section */}
-      <div className="bg-iris-900 py-20">
-        <div className="max-w-4xl mx-auto px-4 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
-            Ready to Find Your Next Opportunity?
-          </h2>
-          <p className="text-lg text-iris-200 mb-8 max-w-2xl mx-auto">
-            Join thousands of tech professionals who use our platform to discover
-            their dream jobs at Israel's most innovative companies.
-          </p>
-          <Button
-            asChild
-            size="lg"
-            className="bg-copper-700 hover:bg-copper-800 text-lg px-8 py-6 rounded-xl"
-          >
-            <Link to={createPageUrl("Jobs")}>
-              Start Searching Now
-              <ArrowRight className="w-5 h-5 ml-2" />
-            </Link>
-          </Button>
-        </div>
-      </div>
-
-      {/* Footer */}
-      <footer className="bg-warm-900 py-8">
-        <div className="max-w-7xl mx-auto px-4 text-center space-y-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowAddCompany(true)}
-            className="border border-warm-700 text-warm-300 hover:text-white hover:bg-warm-800 gap-2"
-            aria-label="Add your company to TechJobsIL"
-          >
-            <Plus className="w-4 h-4" aria-hidden="true" />
-            Add Your Company
-          </Button>
-
-          <nav className="flex items-center justify-center gap-3 flex-wrap" aria-label="Legal links">
-            <Button asChild variant="ghost" size="sm" className="text-warm-400 hover:text-white hover:bg-warm-800">
-              <Link to={createPageUrl("PrivacyPolicy")}>
-                Privacy Policy
-              </Link>
-            </Button>
-            <Button asChild variant="ghost" size="sm" className="text-warm-400 hover:text-white hover:bg-warm-800">
-              <Link to={createPageUrl("TermsOfService")}>
-                Terms of Service
-              </Link>
-            </Button>
-            <Button asChild variant="ghost" size="sm" className="text-warm-400 hover:text-white hover:bg-warm-800">
-              <Link to={createPageUrl("AccessibilityStatement")}>
-                Accessibility
-              </Link>
-            </Button>
-          </nav>
-
-          <p className="text-warm-400 text-xs">
-            © {new Date().getFullYear()} TechJobsIL. All rights reserved.
-          </p>
-        </div>
-      </footer>
-
+      <section className="mt-9 flex flex-col gap-5 rounded-xl border border-border bg-surface p-6 sm:flex-row sm:items-center sm:justify-between" aria-labelledby="company-title">
+        <div><h2 id="company-title" className="text-lg font-semibold text-ink">Find a company that fits.</h2><p className="mt-1 text-sm text-muted">Explore employers, their locations and current roles.</p></div>
+        <div className="flex flex-wrap items-center gap-3"><Button asChild variant="outline"><Link to="/companies">Explore companies</Link></Button><Button variant="ghost" onClick={() => setShowAddCompany(true)}><Plus className="mr-2 h-4 w-4" aria-hidden="true" />Suggest a company</Button></div>
+      </section>
       <AddCompanyModal open={showAddCompany} onOpenChange={setShowAddCompany} />
     </div>
   );

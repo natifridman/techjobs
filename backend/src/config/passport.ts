@@ -50,6 +50,7 @@ const setupGoogleStrategy = () => {
       clientID,
       clientSecret,
       callbackURL,
+      state: true,
     },
     async (accessToken: string, refreshToken: string, profile: Profile, done) => {
       try {

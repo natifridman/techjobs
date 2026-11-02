@@ -9,14 +9,16 @@ services:
     restart: unless-stopped
     ports:
       - "3001:3001"
-    volumes:
-      - techjobs-data:/app/data
     environment:
       - NODE_ENV=production
       - PORT=3001
-      - DB_PATH=/app/data/techjobs.db
+      - DATABASE_URL=${DATABASE_URL:?Set DATABASE_URL}
+      - SUPABASE_URL=${SUPABASE_URL:?Set SUPABASE_URL}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY:?Set SUPABASE_SERVICE_KEY}
+      - JOBS_STORAGE_BUCKET=${JOBS_STORAGE_BUCKET:-jobs-feed}
+      - JOBS_STORAGE_OBJECT=${JOBS_STORAGE_OBJECT:-jobs.json}
       - CORS_ORIGIN=http://localhost:8080
-      - SESSION_SECRET=${SESSION_SECRET:-change-this-in-production}
+      - SESSION_SECRET=${SESSION_SECRET:?Set SESSION_SECRET}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
       - GOOGLE_CALLBACK_URL=http://localhost:8080/auth/google/callback
@@ -35,7 +37,6 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        VITE_JOBS_DATA_URL: ${VITE_JOBS_DATA_URL:-}
         VITE_SUBMIT_COMPANY_URL: ${VITE_SUBMIT_COMPANY_URL:-}
     container_name: techjobs-frontend
     restart: unless-stopped
@@ -46,10 +47,6 @@ services:
         condition: service_healthy
     networks:
       - techjobs-network
-
-volumes:
-  techjobs-data:
-    name: techjobs-data
 
 networks:
   techjobs-network:

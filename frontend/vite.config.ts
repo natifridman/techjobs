@@ -11,16 +11,16 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      '@': path.resolve(import.meta.dirname, './src'),
     },
   },
   test: {
     globals: true,
     environment: 'jsdom',
-    env: {
-      // jobsData requires the feed url; tests stub fetch and never read it.
-      VITE_JOBS_DATA_URL: 'https://example.test/jobs.json',
-    },
+    // CPU-heavy parser fuzzing can starve jsdom's first accessibility query on
+    // shared CI runners. Keep the normal timeouts and assertions, but run CI
+    // files sequentially; local runs retain parallel workers.
+    fileParallelism: !process.env.CI,
     setupFiles: ['./src/__tests__/setup.ts'],
     include: ['src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     coverage: {

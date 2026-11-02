@@ -1,6 +1,6 @@
 // Authentication API client
 
-const API_BASE_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || '';
+const API_BASE_URL = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '').replace(/\/api$/, '');
 
 export interface User {
   id: string;
@@ -19,7 +19,8 @@ export const authApi = {
   getMe: async (): Promise<AuthState> => {
     try {
       const response = await fetch(`${API_BASE_URL}/auth/me`, {
-        credentials: 'include'
+        credentials: 'include',
+        cache: 'no-store',
       });
       if (!response.ok) {
         return { authenticated: false, user: null };

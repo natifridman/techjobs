@@ -1,18 +1,3 @@
-// Job data for TechJobsIL. The frontend fetches a JSON payload (produced by
-// scripts/convert_jobs.mjs) straight from a plain URL - see VITE_JOBS_DATA_URL
-// in the README - so data updates never require a site redeploy.
-// There is deliberately no default feed: a build must point at the jobs.json
-// maintained alongside its own deployment, so a missing override fails loudly
-// here instead of silently depending on someone else's feed for availability
-// and updates.
-const configuredJobsUrl = import.meta.env.VITE_JOBS_DATA_URL as string | undefined;
-if (!configuredJobsUrl) {
-  throw new Error(
-    'VITE_JOBS_DATA_URL is not set: point it at the jobs.json feed maintained alongside this deployment (see README).',
-  );
-}
-export const JOBS_DATA_URL = configuredJobsUrl;
-
 // Renderer-facing fields from the techjob_map 21-field schema (ops/provenance fields stay in the dataset) plus site-specific derived fields.
 export interface Job {
   company: string;
@@ -224,31 +209,6 @@ export function parseJobsPayload(raw: unknown): JobsPayload {
   return { ...(envelope as unknown as JobsPayload), cityLabels, jobs };
 }
 
-let inflightPayload: Promise<JobsPayload> | null = null;
-
-export function fetchJobsPayload(): Promise<JobsPayload> {
-  // Share one in-flight request so concurrent callers (jobs list, city
-  // labels) don't each fetch and parse the whole payload. Settled promises
-  // are cleared so react-query refetches still hit the network.
-  if (!inflightPayload) {
-    inflightPayload = (async () => {
-      const response = await fetch(JOBS_DATA_URL);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch jobs data (${response.status})`);
-      }
-      return parseJobsPayload(await response.json());
-    })().finally(() => {
-      inflightPayload = null;
-    });
-  }
-  return inflightPayload;
-}
-
-/** Shared react-query key for the payload. Every page derives its view from
- *  this one cache entry (via select), so navigating between Home, Jobs,
- *  Companies and the map never refetches or reparses the same snapshot. */
-export const JOBS_PAYLOAD_QUERY_KEY = ['jobsPayload'] as const;
-
 export function selectCityLabels(payload: JobsPayload): Record<string, string> {
   return payload.cityLabels || {};
 }
@@ -272,12 +232,4 @@ export function sortJobs(jobs: Job[]): Job[] {
 
 export function selectSortedJobs(payload: JobsPayload): Job[] {
   return sortJobs(payload.jobs || []);
-}
-
-export async function fetchCityLabels(): Promise<Record<string, string>> {
-  return selectCityLabels(await fetchJobsPayload());
-}
-
-export async function fetchAllJobs(): Promise<Job[]> {
-  return selectSortedJobs(await fetchJobsPayload());
 }

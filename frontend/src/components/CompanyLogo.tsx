@@ -33,7 +33,7 @@ export default function CompanyLogo({
   if (!logoUrl || failedUrl === logoUrl) {
     return (
       <div
-        className={`${className} rounded-lg bg-iris-100 flex items-center justify-center ${textSize} font-bold text-iris-600 shrink-0`}
+        className={`${className} rounded-lg bg-iris-100 flex items-center justify-center ${textSize} font-bold text-primary shrink-0`}
         role="img"
         aria-label={`${name} logo`}
         {...rest}
@@ -43,9 +43,11 @@ export default function CompanyLogo({
     );
   }
 
+  // Keep fetched brand artwork on a light mat in both themes; many logos
+  // include dark lettering or transparent backgrounds meant for white.
   return (
     <div
-      className={`${className} rounded-lg bg-white border border-warm-100 flex items-center justify-center overflow-hidden shrink-0`}
+      className={`${className} rounded-lg bg-white border border-border flex items-center justify-center overflow-hidden shrink-0`}
       {...rest}
     >
       <img

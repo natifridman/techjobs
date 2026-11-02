@@ -1,13 +1,13 @@
 {
   "name": "techjobs",
   "version": "1.0.0",
-  "description": "A full-stack application for browsing Israeli tech jobs, built with React, Express.js, and SQLite.",
+  "description": "A full-stack application for browsing Israeli tech jobs, built with React, Express.js, and PostgreSQL.",
   "main": "index.js",
   "scripts": {
     "test": "npm run test:backend && npm run test:frontend && npm run test:scripts",
     "test:backend": "cd backend && npm test",
     "test:frontend": "cd frontend && npm run test:run",
-    "test:scripts": "node --test scripts/convert_jobs.test.mjs"
+    "test:scripts": "node --test scripts/convert_jobs.test.mjs scripts/publish_jobs.test.mjs"
   },
   "repository": {
     "type": "git",
@@ -20,5 +20,8 @@
   "bugs": {
     "url": "https://github.com/natifridman/techjobs/issues"
   },
-  "homepage": "https://github.com/natifridman/techjobs#readme"
+  "homepage": "https://github.com/natifridman/techjobs#readme",
+  "engines": {
+    "node": ">=24.15.0"
+  }
 }

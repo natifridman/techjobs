@@ -1,0 +1,108 @@
+/* Keep Leaflet's UI on the same palette as the surrounding city list. */
+.jobs-map.leaflet-container {
+  background: var(--color-page);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+/* Only the OpenStreetMap tiles are filtered. Markers, labels in popups,
+   attribution and controls retain their own foreground/background colors. */
+.dark .jobs-map .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(.9) contrast(.9) saturate(.65);
+}
+
+.jobs-map .leaflet-popup-content-wrapper,
+.jobs-map .leaflet-popup-tip {
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+
+.jobs-map .leaflet-popup-content-wrapper {
+  border: 1px solid var(--color-border);
+}
+
+.jobs-map .leaflet-popup-content a {
+  color: var(--color-primary);
+}
+
+.jobs-map a.leaflet-popup-close-button {
+  width: 44px;
+  height: 44px;
+  color: var(--color-muted);
+  font-size: 24px;
+  line-height: 44px;
+}
+
+.jobs-map a.leaflet-popup-close-button:hover {
+  color: var(--color-ink);
+}
+
+.jobs-map .leaflet-popup-content {
+  margin-right: 40px;
+}
+
+.jobs-map .leaflet-bar {
+  border: 1px solid var(--color-border);
+  box-shadow: 0 2px 8px rgb(0 0 0 / .18);
+}
+
+.jobs-map .leaflet-bar a {
+  background: var(--color-surface);
+  color: var(--color-ink);
+  border-color: var(--color-border);
+}
+
+.jobs-map .leaflet-bar a:hover,
+.jobs-map .leaflet-bar a:focus-visible {
+  background: var(--color-warm-100);
+  color: var(--color-ink);
+}
+
+.jobs-map .leaflet-bar a.leaflet-disabled {
+  background: var(--color-page);
+  color: var(--color-muted);
+}
+
+.jobs-map .leaflet-control-attribution {
+  background: var(--color-surface);
+  color: var(--color-muted);
+  border-top: 1px solid var(--color-border);
+}
+
+.jobs-map .leaflet-control-attribution a {
+  color: var(--color-primary);
+}
+
+.jobs-map .job-count-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--color-surface);
+  border-radius: 50%;
+  background: var(--color-action);
+  color: var(--color-action-foreground);
+  box-shadow: 0 2px 8px rgb(0 0 0 / .25);
+  font: 600 12px var(--font-sans);
+}
+
+.jobs-map .custom-marker:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 4px;
+  border-radius: 50%;
+}
+
+/* High contrast is independent of the saved light/dark preference. */
+html.high-contrast .jobs-map .leaflet-tile-pane {
+  filter: grayscale(1) invert(1) contrast(1.2);
+}
+
+html.high-contrast .jobs-map .leaflet-popup-content-wrapper,
+html.high-contrast .jobs-map .leaflet-control-attribution,
+html.high-contrast .jobs-map .job-count-marker {
+  border: 2px solid var(--hc-border);
+}
+
+html.high-contrast .jobs-map .job-count-marker {
+  background: var(--hc-bg);
+  color: var(--hc-text);
+}

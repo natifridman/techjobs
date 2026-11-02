@@ -9,7 +9,6 @@ services:
       dockerfile: Dockerfile.dev
     volumes:
       - ./backend/src:/app/src:z
-      - techjobs-data:/app/data
     environment:
       - NODE_ENV=development
       - GOOGLE_CALLBACK_URL=http://localhost:3001/auth/google/callback

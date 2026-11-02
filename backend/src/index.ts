@@ -9,6 +9,7 @@ import passport from './config/passport';
 import authRouter from './routes/auth';
 import savedJobsRouter from './routes/savedJobs';
 import companiesRouter from './routes/companies';
+import jobsRouter from './routes/jobs';
 import path from 'path';
 
 const app = express();
@@ -99,6 +100,12 @@ app.use('/auth', authRouter);
 // API routes
 app.use('/api/saved-jobs', savedJobsRouter);
 app.use('/api/companies', companiesRouter);
+app.use('/api/jobs', jobsRouter);
+
+// API typos must remain JSON 404s even when the production SPA is mounted.
+app.use('/api', (_req, res) => {
+  res.status(404).json({ error: 'Not found' });
+});
 
 // Serve frontend in production
 const publicPath = path.join(__dirname, '..', 'public');
@@ -136,6 +143,7 @@ app.listen(PORT, () => {
   console.log(`   Auth:         http://localhost:${PORT}/auth/me`);
   console.log(`   Saved Jobs:   http://localhost:${PORT}/api/saved-jobs`);
   console.log(`   Companies:    http://localhost:${PORT}/api/companies`);
+  console.log(`   Jobs:         http://localhost:${PORT}/api/jobs`);
   console.log('');
   if (!process.env.GOOGLE_CLIENT_ID) {
     console.log('⚠️  Google OAuth not configured. Set these environment variables:');
