@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SavedJobs from '@/pages/SavedJobs';
 import { savedJobsApi } from '@/api/storage';
 import type { SavedJob } from '@/api/storage';
+import type { ReactNode } from 'react';
 
 const mocks = vi.hoisted(() => ({
   read: vi.fn(),
@@ -32,13 +33,14 @@ const job: SavedJob = {
 };
 const second = { ...job, id: 'two', url: 'https://example.com/two', job_title: 'Designer', applied: false };
 function renderPage() {
-  return render(
-    <QueryClientProvider client={new QueryClient()}>
-      <MemoryRouter>
-        <SavedJobs />
-      </MemoryRouter>
-    </QueryClientProvider>,
-  );
+  const client = new QueryClient();
+  return render(<SavedJobs />, {
+    wrapper: ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={client}>
+        <MemoryRouter>{children}</MemoryRouter>
+      </QueryClientProvider>
+    ),
+  });
 }
 beforeEach(() => {
   vi.clearAllMocks();
@@ -105,5 +107,42 @@ describe('saved-job recovery', () => {
     renderPage();
     expect(screen.getByRole('alert')).toHaveTextContent('Saved jobs could not be loaded');
     expect(screen.queryByText('Start your next chapter with a shortlist')).not.toBeInTheDocument();
+  });
+  it('discards the previous account’s note draft when the account changes', async () => {
+    const user = userEvent.setup();
+    const { rerender } = renderPage();
+    await user.click(screen.getByRole('button', { name: 'Edit note for Backend Engineer' }));
+    await user.type(screen.getByRole('textbox', { name: 'Note for Backend Engineer' }), ' Private draft');
+    mocks.auth.isAuthenticated = true;
+    mocks.auth.user = { id: 'another-account' };
+    rerender(<SavedJobs />);
+    expect(screen.queryByRole('textbox', { name: 'Note for Backend Engineer' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Edit note for Backend Engineer' }));
+    expect(screen.getByRole('textbox', { name: 'Note for Backend Engineer' })).toHaveValue('Keep this note');
+  });
+  it('does not let an old account’s completed write unlock a new account’s pending action', async () => {
+    const resolves: Array<(value: SavedJob) => void> = [];
+    vi.mocked(savedJobsApi.update).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolves.push(resolve);
+        }),
+    );
+    const user = userEvent.setup();
+    const { rerender } = renderPage();
+    const appliedButton = () =>
+      within(screen.getByRole('article', { name: 'Backend Engineer at Example' })).getByRole('button', {
+        name: 'Applied',
+      });
+    await user.click(appliedButton());
+    mocks.auth.isAuthenticated = true;
+    mocks.auth.user = { id: 'another-account' };
+    rerender(<SavedJobs />);
+    expect(appliedButton()).toBeEnabled();
+    await user.click(appliedButton());
+    await act(async () => resolves[0](job));
+    expect(appliedButton()).toBeDisabled();
+    await act(async () => resolves[1](job));
+    expect(appliedButton()).toBeEnabled();
   });
 });

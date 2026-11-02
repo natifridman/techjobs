@@ -25,16 +25,23 @@ import { CATEGORY_LABELS } from '@/components/jobs/jobsData';
 
 type Filter = 'all' | 'applied' | 'not-applied';
 export default function SavedJobs() {
+  const auth = useAuth();
+  const scope = auth.isAuthenticated && auth.user ? `account:${auth.user.id}` : 'guest';
+  // Remount the editor when its owner changes, so private drafts and pending
+  // controls reset with the account rather than in a follow-up effect.
+  return <SavedJobsContent key={scope} auth={auth} />;
+}
+
+function SavedJobsContent({ auth }: { auth: ReturnType<typeof useAuth> }) {
   const client = useQueryClient();
   const posthog = usePostHog();
-  const auth = useAuth();
   const account = auth.isAuthenticated && auth.user ? auth.user.id : null;
-  const lifetime = useRef({ active: true, account });
-  lifetime.current.account = account;
+  const lifetime = useRef({ active: true });
   useEffect(() => {
-    lifetime.current.active = true;
+    const current = lifetime.current;
+    current.active = true;
     return () => {
-      lifetime.current.active = false;
+      current.active = false;
     };
   }, []);
   const saved = useSavedJobs();
@@ -45,16 +52,6 @@ export default function SavedJobs() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [pending, setPending] = useState(new Set<string>());
   const locks = useRef(new Set<string>());
-  const generation = useRef(0);
-  // Account changes discard in-memory drafts as well as query-cache records.
-  useEffect(() => {
-    setEditing(null);
-    setDrafts({});
-    setErrors({});
-    setPending(new Set());
-    locks.current.clear();
-    generation.current++;
-  }, [account]);
   const sync = useMutation({
     mutationFn: reconcileGuestSavedJobs,
     onSuccess: () => client.invalidateQueries({ queryKey: ['savedJobs'] }),
@@ -75,21 +72,18 @@ export default function SavedJobs() {
   const refresh = () => client.invalidateQueries({ queryKey: ['savedJobs'] });
   const perform = async (job: SavedJob, action: () => Promise<void>) => {
     if (locks.current.has(job.url)) return;
-    const operationGeneration = generation.current;
     locks.current.add(job.url);
     setPending(new Set(locks.current));
     try {
       await action();
     } catch {
-      if (lifetime.current.active && lifetime.current.account === account) {
+      if (lifetime.current.active) {
         setErrors((previous) => ({ ...previous, [job.id]: 'Could not save this change. Please try again.' }));
         toast.error('Could not save this change. Please try again.');
       }
     } finally {
-      if (generation.current === operationGeneration) {
-        locks.current.delete(job.url);
-        if (lifetime.current.active) setPending(new Set(locks.current));
-      }
+      locks.current.delete(job.url);
+      if (lifetime.current.active) setPending(new Set(locks.current));
     }
   };
   const edit = (job: SavedJob) => {
@@ -102,7 +96,7 @@ export default function SavedJobs() {
       const updated = await savedJobsApi.update(job.id, { comments: drafts[job.id] || '' }, job.url);
       if (!updated) throw new Error('Note not saved');
       await refresh();
-      if (!lifetime.current.active || lifetime.current.account !== account) return;
+      if (!lifetime.current.active) return;
       setEditing((current) => (current === job.id ? null : current));
       setDrafts((previous) => {
         const next = { ...previous };
@@ -126,22 +120,21 @@ export default function SavedJobs() {
       );
       if (!updated) throw new Error('Status not saved');
       await refresh();
+      if (!lifetime.current.active) return;
       setErrors((previous) => ({ ...previous, [job.id]: '' }));
     });
   const remove = (job: SavedJob) =>
     perform(job, async () => {
       if (!(await savedJobsApi.delete(job.id, job.url))) throw new Error('Job not removed');
       await refresh();
-      if (!lifetime.current.active || lifetime.current.account !== account) return;
+      if (!lifetime.current.active) return;
       toast.success('Job removed from saved', {
         duration: 8000,
         action: {
           label: 'Undo',
           onClick: async () => {
-            if (lifetime.current.active && lifetime.current.account !== account) {
-              toast.error('Return to the original account to restore this job.');
-              return;
-            }
+            // Undo can outlive this page. Storage verifies the original
+            // owner before restoring, including after navigation/sign-in.
             try {
               await savedJobsApi.restore(job, account);
               await refresh();

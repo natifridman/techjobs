@@ -196,7 +196,7 @@ export const savedJobsApi = {
     const jobs = getLocalJobs().filter(
       (j) => !j.syncedTo || (accountId !== null && j.syncedTo === accountId),
     );
-    if (options?.requireAccount && jobs.length === 0) throw new Error('Saved jobs could not be loaded');
+    if (options?.requireAccount && jobs.length === 0) throw new Error('Saved jobs could not be loaded', { cause: error });
     if (sortBy === '-created_date') {
       return jobs.sort((a, b) => 
         new Date(b.created_date).getTime() - new Date(a.created_date).getTime()
