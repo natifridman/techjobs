@@ -1,5 +1,6 @@
 import type { Job, JobsPayload } from './domain';
 import { isClosed } from './domain';
+import { companyWebsite } from './companyWebsite';
 
 export interface JobsFilters {
   sort?: 'balanced' | 'recent';
@@ -104,7 +105,7 @@ export interface JobsCatalog {
   stats: { jobs: number; companies: number; cities: number };
   cityLabels: Record<string, string>;
   facets: { cities: string[] };
-  companies: Array<{ name: string; jobCount: number; categories: string[]; locations: string[]; jobCategories: string[]; latestUpdate: string | null }>;
+  companies: Array<{ name: string; websiteUrl: string | null; jobCount: number; categories: string[]; locations: string[]; jobCategories: string[]; latestUpdate: string | null }>;
   cities: Array<{ city: string; jobCount: number; companies: string[] }>;
 }
 
@@ -121,10 +122,11 @@ export function buildCatalog(payload: JobsPayload, stale: boolean): JobsCatalog 
     if (name) {
       let company = companyMap.get(name);
       if (!company) {
-        company = { name, jobCount: 0, categories: [], locations: [], jobCategories: [], latestUpdate: null };
+        company = { name, websiteUrl: null, jobCount: 0, categories: [], locations: [], jobCategories: [], latestUpdate: null };
         companyMap.set(name, company);
       }
       company.jobCount++;
+      company.websiteUrl ||= companyWebsite(name, job.url);
       addUnique(company.categories, job.department);
       addUnique(company.jobCategories, job.job_category);
       for (const city of job.cities.length ? job.cities : job.city ? [job.city] : []) addUnique(company.locations, city);

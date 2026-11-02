@@ -66,7 +66,8 @@ export default function CompanyProfile() {
     staleTime: 5 * 60 * 1000,
     retry: false,
   });
-  const websiteUrl = companyWebsiteUrl(metadata.isError ? null : metadata.data?.website_url);
+  const websiteUrl = companyWebsiteUrl(metadata.isError ? null : metadata.data?.website_url)
+    || companyWebsiteUrl(company?.websiteUrl);
   const jobs = useJobs({ company: name, search, page, sort }, Boolean(name));
   const update = (nextSearch: string, nextPage = 1, replace = false) => {
     const next = new URLSearchParams();
