@@ -48,8 +48,8 @@ function FilterFields({ filters, setFilters, cities, cityLabels = {} }: Pick<Fil
     {group('Job category', 'jobCategories', Object.keys(CATEGORY_LABELS), value => CATEGORY_LABELS[value] || value, true)}
     {group('Work model', 'workModels', WORK_MODELS, undefined, true)}
     {group('Seniority', 'seniorities', SENIORITIES)}
-    {group('Location', 'cities', matchingCities, value => locationLabel(value, cityLabels), true)}
     {group('Region', 'regions', Object.keys(REGION_LABELS), value => REGION_LABELS[value] || value)}
+    {group('Location', 'cities', matchingCities, value => locationLabel(value, cityLabels), true)}
     {group('Employment type', 'employmentTypes', EMPLOYMENT_TYPES)}
     <div className="flex items-start gap-2.5 py-5">
       <Checkbox id={`${id}-closed`} checked={filters.showClosed} onCheckedChange={checked => setFilters(previous => ({ ...previous, showClosed: checked === true }))} className="mt-0.5" />
