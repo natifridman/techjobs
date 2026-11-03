@@ -59,6 +59,33 @@ function renderJobs(route: string, profile = false) {
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); LOGIN.mockReset(); localStorage.clear(); });
 
 describe('Jobs URL params', () => {
+  it('migrates legacy area links to city-only URLs after catalog loading', async () => {
+    const rows = [{...JOBS[0], cities:['Yavne']}, {...JOBS[1], cities:['Petah Tikva']}];
+    const calls=mockApi(rows, {Yavne:'יבנה','Petah Tikva':'פתח תקווה'});
+    renderJobs('/jobs?region=center&city=Yavne&workModel=remote');
+    await waitFor(() => {
+      const url=screen.getByTestId('location').textContent!;
+      expect(url).not.toContain('region='); expect(url).toContain('city=Yavne'); expect(url).toContain('city=Petah+Tikva');
+      expect(url).toContain('workModel=remote');
+    });
+    expect(calls.some(url=>url.pathname==='/api/jobs'&&!url.searchParams.has('region')&&url.searchParams.getAll('city').length===2)).toBe(true);
+  });
+  it('does not silently broaden legacy areas with no mapped cities', async () => {
+    mockApi();renderJobs('/jobs?region=judea-samaria');await screen.findByText('Backend Engineer');
+    expect(screen.getByTestId('location').textContent).toContain('region=judea-samaria');
+  });
+  it('uses mixed area state and allows city removal and adding another city', async () => {
+    mockApi([{...JOBS[0],cities:['Yavne']},{...JOBS[1],cities:['Petah Tikva','Rosh HaAyin']}],{Yavne:'יבנה','Petah Tikva':'פתח תקווה','Rosh HaAyin':'ראש העין'});
+    renderJobs('/jobs?city=Yavne');await screen.findByText('Backend Engineer');
+    const center=screen.getByRole('checkbox',{name:/מרכז/});fireEvent.click(center);
+    await waitFor(()=>expect(screen.getByTestId('location').textContent).toContain('city=Petah+Tikva'));
+    expect(screen.getByTestId('location').textContent).not.toContain('region=');
+    fireEvent.click(screen.getByRole('checkbox',{name:/פתח תקווה/}));
+    await waitFor(()=>expect(screen.getByTestId('location').textContent).not.toContain('Petah'));
+    expect(screen.getByRole('checkbox',{name:/יבנה/})).toHaveAttribute('aria-checked','true');
+    expect(screen.getByRole('checkbox',{name:/מרכז/})).toHaveAttribute('aria-checked','mixed');
+  });
+
   it('applies a valid category slug through the jobs API', async () => {
     const calls = mockApi(); renderJobs('/jobs?category=software'); await screen.findByText('Backend Engineer');
     expect(screen.queryByText('Product Designer')).toBeNull(); expect(calls.some(url => url.pathname === '/api/jobs' && url.searchParams.get('category') === 'software')).toBe(true);
