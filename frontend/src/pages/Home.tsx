@@ -10,10 +10,10 @@ import {
   Cpu,
   ExternalLink,
   MapPin,
-  Search,
   Server,
   Shield,
   Sparkles,
+  Search,
   UsersRound,
   Wrench,
   Handshake,
@@ -22,6 +22,7 @@ import { usePostHog } from 'posthog-js/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useJobsCatalog } from '@/hooks/useJobs';
+import JobSearchInput from '@/components/jobs/JobSearchInput';
 import CompanyLogo from '@/components/CompanyLogo';
 import CatalogFreshness from '@/components/CatalogFreshness';
 import HomeJobPreview from '@/components/home/HomeJobPreview';
@@ -111,21 +112,7 @@ export default function Home() {
               <label htmlFor="home-search" className="mb-1.5 block text-left text-xs font-semibold text-ink">
                 What are you looking for?
               </label>
-              <div className="relative">
-                <Search
-                  className="pointer-events-none absolute left-3 top-3.5 h-5 w-5 text-muted"
-                  aria-hidden="true"
-                />
-                <Input
-                  id="home-search"
-                  type="search"
-                  aria-label="Job title, skill or company"
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Job title, skill or company"
-                  className="h-12 bg-page pl-10 text-base"
-                />
-              </div>
+              <JobSearchInput id="home-search" value={search} onChange={setSearch} label="Job title, skill or company" placeholder="Job title, skill or company" />
             </div>
             <div className="mt-3 min-w-0 sm:mt-0 sm:w-[30%]">
               <label

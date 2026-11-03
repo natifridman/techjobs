@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
-import { Input } from '@/components/ui/input';
+import JobSearchInput from './JobSearchInput';
 import { Button } from '@/components/ui/button';
-import { Search, SlidersHorizontal, Bookmark, Download, MoreHorizontal } from 'lucide-react';
+import { SlidersHorizontal, Bookmark, Download, MoreHorizontal } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 interface SearchHeaderProps {
@@ -63,19 +63,7 @@ export default function SearchHeader({
             <label htmlFor="jobs-search" className="sr-only">
               Search jobs, companies, or keywords
             </label>
-            <Search
-              className="pointer-events-none absolute left-3 top-3.5 h-4 w-4 text-muted"
-              aria-hidden="true"
-            />
-            <Input
-              id="jobs-search"
-              type="search"
-              placeholder="Job title, company, or keyword"
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-              className="h-11 bg-page pl-9"
-              autoComplete="off"
-            />
+            <JobSearchInput id="jobs-search" value={searchQuery} onChange={setSearchQuery} label="Search jobs, companies, or keywords" placeholder="Job title, company, or keyword" className="h-11" />
           </div>
           <div className="flex items-center gap-1 sm:gap-2">
             <Button

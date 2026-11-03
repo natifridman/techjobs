@@ -1,7 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import { requireAuth } from './auth';
 import { jobsService, JobsUnavailable } from '../jobs/service';
-import { buildCatalog, filterJobs, InvalidJobsQuery, parseJobsQuery } from '../jobs/query';
+import { buildCatalog, suggestJobTitles, filterJobs, InvalidJobsQuery, parseJobsQuery } from '../jobs/query';
 import { csvFileName, jobsToCsv } from '../jobs/exportCsv';
 
 export const GUEST_PREVIEW_LIMIT = 10;
@@ -22,6 +22,16 @@ function fail(error: unknown, res: Response) {
   console.error('Jobs API request failed');
   return res.status(500).json({ error: 'Failed to load jobs' });
 }
+
+router.get('/suggestions', async (req, res) => {
+ try {
+  const q=req.query.q;
+  if(typeof q!=='string'||q.length>80)return res.status(400).json({code:'INVALID_QUERY',error:'Invalid suggestion query'});
+  if(q.trim().length<2)return res.json({suggestions:[]});
+  const {payload}=await jobsService.getSnapshot();
+  return res.json({suggestions:suggestJobTitles(payload,q)});
+ }catch(error){return fail(error,res);}
+});
 
 router.get('/catalog', async (_req, res) => {
   try {
