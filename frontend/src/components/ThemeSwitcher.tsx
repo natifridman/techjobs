@@ -32,11 +32,11 @@ export default function ThemeSwitcher({ compact = false }: { compact?: boolean }
   return (
     <fieldset className="px-4 py-3">
       <legend className="mb-2 text-sm font-semibold text-ink">Color theme</legend>
-      <div className="grid grid-cols-3 gap-2">
+      <div className="flex flex-wrap gap-2">
         {themes.map(({ value, label, icon: Icon }) => (
-          <label key={value} className={`flex min-h-11 cursor-pointer items-center justify-center gap-1.5 rounded-lg border px-2 text-sm focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2 focus-within:ring-offset-surface ${preference === value ? 'border-primary bg-iris-50 text-primary' : 'border-border text-muted hover:bg-warm-100'}`}>
+          <label key={value} className={`flex min-h-11 min-w-fit flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg border px-2 text-sm focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2 focus-within:ring-offset-surface ${preference === value ? 'border-primary bg-iris-50 text-primary' : 'border-border text-muted hover:bg-warm-100'}`}>
             <input className="sr-only" type="radio" name={groupId} value={value} checked={preference === value} onChange={() => setTheme(value)} />
-            <Icon className="h-4 w-4" aria-hidden="true" />{label}
+            <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />{label}
           </label>
         ))}
       </div>
