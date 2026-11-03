@@ -12,8 +12,8 @@ const data=payload([
  job({url:'https://jobs.example.com/legacy',cities:[],regions:['judea-samaria']}),
  job({url:'https://jobs.example.com/unrelated',cities:['Yavne'],regions:['shfela']}),
 ]);
-const roundTrip=(f:typeof EMPTY_FILTERS)=>readJobsFilters(jobsQueryParams(filtersToQuery(f)),available).filters;
-const matches=(f:typeof EMPTY_FILTERS)=>{
+const roundTrip=(f)=>readJobsFilters(jobsQueryParams(filtersToQuery(f)),available).filters;
+const matches=(f)=>{
  const params=jobsQueryParams(filtersToQuery(f));
  const query=Object.fromEntries([...new Set(params.keys())].map(key=>[key,params.getAll(key).length>1?params.getAll(key):params.get(key)]));
  return filterJobs(data,parseJobsQuery(query).filters).map(j=>j.url.split('/').pop()).sort();
