@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { EMPTY_FILTERS, WORK_MODELS, EMPLOYMENT_TYPES, SENIORITIES, activeFilterCount, type Filters, type ListFilter } from './filters';
 import { REGION_LABELS, CATEGORY_LABELS } from './jobsData';
 import { locationLabel } from '@/lib/locations';
+import { citiesInArea, needsLegacyLocationConsent, switchToCitySelection, selectedCities, toggleArea, toggleCity } from './geography';
 
 interface FilterSidebarProps {
   filters: Filters;
@@ -23,7 +24,9 @@ function FilterFields({ filters, setFilters, cities, cityLabels = {} }: Pick<Fil
   const id = useId();
   const [citySearch, setCitySearch] = useState('');
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const toggle = (key: ListFilter, value: string) => setFilters(previous => ({
+  const legacyIntersection = needsLegacyLocationConsent(filters, cities);
+  const chosenCities = selectedCities(filters, cities);
+  const toggle = (key: ListFilter, value: string) => setFilters(previous => key === 'cities' ? toggleCity(previous, value, cities) : ({
     ...previous, [key]: previous[key].includes(value) ? previous[key].filter(item => item !== value) : [...previous[key], value],
   }));
   const group = (title: string, key: ListFilter, values: string[], label: (value: string) => string = value => value.replace(/-/g, ' '), open = false) => (
@@ -34,8 +37,8 @@ function FilterFields({ filters, setFilters, cities, cityLabels = {} }: Pick<Fil
       </summary>
       {key === 'cities' && <div className="relative mt-3"><Search className="absolute left-2.5 top-3 h-4 w-4 text-warm-400" aria-hidden="true" /><Input value={citySearch} onChange={event => setCitySearch(event.target.value)} placeholder="Find a location" aria-label="Find a city" className="h-10 pl-8 text-sm" /></div>}
       <div id={`${id}-${key}-options`} className="mt-2 space-y-1">
-        {values.filter((value, index) => expanded[key] || index < 6 || filters[key].includes(value)).map(value => <div key={value} className="flex min-h-11 sm:min-h-9 items-center gap-2.5">
-          <Checkbox id={`${id}-${key}-${value}`} checked={filters[key].includes(value)} onCheckedChange={() => toggle(key, value)} />
+        {values.filter((value, index) => expanded[key] || index < 6 || (key === 'cities' ? chosenCities : filters[key]).includes(value)).map(value => <div key={value} className="flex min-h-11 sm:min-h-9 items-center gap-2.5">
+          <Checkbox id={`${id}-${key}-${value}`} disabled={key === 'cities' && legacyIntersection} checked={(key === 'cities' ? chosenCities : filters[key]).includes(value)} onCheckedChange={() => toggle(key, value)} />
           <Label htmlFor={`${id}-${key}-${value}`} className="flex-1 cursor-pointer py-1.5 text-sm font-normal capitalize text-warm-600">{label(value)}</Label>
         </div>)}
         {values.length === 0 && <p className="py-2 text-sm text-warm-500">No matching locations</p>}
@@ -45,10 +48,23 @@ function FilterFields({ filters, setFilters, cities, cityLabels = {} }: Pick<Fil
   );
   const matchingCities = cities.filter(city => `${city} ${cityLabels[city] || ''}`.toLowerCase().includes(citySearch.toLowerCase()));
   return <>
+    {legacyIntersection && <div role="note" className="my-3 rounded-lg border border-border p-3 text-sm leading-6">This old link uses area restrictions that cannot be safely converted to cities. Your current results are unchanged. To edit locations, remove the old area restrictions and switch to city selection. <Button variant="outline" className="mt-2 h-auto w-full whitespace-normal text-left" disabled={!cities.length} onClick={() => setFilters(previous => switchToCitySelection(previous, cities))}>Remove old area restrictions and select cities</Button></div>}
     {group('Job category', 'jobCategories', Object.keys(CATEGORY_LABELS), value => CATEGORY_LABELS[value] || value, true)}
     {group('Work model', 'workModels', WORK_MODELS, undefined, true)}
     {group('Seniority', 'seniorities', SENIORITIES)}
-    {group('Region', 'regions', Object.keys(REGION_LABELS), value => REGION_LABELS[value] || value)}
+    <details className="group border-b border-warm-100 py-4" open>
+      <summary className="flex min-h-11 sm:min-h-8 cursor-pointer items-center justify-between text-sm font-semibold text-warm-800"><span>Area - select cities</span><ChevronDown className="h-4 w-4" /></summary>
+      <p className="my-2 text-xs leading-5 text-muted">Choose an area to select its cities, then add or remove cities below. Areas are not administrative districts.</p>
+      <div className="space-y-1">{Object.entries(REGION_LABELS).map(([area, label]) => {
+        const members = citiesInArea(area, cities);
+        const count = members.filter(city => chosenCities.includes(city)).length;
+        return <div key={area} className="flex min-h-11 sm:min-h-9 items-center gap-2.5">
+          <Checkbox id={`${id}-area-${area}`} disabled={!members.length || legacyIntersection} checked={count === 0 ? false : count === members.length ? true : 'indeterminate'} onCheckedChange={() => setFilters(previous => toggleArea(previous, area, cities))} />
+          <Label htmlFor={`${id}-area-${area}`} className="flex flex-1 cursor-pointer items-center justify-between gap-2 py-1.5 text-sm font-normal text-warm-600"><bdi>{label}</bdi><span dir="ltr" className="shrink-0 text-xs text-muted" aria-label={`${count} of ${members.length} cities selected`}>{count}/{members.length}</span></Label>
+        </div>;
+      })}</div>
+      <p className="mt-2 text-xs leading-5 text-muted">Area selection includes mapped cities only. Jobs with no known city are not included.</p>
+    </details>
     {group('Location', 'cities', matchingCities, value => locationLabel(value, cityLabels), true)}
     {group('Employment type', 'employmentTypes', EMPLOYMENT_TYPES)}
     <div className="flex items-start gap-2.5 py-5">

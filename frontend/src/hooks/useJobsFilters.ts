@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type SetStateAction } from 'react';
 import { useLocation, useNavigate, useNavigationType } from 'react-router-dom';
 import { jobsQueryParams } from '@/api/jobs';
+import { citiesInArea, selectedCities } from '@/components/jobs/geography';
 import { EMPTY_FILTERS, filtersToQuery, readJobsFilters, type Filters } from '@/components/jobs/filters';
 
 /** The URL owns committed filters; the text field alone waits 250ms before committing. */
@@ -8,7 +9,14 @@ export function useJobsFilters(cities?: string[], allowPagination = true) {
   const location = useLocation();
   const navigate = useNavigate();
   const navigationType = useNavigationType();
-  const parsed = useMemo(() => readJobsFilters(new URLSearchParams(location.search), cities), [location.search, cities]);
+  const parsed = useMemo(() => {
+    const result = readJobsFilters(new URLSearchParams(location.search), cities);
+    // Migrate legacy area URLs into explicit city selections once the catalog is ready.
+    if (cities && result.filters.cities.length === 0 && result.filters.regions.length && result.filters.regions.every(area => citiesInArea(area, cities).length > 0)) {
+      result.filters = { ...result.filters, cities: selectedCities(result.filters, cities).sort(), regions: [] };
+    }
+    return result;
+  }, [location.search, cities]);
   const { filters, company } = parsed;
   const page = allowPagination ? parsed.page : 1;
   const [input, setInput] = useState({ key: location.key, value: filters.search, pendingSearch: null as string | null });
