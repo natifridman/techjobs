@@ -61,6 +61,7 @@ export function useAuth() {
     user: authState?.user || null,
     isAuthenticated: authState?.authenticated || false,
     isLoading,
+    isUnavailable: !!authState?.unavailable,
     login,
     logout
   };
