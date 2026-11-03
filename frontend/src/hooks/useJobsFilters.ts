@@ -12,7 +12,7 @@ export function useJobsFilters(cities?: string[], allowPagination = true) {
   const parsed = useMemo(() => {
     const result = readJobsFilters(new URLSearchParams(location.search), cities);
     // Migrate legacy area URLs into explicit city selections once the catalog is ready.
-    if (cities && result.filters.regions.length && result.filters.regions.every(area => citiesInArea(area, cities).length > 0)) {
+    if (cities && result.filters.cities.length === 0 && result.filters.regions.length && result.filters.regions.every(area => citiesInArea(area, cities).length > 0)) {
       result.filters = { ...result.filters, cities: selectedCities(result.filters, cities).sort(), regions: [] };
     }
     return result;

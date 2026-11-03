@@ -5,8 +5,9 @@ const cities = ['Yavne', 'Rehovot', 'Petah Tikva', 'Rosh HaAyin', 'Unknown'];
 describe('area city shortcuts', () => {
   it('preserves unmapped legacy areas when toggling an area or city', () => {
     const legacy={...EMPTY_FILTERS,regions:['center','judea-samaria']};
-    expect(toggleArea(legacy,'center',cities).regions).toEqual(['judea-samaria']);
-    expect(toggleCity({...EMPTY_FILTERS,cities:['Yavne'],regions:['judea-samaria']},'Yavne',cities).regions).toEqual(['judea-samaria']);
+    expect(toggleArea(legacy,'center',cities)).toEqual(legacy);
+    const intersection={...EMPTY_FILTERS,cities:['Yavne'],regions:['judea-samaria']};
+    expect(toggleCity(intersection,'Yavne',cities)).toEqual(intersection);
   });
   it('adds mapped cities without discarding an existing city or other filters', () => {
     const result = toggleArea({...EMPTY_FILTERS, cities:['Yavne'], search:'QA'}, 'center', cities);

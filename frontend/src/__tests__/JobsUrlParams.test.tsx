@@ -59,16 +59,39 @@ function renderJobs(route: string, profile = false) {
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); LOGIN.mockReset(); localStorage.clear(); });
 
 describe('Jobs URL params', () => {
+  it('preserves old city AND region URLs until explicit removal', async () => {
+    mockApi([{...JOBS[0],cities:['Yavne']},{...JOBS[1],cities:['Petah Tikva']}]);
+    renderJobs('/jobs?region=center&city=Yavne&workModel=remote');
+    const remove=await screen.findByRole('button',{name:'Remove old area restrictions and select cities'});
+    expect(screen.getByTestId('location').textContent).toContain('region=center');
+    expect(screen.getByTestId('location').textContent).not.toContain('city=Petah');
+    await waitFor(()=>expect(remove).toBeEnabled());
+    fireEvent.click(remove);
+    await waitFor(()=>expect(screen.getByTestId('location').textContent).not.toContain('region='));
+    expect(screen.getByTestId('location').textContent).toContain('city=Yavne');
+  });
+  it('holds mixed mapped and unmapped regions until explicit city-mode switch',async()=>{
+    mockApi([{...JOBS[0],cities:['Petah Tikva']},{...JOBS[1],cities:['Haifa']}]);
+    renderJobs('/jobs?region=center&region=haifa-krayot&region=judea-samaria');
+    const remove=await screen.findByRole('button',{name:'Remove old area restrictions and select cities'});
+    expect(screen.getByTestId('location').textContent).toContain('region=judea-samaria');
+    expect(screen.getByRole('checkbox',{name:/מרכז/})).toBeDisabled();
+    await waitFor(()=>expect(remove).toBeEnabled());
+    fireEvent.click(remove);
+    await waitFor(()=>expect(screen.getByTestId('location').textContent).not.toContain('region='));
+    expect(screen.getByTestId('location').textContent).toContain('city=Haifa');
+    expect(screen.getByTestId('location').textContent).toContain('city=Petah+Tikva');
+  });
   it('migrates legacy area links to city-only URLs after catalog loading', async () => {
     const rows = [{...JOBS[0], cities:['Yavne']}, {...JOBS[1], cities:['Petah Tikva']}];
     const calls=mockApi(rows, {Yavne:'יבנה','Petah Tikva':'פתח תקווה'});
-    renderJobs('/jobs?region=center&city=Yavne&workModel=remote');
+    renderJobs('/jobs?region=center&workModel=remote');
     await waitFor(() => {
       const url=screen.getByTestId('location').textContent!;
-      expect(url).not.toContain('region='); expect(url).toContain('city=Yavne'); expect(url).toContain('city=Petah+Tikva');
+      expect(url).not.toContain('region='); expect(url).not.toContain('city=Yavne'); expect(url).toContain('city=Petah+Tikva');
       expect(url).toContain('workModel=remote');
     });
-    expect(calls.some(url=>url.pathname==='/api/jobs'&&!url.searchParams.has('region')&&url.searchParams.getAll('city').length===2)).toBe(true);
+    expect(calls.some(url=>url.pathname==='/api/jobs'&&!url.searchParams.has('region')&&url.searchParams.getAll('city').length===1)).toBe(true);
   });
   it('does not silently broaden legacy areas with no mapped cities', async () => {
     mockApi();renderJobs('/jobs?region=judea-samaria');await screen.findByText('Backend Engineer');
