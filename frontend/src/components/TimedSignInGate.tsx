@@ -22,10 +22,14 @@ function saveElapsed(value: number) {
 }
 export default function TimedSignInGate() {
   const auth = useAuth();
-  const { pathname } = useLocation();
+  const { pathname, key } = useLocation();
   const browsing = BROWSING_ROUTES.has(pathname.toLowerCase().replace(/\/+$/, '') || '/');
   const guest = !auth.isLoading && !auth.isUnavailable && !auth.isAuthenticated;
-  const [expired, setExpired] = useState(false);
+  const entry = `${key}:${guest}:${browsing}`;
+  const [prepared, setPrepared] = useState({ entry, expired: false });
+  // A return navigation or auth transition is a new opening. Never reuse a
+  // previous opening's permission to mount before existing traps are released.
+  if (prepared.entry !== entry) setPrepared({ entry, expired: false });
   useEffect(() => {
     if (!guest || !browsing) return;
     let elapsed = readElapsed();
@@ -42,7 +46,7 @@ export default function TimedSignInGate() {
     const expire = () => {
       // Release custom modal focus traps and inert siblings before Radix mounts.
       flushSync(() => window.dispatchEvent(new Event('techjobs:mandatory-signin')));
-      setExpired(true);
+      setPrepared({ entry, expired: true });
     };
     const resume = () => {
       if (activeSince !== null || document.visibilityState === 'hidden') return;
@@ -66,8 +70,8 @@ export default function TimedSignInGate() {
       window.removeEventListener('pagehide', pause);
       window.removeEventListener('pageshow', resume);
     };
-  }, [guest, browsing, pathname]);
-  const open = guest && browsing && expired;
+  }, [guest, browsing, pathname, entry]);
+  const open = guest && browsing && prepared.entry === entry && prepared.expired;
   return <Dialog.Root open={open}>
     <Dialog.Portal>
       <Dialog.Overlay className="fixed inset-0 z-[200] bg-slate-950/70 backdrop-blur-sm" />
