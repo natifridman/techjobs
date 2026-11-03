@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { Link, useLocation } from 'react-router-dom';
 import * as Dialog from '@radix-ui/react-dialog';
 import { LockKeyhole } from 'lucide-react';
@@ -22,7 +23,7 @@ function saveElapsed(value: number) {
 export default function TimedSignInGate() {
   const auth = useAuth();
   const { pathname } = useLocation();
-  const browsing = BROWSING_ROUTES.has(pathname.toLowerCase());
+  const browsing = BROWSING_ROUTES.has(pathname.toLowerCase().replace(/\/+$/, '') || '/');
   const guest = !auth.isLoading && !auth.isUnavailable && !auth.isAuthenticated;
   const [expired, setExpired] = useState(false);
   useEffect(() => {
@@ -38,15 +39,20 @@ export default function TimedSignInGate() {
       }
       window.clearTimeout(timer);
     };
+    const expire = () => {
+      // Release custom modal focus traps and inert siblings before Radix mounts.
+      flushSync(() => window.dispatchEvent(new Event('techjobs:mandatory-signin')));
+      setExpired(true);
+    };
     const resume = () => {
       if (activeSince !== null || document.visibilityState === 'hidden') return;
-      if (elapsed >= GUEST_ALLOWANCE_MS) { setExpired(true); return; }
+      if (elapsed >= GUEST_ALLOWANCE_MS) { timer = window.setTimeout(expire, 0); return; }
       activeSince = performance.now();
       timer = window.setTimeout(() => {
         elapsed = GUEST_ALLOWANCE_MS;
         activeSince = null;
         saveElapsed(elapsed);
-        setExpired(true);
+        expire();
       }, Math.max(0, GUEST_ALLOWANCE_MS - elapsed));
     };
     const visibility = () => { if (document.visibilityState === 'hidden') pause(); else resume(); };
@@ -65,11 +71,11 @@ export default function TimedSignInGate() {
   return <Dialog.Root open={open}>
     <Dialog.Portal>
       <Dialog.Overlay className="fixed inset-0 z-[200] bg-slate-950/70 backdrop-blur-sm" />
-      <Dialog.Content onEscapeKeyDown={event => event.preventDefault()} onPointerDownOutside={event => event.preventDefault()} onInteractOutside={event => event.preventDefault()} className="fixed left-1/2 top-1/2 z-[201] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-surface p-6 text-center text-ink shadow-xl sm:p-8">
+      <Dialog.Content onEscapeKeyDown={event => event.preventDefault()} onPointerDownOutside={event => event.preventDefault()} onInteractOutside={event => event.preventDefault()} className="fixed left-1/2 top-1/2 z-[201] w-[calc(100%-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-surface p-6 text-center text-ink shadow-xl sm:p-8">
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-iris-50 text-primary"><LockKeyhole aria-hidden="true" className="h-6 w-6" /></div>
         <Dialog.Title className="text-2xl font-semibold">Sign in to keep exploring</Dialog.Title>
         <Dialog.Description className="mt-3 text-sm leading-6 text-muted">Your guest preview has ended. Continue with Google to browse all matching jobs and sync your saved jobs across devices.</Dialog.Description>
-        <Button className="mt-6 min-h-11 w-full" onClick={() => auth.login(window.location.href)}>Continue with Google</Button>
+        <Button className="mt-6 h-auto min-h-11 w-full whitespace-normal py-3 leading-6" onClick={() => auth.login(window.location.href)}>Continue with Google</Button>
         <p className="mt-3 text-xs text-muted">Your current search will be waiting after sign-in.</p>
         <nav aria-label="Sign-in information" className="mt-6 flex flex-wrap justify-center gap-x-4 gap-y-2 text-xs text-muted"><Link to="/privacy" className="underline">Privacy</Link><Link to="/terms" className="underline">Terms</Link><Link to="/accessibility" className="underline">Accessibility</Link></nav>
       </Dialog.Content>
