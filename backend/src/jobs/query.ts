@@ -58,6 +58,7 @@ export function parseJobsQuery(query: Record<string, unknown>): { filters: JobsF
 }
 
 const time = (value: string | null): number => value && Number.isFinite(Date.parse(value)) ? Date.parse(value) : 0;
+const normalizeTitle = (value: string): string => value.replace(/\s+/g, ' ').trim();
 const compareText = (a: string, b: string): number => a < b ? -1 : a > b ? 1 : 0;
 
 export function sortJobs(jobs: Job[], sort: 'balanced' | 'recent' = 'balanced'): Job[] {
@@ -80,11 +81,13 @@ export function sortJobs(jobs: Job[], sort: 'balanced' | 'recent' = 'balanced'):
 
 export function filterJobs(payload: JobsPayload, filters: JobsFilters): Job[] {
   const search = filters.search.toLowerCase();
+  const titleSearch = normalizeTitle(filters.search).toLowerCase();
   const labels = payload.cityLabels || {};
   const includes = (selected: string[], value: string | null) => selected.length === 0 || (value !== null && selected.includes(value));
   return sortJobs(payload.jobs.filter(job => {
     if (!filters.showClosed && isClosed(job)) return false;
     if (search && !(
+      (titleSearch && normalizeTitle(job.title).toLowerCase().includes(titleSearch)) ||
       [job.title, job.company, job.department, job.city, job.job_category].some(value => value?.toLowerCase().includes(search)) ||
       job.cityHe?.includes(filters.search) ||
       job.cities.some(city => city.toLowerCase().includes(search) || (labels[city] || '').toLowerCase().includes(search)) ||
@@ -152,14 +155,14 @@ export function buildCatalog(payload: JobsPayload, stale: boolean): JobsCatalog 
 
 // Aggregate open-role titles only. Never expose job URLs or full records.
 export function suggestJobTitles(payload: JobsPayload, query: string) {
- const needle=query.trim().toLocaleLowerCase();
+ const needle=normalizeTitle(query).toLowerCase();
  if(needle.length<2||needle.length>80)return [];
  const counts=new Map<string,{text:string;count:number}>();
  for(const job of payload.jobs){
-  const text=job.title.replace(/\s+/g,' ').trim();
-  if(isClosed(job)||!text.toLocaleLowerCase().includes(needle))continue;
-  const key=text.toLocaleLowerCase(),prior=counts.get(key);
+  const text=normalizeTitle(job.title);
+  if(isClosed(job)||!text.toLowerCase().includes(needle))continue;
+  const key=text.toLowerCase(),prior=counts.get(key);
   if(prior)prior.count++;else counts.set(key,{text,count:1});
  }
- return [...counts.values()].sort((a,b)=>Number(b.text.toLocaleLowerCase().startsWith(needle))-Number(a.text.toLocaleLowerCase().startsWith(needle))||b.count-a.count||compareText(a.text,b.text)).slice(0,6);
+ return [...counts.values()].sort((a,b)=>Number(b.text.toLowerCase().startsWith(needle))-Number(a.text.toLowerCase().startsWith(needle))||b.count-a.count||compareText(a.text,b.text)).slice(0,6);
 }

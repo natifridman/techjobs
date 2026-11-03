@@ -15,6 +15,12 @@ describe('job title suggestions',()=>{
   await u.keyboard('{ArrowDown}{Enter}');expect(input).toHaveValue('Product Manager');expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
   await u.type(input,'x');await screen.findByRole('listbox');await u.keyboard('{Escape}');expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
  });
+ it('resets selection after external query changes and a shorter result list',async()=>{
+  vi.mocked(fetchJobSuggestions).mockImplementation(async query=>query==='unique'?[{text:'Unique Role',count:1}]:[{text:'Product Manager',count:4},{text:'Product Designer',count:2}]);
+  const change=vi.fn(),u=userEvent.setup();const props={id:'history',label:'Search roles',onChange:change,placeholder:'Search'};
+  const {rerender}=render(<JobSearchInput {...props} value="product"/>);const input=screen.getByRole('searchbox');await u.click(input);await screen.findByRole('listbox');await u.keyboard('{ArrowDown}{ArrowDown}');expect(screen.getAllByRole('option')[1]).toHaveAttribute('aria-selected','true');
+  rerender(<JobSearchInput {...props} value="unique"/>);await screen.findByRole('option',{name:'Unique Role'});expect(input).not.toHaveAttribute('aria-activedescendant');await u.keyboard('{Enter}');expect(change).not.toHaveBeenCalled();await u.keyboard('{ArrowDown}{Enter}');expect(change).toHaveBeenCalledWith('Unique Role');
+ });
  it('keeps free text usable when suggestions fail',async()=>{
   let reject!: (reason:Error)=>void;vi.mocked(fetchJobSuggestions).mockImplementation(()=>new Promise((_,r)=>{reject=r;}));const u=userEvent.setup();render(<Demo/>);const input=screen.getByRole('searchbox');await u.type(input,'מוצר');await waitFor(()=>expect(typeof reject).toBe('function'));await act(async()=>reject(new Error('unavailable')));expect(input).toHaveValue('מוצר');expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
  });

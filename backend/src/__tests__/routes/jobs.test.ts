@@ -185,6 +185,12 @@ describe('open-role autocomplete',()=>{
   expect(JSON.stringify(response.body)).not.toContain('https://');
   expect(JSON.stringify(response.body)).not.toContain('Product Closed');
  });
+ it.each(['Product  Manager','Product\nManager','Product\u00a0Manager'])('selecting normalized title finds its source row: %s',async title=>{
+  jest.spyOn(jobsService,'getSnapshot').mockResolvedValue({payload:payload([job({title})]),stale:false});
+  const suggestions=await createUnauthenticatedRequest().get('/api/jobs/suggestions?q=product').expect(200);
+  expect(suggestions.body.suggestions[0].text).toBe('Product Manager');
+  const results=await createUnauthenticatedRequest().get('/api/jobs?search='+encodeURIComponent(suggestions.body.suggestions[0].text)).expect(200);expect(results.body.total).toBe(1);expect(results.body.jobs[0].title).toBe(title);
+ });
  it.each(['q=a&q=b','q='+ 'x'.repeat(81)])('rejects malformed suggestion queries %s',async query=>{
   await createUnauthenticatedRequest().get('/api/jobs/suggestions?'+query).expect(400);
  });
