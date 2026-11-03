@@ -69,13 +69,16 @@ export function citiesInArea(area: string, available: string[]): string[] {
 export function selectedCities(filters: Filters, available: string[]): string[] {
   return [...new Set([...filters.cities, ...filters.regions.flatMap(area => citiesInArea(area, available))])];
 }
+function unmappedAreas(filters: Filters, available: string[]): string[] {
+  return filters.regions.filter(area => citiesInArea(area, available).length === 0);
+}
 export function toggleArea(filters: Filters, area: string, available: string[]): Filters {
   const members = citiesInArea(area, available);
   const current = selectedCities(filters, available);
   const all = members.length > 0 && members.every(city => current.includes(city));
-  return { ...filters, regions: [], cities: all ? current.filter(city => !members.includes(city)) : [...new Set([...current, ...members])] };
+  return { ...filters, regions: unmappedAreas(filters, available), cities: all ? current.filter(city => !members.includes(city)) : [...new Set([...current, ...members])] };
 }
 export function toggleCity(filters: Filters, city: string, available: string[]): Filters {
   const current = selectedCities(filters, available);
-  return { ...filters, regions: [], cities: current.includes(city) ? current.filter(item => item !== city) : [...current, city] };
+  return { ...filters, regions: unmappedAreas(filters, available), cities: current.includes(city) ? current.filter(item => item !== city) : [...current, city] };
 }

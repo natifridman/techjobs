@@ -3,6 +3,11 @@ import { EMPTY_FILTERS } from '@/components/jobs/filters';
 import { selectedCities, toggleArea, toggleCity } from '@/components/jobs/geography';
 const cities = ['Yavne', 'Rehovot', 'Petah Tikva', 'Rosh HaAyin', 'Unknown'];
 describe('area city shortcuts', () => {
+  it('preserves unmapped legacy areas when toggling an area or city', () => {
+    const legacy={...EMPTY_FILTERS,regions:['center','judea-samaria']};
+    expect(toggleArea(legacy,'center',cities).regions).toEqual(['judea-samaria']);
+    expect(toggleCity({...EMPTY_FILTERS,cities:['Yavne'],regions:['judea-samaria']},'Yavne',cities).regions).toEqual(['judea-samaria']);
+  });
   it('adds mapped cities without discarding an existing city or other filters', () => {
     const result = toggleArea({...EMPTY_FILTERS, cities:['Yavne'], search:'QA'}, 'center', cities);
     expect(result.cities).toEqual(['Yavne','Petah Tikva','Rosh HaAyin']);
