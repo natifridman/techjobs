@@ -36,8 +36,18 @@ describe('Branded support links',()=>{
    expect(bit.querySelector('img')).toHaveAttribute('src', '/support/bit.jpg');
    expect(bit.querySelector('img')).toHaveAttribute('aria-hidden', 'true');
   }
-  expect(primary.querySelector('img')).toHaveAttribute('src', '/support/patreon.jpg');
-  expect(a.querySelector('img')).toHaveAttribute('src', '/support/patreon.jpg');
+  for (const container of [strip, footer]) {
+   const supportLinks = within(container).getAllByRole('link').filter(a => /Support.*(?:Patreon|PayBox|Bit)/.test(a.getAttribute('aria-label') || ''));
+   expect(supportLinks).toHaveLength(3);
+   for (const link of supportLinks) {
+    expect(link.className).not.toContain('bg-white');
+    expect(link.className).not.toContain('shadow-sm');
+    expect(link.className).toContain('min-h-11');
+    expect(link.className).toContain('focus-visible:outline');
+   }
+  }
+  expect(primary.querySelector('img')).toHaveAttribute('src', '/support/patreon.png');
+  expect(a.querySelector('img')).toHaveAttribute('src', '/support/patreon.png');
   expect(within(strip).getByRole('navigation', {name: 'Support options'})).toBeInTheDocument();
   for(const name of ['Privacy','Terms','Accessibility'])expect(within(footer).getByRole('link',{name})).toBeInTheDocument();
   expect(within(footer).getByRole('button',{name:'Suggest a company'})).toBeInTheDocument();
