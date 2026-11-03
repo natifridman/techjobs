@@ -149,3 +149,17 @@ export function buildCatalog(payload: JobsPayload, stale: boolean): JobsCatalog 
   return { updatedAt: payload.updatedAt, stale, stats: { jobs: open.length, companies: companyMap.size, cities: cityMap.size },
     categoryCounts, cityLabels: labels, facets: { cities: [...allCities].sort(byCity) }, companies, cities };
 }
+
+// Aggregate open-role titles only. Never expose job URLs or full records.
+export function suggestJobTitles(payload: JobsPayload, query: string) {
+ const needle=query.trim().toLocaleLowerCase();
+ if(needle.length<2||needle.length>80)return [];
+ const counts=new Map<string,{text:string;count:number}>();
+ for(const job of payload.jobs){
+  const text=job.title.replace(/\s+/g,' ').trim();
+  if(isClosed(job)||!text.toLocaleLowerCase().includes(needle))continue;
+  const key=text.toLocaleLowerCase(),prior=counts.get(key);
+  if(prior)prior.count++;else counts.set(key,{text,count:1});
+ }
+ return [...counts.values()].sort((a,b)=>Number(b.text.toLocaleLowerCase().startsWith(needle))-Number(a.text.toLocaleLowerCase().startsWith(needle))||b.count-a.count||compareText(a.text,b.text)).slice(0,6);
+}

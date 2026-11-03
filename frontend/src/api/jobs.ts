@@ -108,3 +108,11 @@ export async function exportJobsCsv(query: JobsQuery, signal?: AbortSignal): Pro
   const response = await checkedFetch(`/jobs/export?${jobsQueryParams(query, false)}`, signal);
   return response.blob();
 }
+
+export interface JobSuggestion {text:string;count:number}
+export async function fetchJobSuggestions(query:string,signal?:AbortSignal):Promise<JobSuggestion[]> {
+ const response=await checkedFetch(`/jobs/suggestions?q=${encodeURIComponent(query)}`,signal);
+ const data=await response.json();
+ if(!Array.isArray(data?.suggestions))return [];
+ return data.suggestions.filter((x:JobSuggestion)=>typeof x.text==='string'&&Number.isInteger(x.count)&&x.count>0).slice(0,6);
+}
