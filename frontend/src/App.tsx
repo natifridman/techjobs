@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import AuthErrorToast from '@/components/AuthErrorToast';
+import TimedSignInGate from '@/components/TimedSignInGate';
 import { Toaster } from 'sonner';
 import { useTheme } from '@/hooks/useTheme';
 
@@ -73,6 +74,7 @@ function App() {
       <Router>
         <PageTitle />
         <AuthErrorToast />
+        <TimedSignInGate />
         <RouteNavigation />
         <Layout>
           <ErrorBoundary>
