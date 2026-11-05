@@ -11,6 +11,7 @@ export interface User {
 
 export interface AuthState {
   authenticated: boolean;
+  unavailable?: boolean;
   user: User | null;
 }
 
@@ -23,12 +24,12 @@ export const authApi = {
         cache: 'no-store',
       });
       if (!response.ok) {
-        return { authenticated: false, user: null };
+        return { authenticated: false, user: null, ...(response.status === 401 || response.status === 403 ? {} : { unavailable: true }) };
       }
       return await response.json();
     } catch (error) {
       console.error('Error fetching auth state:', error);
-      return { authenticated: false, user: null };
+      return { authenticated: false, user: null, unavailable: true };
     }
   },
 
