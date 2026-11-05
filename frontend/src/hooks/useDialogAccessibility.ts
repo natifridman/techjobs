@@ -166,6 +166,14 @@ export function useDialogAccessibility({
 }: UseDialogAccessibilityOptions): UseDialogAccessibilityReturn {
   const dialogRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const priorityClose = useRef(onClose);
+  useEffect(() => { priorityClose.current = onClose; }, [onClose]);
+  useEffect(() => {
+    const releaseForSignIn = () => priorityClose.current();
+    window.addEventListener('techjobs:mandatory-signin', releaseForSignIn);
+    return () => window.removeEventListener('techjobs:mandatory-signin', releaseForSignIn);
+  }, []);
+
 
   // Inert siblings along the dialog's ancestor path, while keeping its backdrop clickable.
   useEffect(() => {
