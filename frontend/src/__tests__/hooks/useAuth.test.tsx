@@ -138,6 +138,40 @@ describe('useAuth', () => {
     });
   });
 
+  describe('when auth is unavailable', () => {
+    it('schedules a 30s recheck while unavailable and stops polling after recovery', async () => {
+      let queryClient: QueryClient | undefined;
+      function Wrapper({ children }: { children: React.ReactNode }) {
+        const [client] = React.useState(() => new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } }));
+        queryClient = client;
+        return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+      }
+      server.use(
+        http.get('/auth/me', () => {
+          return HttpResponse.json({ authenticated: false, user: null, unavailable: true });
+        })
+      );
+      const { result } = renderHook(() => useAuth(), { wrapper: Wrapper });
+      await waitFor(() => expect(result.current.isUnavailable).toBe(true));
+      const query = queryClient!.getQueryCache().find({ queryKey: ['auth'] })!;
+      // QueryOptions' static type omits observer options; the runtime object carries them.
+      const interval = (query.options as { refetchInterval?: unknown }).refetchInterval;
+      expect(typeof interval).toBe('function');
+      // While unavailable: poll every 30s so service recovery is detected without a focus event.
+      expect((interval as (q: typeof query) => number | false)(query)).toBe(30_000);
+
+      // Recovery: plain guest result -> state updates and the poll is withdrawn.
+      server.use(
+        http.get('/auth/me', () => {
+          return HttpResponse.json({ authenticated: false, user: null });
+        })
+      );
+      await queryClient!.invalidateQueries({ queryKey: ['auth'] });
+      await waitFor(() => expect(result.current.isUnavailable).toBe(false));
+      expect((interval as (q: typeof query) => number | false)(query)).toBe(false);
+    });
+  });
+
   describe('on error', () => {
     beforeEach(() => {
       server.use(
