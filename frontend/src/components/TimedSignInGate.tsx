@@ -31,7 +31,10 @@ export default function TimedSignInGate() {
   const auth = useAuth();
   const { pathname, key } = useLocation();
   const browsing = BROWSING_ROUTES.has(pathname.toLowerCase().replace(/\/+$/, '') || '/');
-  const guest = !auth.isLoading && !auth.isUnavailable && !auth.isAuthenticated;
+  // Auth can be unresolved while isLoading is false: an offline-paused initial
+  // query (isPending) or a refetch still in flight (isFetching). Never gate
+  // before the query settles; the effect below preserves elapsed time while waiting.
+  const guest = !auth.isPending && !auth.isFetching && !auth.isUnavailable && !auth.isAuthenticated;
   const entry = `${key}:${guest}:${browsing}`;
   const [prepared, setPrepared] = useState({ entry, expired: false });
   // A return navigation or auth transition is a new opening. Never reuse a
