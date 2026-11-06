@@ -10,16 +10,23 @@ const KEY = 'techjobs_guest_browsing_time_v1';
 export const GUEST_ALLOWANCE_MS = 30_000;
 const BROWSING_ROUTES = new Set(['/', '/jobs', '/companies', '/company', '/companyprofile', '/saved', '/map']);
 let memoryElapsed = 0;
+let storageWriteFailed = false;
+/** Reads the accumulated guest browsing time, falling back to the in-memory
+ * value only when storage is unreadable or a previous write failed. */
 function readElapsed(): number {
+  if (storageWriteFailed) return memoryElapsed;
   try {
     const value = Number(sessionStorage.getItem(KEY));
     return Number.isFinite(value) && value >= 0 ? Math.min(value, GUEST_ALLOWANCE_MS) : 0;
   } catch { return memoryElapsed; }
 }
+/** Persists the accumulated guest browsing time, switching reads to the
+ * in-memory fallback when a sessionStorage write fails. */
 function saveElapsed(value: number) {
   memoryElapsed = Math.max(0, Math.min(value, GUEST_ALLOWANCE_MS));
-  try { sessionStorage.setItem(KEY, String(memoryElapsed)); } catch { /* Storage can be disabled. */ }
+  try { sessionStorage.setItem(KEY, String(memoryElapsed)); storageWriteFailed = false; } catch { storageWriteFailed = true; /* Storage can be disabled. */ }
 }
+/** Opens a mandatory Google sign-in dialog once a guest's browsing allowance is spent. */
 export default function TimedSignInGate() {
   const auth = useAuth();
   const { pathname, key } = useLocation();
@@ -50,7 +57,7 @@ export default function TimedSignInGate() {
     };
     const resume = () => {
       if (activeSince !== null || document.visibilityState === 'hidden') return;
-      if (elapsed >= GUEST_ALLOWANCE_MS) { timer = window.setTimeout(expire, 0); return; }
+      if (elapsed >= GUEST_ALLOWANCE_MS) { window.clearTimeout(timer); timer = window.setTimeout(expire, 0); return; }
       activeSince = performance.now();
       timer = window.setTimeout(() => {
         elapsed = GUEST_ALLOWANCE_MS;
