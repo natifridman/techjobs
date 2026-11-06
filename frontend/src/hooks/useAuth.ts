@@ -9,11 +9,14 @@ export function useAuth() {
   const queryClient = useQueryClient();
   const posthog = usePostHog();
 
-  const { data: authState, isLoading } = useQuery<AuthState>({
+  const { data: authState, isLoading, isPending, isFetching } = useQuery<AuthState>({
     queryKey: ['auth'],
     queryFn: authApi.getMe,
     staleTime: 1000 * 60 * 5, // 5 minutes
     refetchOnWindowFocus: 'always',
+    // Recheck periodically while unavailable so service recovery is detected
+    // without waiting for a window focus event.
+    refetchInterval: (query) => (query.state.data?.unavailable ? 30_000 : false),
     retry: false
   });
 
@@ -61,6 +64,8 @@ export function useAuth() {
     user: authState?.user || null,
     isAuthenticated: authState?.authenticated || false,
     isLoading,
+    isPending,
+    isFetching,
     isUnavailable: !!authState?.unavailable,
     login,
     logout
