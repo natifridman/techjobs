@@ -154,7 +154,8 @@ describe('useAuth', () => {
       const { result } = renderHook(() => useAuth(), { wrapper: Wrapper });
       await waitFor(() => expect(result.current.isUnavailable).toBe(true));
       const query = queryClient!.getQueryCache().find({ queryKey: ['auth'] })!;
-      const interval = query.options.refetchInterval;
+      // QueryOptions' static type omits observer options; the runtime object carries them.
+      const interval = (query.options as { refetchInterval?: unknown }).refetchInterval;
       expect(typeof interval).toBe('function');
       // While unavailable: poll every 30s so service recovery is detected without a focus event.
       expect((interval as (q: typeof query) => number | false)(query)).toBe(30_000);
