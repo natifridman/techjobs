@@ -136,11 +136,14 @@ describe('global header', () => {
   it('offers keyboard-accessible color themes in the mobile navigation drawer', async () => {
     const user = userEvent.setup(); renderHeader();
     await user.click(screen.getByRole('button', { name: 'Open navigation menu' }));
+    const drawerLogo = within(screen.getByRole('dialog', { name: 'Navigation menu' })).getByRole('img', { name: 'TechJobsIL' });
+    expect(drawerLogo).toHaveAttribute('src', '/brand/techjobsil-wordmark.svg?v=2');
     const dark = screen.getByRole('radio', { name: 'Dark' });
     await user.click(dark);
     expect(dark).toBeChecked();
     expect(document.documentElement).toHaveAttribute('data-theme', 'dark');
     expect(localStorage.getItem('techjobs-theme')).toBe('dark');
+    expect(drawerLogo).toHaveAttribute('src', '/brand/techjobsil-wordmark-dark.svg?v=2');
     dark.focus();
     await user.keyboard('{ArrowRight}');
     expect(screen.getByRole('radio', { name: 'System' })).toBeChecked();

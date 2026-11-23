@@ -532,7 +532,7 @@ html.high-contrast [class*="text-muted"], html.high-contrast [class*="text-ink"]
 
 .leaflet-control-zoom a { min-width: 44px; min-height: 44px; line-height: 44px !important; }
 .leaflet-control-attribution a { text-decoration: underline; }
-html.high-contrast img[src="/brand/techjobsil-symbol.svg"] { filter: brightness(0) invert(1); }
+html.high-contrast .brand-logo { filter: brightness(0) invert(1); }
 
 /* Shared discovery layouts retain the same palette in both color themes. */
 @theme { --container-7xl: 75rem; }

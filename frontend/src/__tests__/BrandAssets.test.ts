@@ -13,7 +13,8 @@ describe('brand assets', () => {
   });
   it('publishes metadata for the full-size social image', () => {
     const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
-    expect(html).toContain('https://techjobsil.com/techjobsil-og.png');
+    expect(html).toContain('property="og:image" content="https://techjobsil.com/techjobsil-og.png?v=2"');
+    expect(html).toContain('name="twitter:image" content="https://techjobsil.com/techjobsil-og.png?v=2"');
     expect(html).toContain('content="summary_large_image"');
     expect(html).toContain('property="og:image:width" content="1200"');
   });

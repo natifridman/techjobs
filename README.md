@@ -139,7 +139,7 @@ Company suggestions use a labeled form and readable review step before opening t
 
 ## Identity
 
-The visual identity uses a minimal geometric Israeli star, an indigo/slate wordmark, and light and dark interfaces. Brand assets live in `frontend/public/brand/`, with favicon, application icon, and social preview files in `frontend/public/`. The historical `/techjobsil-logo-64.png` URL remains available with the refreshed mark.
+The TechJobsIL logo pairs a blue magnifying glass and chevron with a navy-and-blue wordmark. The header logo adapts to light, dark, and high-contrast settings. Brand assets live in `frontend/public/brand/`, with favicon, application icon, and social preview files in `frontend/public/`. The historical `/techjobsil-logo-64.png` URL serves the magnifying-glass mark.
 
 Choose **Light**, **Dark**, or **System** from the header's color-theme control (inside the navigation menu on mobile). System is the default and follows the operating system. An explicit choice is saved on the device and synchronized between tabs. The theme is applied before the first paint, including the browser chrome color; if storage is unavailable, switching still works for the current page.
 
