@@ -31,6 +31,9 @@ export default function LayoutHeader() {
     return () => { observer?.disconnect(); window.removeEventListener('resize', measure); };
   }, []);
   const { resolvedTheme } = useTheme();
+  const logoVariant = resolvedTheme === 'dark' ? '-dark' : '';
+  const wordmarkSrc = `/brand/techjobsil-wordmark${logoVariant}.svg?v=2`;
+  const symbolSrc = `/brand/techjobsil-symbol${logoVariant}.svg?v=2`;
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -65,13 +68,13 @@ export default function LayoutHeader() {
     <>
       <header ref={headerRef} className="sticky top-0 z-50 border-b border-border bg-surface">
         <div className="mx-auto flex min-h-16 max-w-7xl flex-wrap items-center justify-between gap-2 px-4 py-2 sm:gap-4">
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex min-w-0 flex-1 items-center gap-2 md:flex-initial">
             <Button ref={triggerRef} variant="ghost" size="icon" className="shrink-0 md:hidden" onClick={() => setIsMobileMenuOpen(true)} aria-label="Open navigation menu" title="Navigation and color theme" aria-expanded={isMobileMenuOpen} aria-controls="mobile-menu">
               <Menu className="h-5 w-5" aria-hidden="true" />
             </Button>
-            <Link to="/" className="flex min-h-11 shrink-0 items-center gap-2.5 rounded-lg" aria-label="TechJobsIL home">
-              <img src={resolvedTheme === 'dark' ? '/brand/techjobsil-symbol-white.svg' : '/brand/techjobsil-symbol.svg'} alt="" width="28" height="28" />
-              <span className="text-lg font-bold tracking-tight text-ink sm:text-xl">TechJobs<span className="text-primary">IL</span></span>
+            <Link to="/" className="@container flex min-h-11 w-40 min-w-8 items-center rounded-lg sm:w-44" aria-label="TechJobsIL home">
+              <img src={wordmarkSrc} alt="" width="1572" height="324" className="brand-logo hidden h-auto w-full @min-[7.5rem]:block" />
+              <img src={symbolSrc} alt="" width="324" height="324" className="brand-logo size-8 @min-[7.5rem]:hidden" />
             </Link>
           </div>
           <nav className="hidden items-center gap-1 md:flex" aria-label="Main navigation">
@@ -83,7 +86,7 @@ export default function LayoutHeader() {
               </Button>
             ))}
           </nav>
-          <div className="ms-auto flex items-center gap-1 sm:gap-2 md:ms-0" aria-label="Account, appearance and accessibility">
+          <div className="ms-auto flex shrink-0 items-center gap-1 sm:gap-2 md:ms-0" aria-label="Account, appearance and accessibility">
             <div className="hidden md:block"><ThemeSwitcher compact /></div>
             <div className="hidden md:block"><AccessibilityWidget /></div>
             {isLoading ? (
@@ -105,9 +108,9 @@ export default function LayoutHeader() {
         <div className="fixed inset-0 z-[100] md:hidden">
           <div className="absolute inset-0 bg-slate-900/30" onClick={closeAndReturnFocus} aria-hidden="true" />
           <div ref={dialogRef} id="mobile-menu" role="dialog" aria-modal="true" aria-label="Navigation menu" tabIndex={-1} className="absolute inset-y-0 start-0 flex w-80 max-w-[90vw] flex-col bg-surface shadow-xl">
-            <div className="flex shrink-0 items-center justify-between border-b border-border p-4">
-              <span className="font-semibold text-ink">TechJobsIL</span>
-              <Button variant="ghost" size="icon" onClick={closeAndReturnFocus} aria-label="Close navigation menu"><X className="h-5 w-5" aria-hidden="true" /></Button>
+            <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border p-4">
+              <img src={wordmarkSrc} alt="TechJobsIL" width="1572" height="324" className="brand-logo h-auto w-36 min-w-0" />
+              <Button variant="ghost" size="icon" className="shrink-0" onClick={closeAndReturnFocus} aria-label="Close navigation menu"><X className="h-5 w-5" aria-hidden="true" /></Button>
             </div>
             <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain [&>*]:shrink-0">
               <ThemeSwitcher />
