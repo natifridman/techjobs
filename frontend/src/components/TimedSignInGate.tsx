@@ -7,7 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 
 const KEY = 'techjobs_guest_browsing_time_v1';
-export const GUEST_ALLOWANCE_MS = 30_000;
+export const GUEST_ALLOWANCE_MS = 180_000;
 const BROWSING_ROUTES = new Set(['/', '/jobs', '/companies', '/company', '/companyprofile', '/saved', '/map']);
 let memoryElapsed = 0;
 let storageWriteFailed = false;
